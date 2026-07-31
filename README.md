@@ -20,7 +20,7 @@ unique across all users, not per account.
 
 | Step | What happens |
 |---|---|
-| 1. Evidence | Paste an existing resume and it is split into separate entries, or add them by hand. You grade each one. |
+| 1. Evidence | Upload a PDF, Word, text or Markdown resume, or paste it. It is split into separate entries. You grade each one. |
 | 2. Target role | Paste a job description. It is read for skills, tools and platforms. |
 | 3. Match | Entries are ranked by how much of that posting they answer. You pick what makes the page. |
 | 4. Resume | A one-column ATS-safe document, editable as plain text, exportable to PDF. |
@@ -45,10 +45,46 @@ preparation and can never reach the document. A statistic sitting next to your
 name gets read as your result, and that is the specific failure this product
 exists to prevent.
 
+## File import
+
+PDF, DOCX, TXT and MD, all read inside the browser. Text and Markdown are read
+directly. PDF uses pdf.js and Word uses mammoth.js, both **lazy-loaded from CDN
+only when someone actually opens one of those formats**, so a user who pastes
+text never triggers a third-party request.
+
+The PDF reader rebuilds lines from glyph positions rather than concatenating
+text runs, because a naive join destroys the line breaks the splitter needs to
+find job blocks. Markdown syntax is stripped before splitting. Old binary `.doc`
+is refused with a clear message; a browser cannot read it.
+
+Verified against generated fixtures in all four formats: same 2 companies, same
+roles, same dates, no syntax leakage.
+
 ## Bring your own model
 
-Optional. Connect an Anthropic, OpenAI, OpenRouter or any OpenAI-compatible key
-and it is used for four things only:
+**One-click sign-in works through OpenRouter only, and that is a platform
+constraint rather than a shortcut.** OAuth with PKCE is designed for public
+clients that cannot hold a secret, so a static site can complete it with no
+backend and no client registration. One connection then reaches Claude, GPT,
+Gemini, Llama, DeepSeek, Mistral, Grok and Qwen.
+
+The direct providers do not offer an equivalent:
+
+- **Anthropic prohibited it.** As of February 2026 their terms bar using OAuth
+  tokens from Claude Free, Pro or Max in any third-party product, with billing
+  enforcement from April 2026. Building "Sign in with Claude" would break the
+  terms and break for users.
+- **OpenAI's OAuth is not officially supported** for this. Shipping a paid
+  product on an unsupported flow invites a silent breakage.
+- **Google Gemini** OAuth needs a GCP project and a client secret, and a secret
+  cannot live in a static site.
+
+So every other provider is a pasted key, with a one-click deep link to that
+provider's key page. Nine providers are preconfigured with sensible default
+models: OpenRouter, Anthropic, OpenAI, Google Gemini, Groq, DeepSeek, Mistral,
+xAI and Together, plus any OpenAI-compatible endpoint.
+
+Whichever route, the model is used for four things only:
 
 - interviewing you to surface numbers you already have
 - tightening wording you already wrote

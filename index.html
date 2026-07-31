@@ -349,6 +349,46 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 .msg.bad{background:var(--none-bg); color:var(--none)}
 .msg.good{background:var(--audited-bg); color:var(--audited)}
 
+/* ---------- file drop ---------- */
+.drop{
+  border:2px dashed var(--hairline); border-radius:10px; background:var(--page);
+  padding:20px 18px; margin:16px 0 4px; transition:.15s; cursor:pointer;
+}
+.drop:hover, .drop.over{border-color:var(--accent); background:rgba(196,51,26,.04)}
+.drop-in{display:flex; gap:13px; align-items:center; color:var(--ink-2)}
+.drop-in svg{flex:none; color:var(--accent)}
+.drop-in b{display:block; font-size:13.5px; font-weight:600; color:var(--ink)}
+.drop-in span{display:block; font-size:12.5px; color:var(--muted); margin-top:2px}
+.or{
+  display:flex; align-items:center; gap:12px; margin:16px 0 12px;
+  font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600;
+}
+.or::before,.or::after{content:""; flex:1; height:1px; background:var(--hairline)}
+
+/* ---------- provider grid ---------- */
+.prov{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:12px 0 4px}
+.prov button{
+  display:flex; align-items:center; gap:10px; text-align:left; padding:11px 13px;
+  border:1px solid var(--hairline); border-radius:9px; background:var(--surface); color:var(--ink);
+  font-size:13.5px; font-weight:600;
+}
+.prov button:hover{border-color:var(--accent)}
+.prov button[aria-pressed="true"]{border-color:var(--accent); background:rgba(196,51,26,.05)}
+.prov .pi{
+  width:26px; height:26px; border-radius:6px; flex:none; display:grid; place-items:center;
+  font-size:12px; font-weight:800; color:var(--surface);
+}
+.prov small{display:block; font-weight:400; font-size:11.5px; color:var(--muted); margin-top:1px}
+.hero-sso{
+  border:1px solid var(--audited); background:var(--audited-bg); border-radius:10px;
+  padding:16px; margin-bottom:16px;
+}
+.hero-sso h4{font-size:14px; margin:0 0 4px; color:var(--audited)}
+.hero-sso p{font-size:12.8px; color:var(--ink-2); margin:0 0 12px}
+.btn.sso{background:var(--audited); border-color:var(--audited); width:100%; justify-content:center;
+  display:flex; align-items:center; gap:8px; padding:11px}
+@media (max-width:600px){ .prov{grid-template-columns:1fr} }
+
 /* ---------- footer + legal ---------- */
 .foot{
   margin-top:40px; padding-top:18px; border-top:1px solid var(--hairline);
@@ -734,12 +774,27 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 <!-- ============ PASTE RESUME ============ -->
 <div class="veil" id="pasteVeil">
   <div class="modal wide">
-    <h3>Paste your current resume</h3>
-    <p>Copy everything out of your existing resume and paste it below. Word, Google Docs, a PDF,
-       LinkedIn, it does not matter. The text is split into separate entries for you to check.
-       It stays on this device.</p>
-    <div class="field" style="margin-top:14px">
-      <textarea id="pasteBox" style="min-height:230px"
+    <h3>Bring in your current resume</h3>
+    <p>Upload the file or paste the text. Either way it is split into separate entries for you to
+       check, and it stays on this device.</p>
+
+    <div class="drop" id="drop">
+      <input type="file" id="resumeFile" accept=".pdf,.docx,.txt,.md,.markdown,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+      <div class="drop-in">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 16V4M12 4L7 9M12 4l5 5"/><path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/>
+        </svg>
+        <div><b>Drop your resume here, or <button type="button" class="linkbtn" id="browseBtn">choose a file</button></b>
+          <span>PDF, Word, plain text or Markdown. Read in your browser, never uploaded.</span></div>
+      </div>
+    </div>
+    <div class="msg" id="fileMsg"></div>
+
+    <div class="or"><span>or paste the text</span></div>
+
+    <div class="field">
+      <textarea id="pasteBox" style="min-height:170px"
         placeholder="Northwind Logistics&#10;Operations Analyst | March 2024 to Present&#10;• Rebuilt the returns workflow and cut support tickets 41%&#10;• Wrote the SQL behind the weekly operations review&#10;&#10;Brightside Retail&#10;Coordinator | 2022 to 2024&#10;• Ran vendor onboarding for 94 suppliers"></textarea>
     </div>
     <div class="btnrow">
@@ -775,10 +830,16 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
        by this tool, because there is not one. Your key is stored in your browser and you can remove
        it at any time with <b>Disconnect</b>.</p>
 
+    <h4 class="lh">If you upload a file</h4>
+    <p>Your file is read inside your browser and is never uploaded anywhere. Plain text and
+       Markdown are read directly. PDF and Word need a reader, so the first time you open one of
+       those the page fetches the open-source pdf.js or mammoth.js library from a public CDN
+       (cdnjs.cloudflare.com). Only the library comes down; your document never goes up.</p>
+
     <h4 class="lh">Analytics</h4>
     <p>There are no analytics scripts, no cookies, no pixels, no fingerprinting and no third-party
-       trackers on this page. The only outbound request the page makes on its own is to Google Fonts
-       to load the typeface. The hosting provider keeps standard server logs, as all web hosts do.</p>
+       trackers on this page. The only outbound request made on load is to Google Fonts for the
+       typeface. The hosting provider keeps standard server logs, as all web hosts do.</p>
 
     <h4 class="lh">Your rights</h4>
     <p>Because no personal data is collected or held, there is nothing to request, export or delete
@@ -805,21 +866,45 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 <!-- ============ AI SETTINGS ============ -->
 <div class="veil" id="aiVeil">
   <div class="modal wide">
-    <h3>Connect your own AI model</h3>
-    <p>Optional. The tool works fully without it. If you connect a key, requests go straight from
-       this browser to the provider you choose, and the key is stored on this device only.
-       There is no server in this product for it to travel through.</p>
-    <div class="row" style="margin-top:16px">
+    <h3>Connect a model</h3>
+    <p>Optional. Everything works without it. Requests go straight from this browser to the
+       provider, and the key is stored on this device only. There is no server in this product
+       for it to travel through.</p>
+
+    <div class="hero-sso">
+      <h4>One click, every major model</h4>
+      <p>Sign in through OpenRouter and you get Claude, GPT, Gemini, Llama, DeepSeek, Mistral,
+         Grok and Qwen behind a single connection. No key to copy, no account to set up here.
+         You approve it on OpenRouter and land back on this page connected.</p>
+      <button class="btn sso" id="ssoBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 L9.5 18 L20 6.5"/></svg>
+        Sign in with OpenRouter
+      </button>
+    </div>
+
+    <div class="or"><span>or use a provider key directly</span></div>
+
+    <div class="prov" id="provGrid"></div>
+
+    <div class="row" style="margin-top:14px">
       <div class="field"><label for="aiProv">Provider</label>
         <select id="aiProv">
+          <option value="openrouter">OpenRouter</option>
           <option value="anthropic">Anthropic</option>
           <option value="openai">OpenAI</option>
-          <option value="openrouter">OpenRouter</option>
+          <option value="google">Google Gemini</option>
+          <option value="groq">Groq</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="mistral">Mistral</option>
+          <option value="xai">xAI Grok</option>
+          <option value="together">Together AI</option>
           <option value="custom">Other, OpenAI compatible</option>
         </select></div>
       <div class="field"><label for="aiModel">Model</label>
         <input type="text" id="aiModel" placeholder="claude-sonnet-5"></div>
     </div>
+    <p id="keyHelp" style="font-size:12.5px; color:var(--muted); margin:-6px 0 12px"></p>
     <div class="field" id="aiUrlField" hidden><label for="aiBase">API endpoint</label>
       <input type="text" id="aiBase" placeholder="https://your-host/v1/chat/completions"></div>
     <div class="field"><label for="aiKey">API key</label>
@@ -1282,12 +1367,32 @@ $("demoBtn").addEventListener("click",function(){
    and pointing at gaps. It is forbidden from producing a metric, and it never
    sets a grade. Grading stays deterministic.
    ========================================================================= */
-var AI={provider:"anthropic", key:"", model:"", baseUrl:""};
+var AI={provider:"openrouter", key:"", model:"", baseUrl:""};
+
+/* Every provider below speaks the OpenAI chat-completions shape except Anthropic
+   and Google, which are handled separately in aiCall.
+   `keys` is the direct link to that provider's key page, so "get a key" is one
+   click rather than a hunt through a console. */
 var AI_DEFAULTS={
-  anthropic:{model:"claude-sonnet-5", url:"https://api.anthropic.com/v1/messages"},
-  openai:{model:"gpt-4o", url:"https://api.openai.com/v1/chat/completions"},
-  openrouter:{model:"anthropic/claude-sonnet-5", url:"https://openrouter.ai/api/v1/chat/completions"},
-  custom:{model:"", url:""}
+  openrouter:{label:"OpenRouter", model:"anthropic/claude-sonnet-5", url:"https://openrouter.ai/api/v1/chat/completions",
+    keys:"https://openrouter.ai/keys", colour:"#6467F2", initials:"OR", note:"One key, every major model."},
+  anthropic:{label:"Anthropic", model:"claude-sonnet-5", url:"https://api.anthropic.com/v1/messages",
+    keys:"https://console.anthropic.com/settings/keys", colour:"#C4331A", initials:"A", note:"Claude, direct."},
+  openai:{label:"OpenAI", model:"gpt-4o", url:"https://api.openai.com/v1/chat/completions",
+    keys:"https://platform.openai.com/api-keys", colour:"#10A37F", initials:"AI", note:"GPT, direct."},
+  google:{label:"Google Gemini", model:"gemini-2.0-flash", url:"https://generativelanguage.googleapis.com",
+    keys:"https://aistudio.google.com/apikey", colour:"#3D5A80", initials:"G", note:"Gemini, free tier available."},
+  groq:{label:"Groq", model:"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions",
+    keys:"https://console.groq.com/keys", colour:"#A0670F", initials:"GQ", note:"Very fast, free tier."},
+  deepseek:{label:"DeepSeek", model:"deepseek-chat", url:"https://api.deepseek.com/chat/completions",
+    keys:"https://platform.deepseek.com/api_keys", colour:"#1E6F4E", initials:"DS", note:"Low cost."},
+  mistral:{label:"Mistral", model:"mistral-large-latest", url:"https://api.mistral.ai/v1/chat/completions",
+    keys:"https://console.mistral.ai/api-keys", colour:"#B03A22", initials:"M", note:"European, EU hosted."},
+  xai:{label:"xAI Grok", model:"grok-2-latest", url:"https://api.x.ai/v1/chat/completions",
+    keys:"https://console.x.ai/", colour:"#3A342C", initials:"X", note:"Grok, direct."},
+  together:{label:"Together AI", model:"meta-llama/Llama-3.3-70B-Instruct-Turbo", url:"https://api.together.xyz/v1/chat/completions",
+    keys:"https://api.together.ai/settings/api-keys", colour:"#4A4238", initials:"T", note:"Open models."},
+  custom:{label:"Other", model:"", url:"", keys:"", colour:"#6E6E72", initials:"?", note:"Any OpenAI-compatible endpoint."}
 };
 var AI_SYSTEM =
 "You are helping somebody prepare their own resume inside a tool whose central promise is that "+
@@ -1312,15 +1417,29 @@ function aiUrl(){ return AI.provider==="custom" ? AI.baseUrl : AI_DEFAULTS[AI.pr
 async function aiCall(userMsg){
   if(!aiReady()) throw new Error("No API key connected.");
   var url=aiUrl(), model=aiModel(), res, body, headers;
-  if(AI.provider==="anthropic"){
+
+  if(AI.provider==="google"){
+    /* Gemini uses its own request shape and puts the key in the path. */
+    url = "https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+
+          ":generateContent?key="+encodeURIComponent(AI.key);
+    headers={"content-type":"application/json"};
+    body={ system_instruction:{parts:[{text:AI_SYSTEM}]},
+           contents:[{role:"user",parts:[{text:userMsg}]}],
+           generationConfig:{maxOutputTokens:1400} };
+  } else if(AI.provider==="anthropic"){
     headers={"content-type":"application/json","x-api-key":AI.key,
              "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
     body={model:model, max_tokens:1400, system:AI_SYSTEM, messages:[{role:"user",content:userMsg}]};
   } else {
     headers={"content-type":"application/json","authorization":"Bearer "+AI.key};
+    if(AI.provider==="openrouter"){
+      headers["HTTP-Referer"]=location.origin;
+      headers["X-Title"]="Evidence Engine";
+    }
     body={model:model, max_tokens:1400,
           messages:[{role:"system",content:AI_SYSTEM},{role:"user",content:userMsg}]};
   }
+
   res = await fetch(url,{method:"POST",headers:headers,body:JSON.stringify(body)});
   var j;
   try{ j = await res.json(); }catch(e){ throw new Error("HTTP "+res.status+". The provider returned something unreadable."); }
@@ -1328,8 +1447,56 @@ async function aiCall(userMsg){
     var m=(j && (j.error&&(j.error.message||j.error.type))) || ("HTTP "+res.status);
     throw new Error(m);
   }
+  if(AI.provider==="google"){
+    var c=j.candidates&&j.candidates[0];
+    return (c&&c.content&&c.content.parts&&c.content.parts.map(function(p){return p.text||"";}).join(""))||"(empty reply)";
+  }
   if(AI.provider==="anthropic") return (j.content&&j.content[0]&&j.content[0].text)||"(empty reply)";
   return (j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"(empty reply)";
+}
+
+/* =========================================================================
+   OPENROUTER SIGN-IN, OAuth 2.0 with PKCE
+   This is the only genuine one-click connect available to a site with no
+   backend. PKCE exists precisely for public clients that cannot hold a secret,
+   so no client registration and no server-side exchange is needed.
+   Reference: https://openrouter.ai/docs/guides/overview/auth/oauth
+   ========================================================================= */
+function b64url(bytes){
+  var s=""; var a=new Uint8Array(bytes);
+  for(var i=0;i<a.length;i++) s+=String.fromCharCode(a[i]);
+  return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function randomVerifier(){
+  var a=new Uint8Array(48); crypto.getRandomValues(a); return b64url(a);
+}
+async function challengeFor(verifier){
+  var d=await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  return b64url(d);
+}
+async function startOpenRouterSSO(){
+  if(!(window.crypto&&crypto.subtle)) throw new Error("This browser cannot do the secure sign-in handshake. Paste a key instead.");
+  var v=randomVerifier();
+  sessionStorage.setItem("ee.pkce", v);
+  localStorage.setItem("ee.pkce", v); // survives a browser that drops session state on redirect
+  var c=await challengeFor(v);
+  var cb=location.origin+location.pathname;
+  location.href="https://openrouter.ai/auth?callback_url="+encodeURIComponent(cb)+
+    "&code_challenge="+encodeURIComponent(c)+"&code_challenge_method=S256";
+}
+async function finishOpenRouterSSO(code){
+  var v=sessionStorage.getItem("ee.pkce")||localStorage.getItem("ee.pkce");
+  if(!v) throw new Error("The sign-in could not be verified. Start it again from this page.");
+  var r=await fetch("https://openrouter.ai/api/v1/auth/keys",{
+    method:"POST", headers:{"content-type":"application/json"},
+    body:JSON.stringify({code:code, code_verifier:v, code_challenge_method:"S256"})
+  });
+  var j=await r.json().catch(function(){ return {}; });
+  if(!r.ok || !j.key) throw new Error((j.error&&(j.error.message||j.error))||("Sign-in failed, HTTP "+r.status));
+  sessionStorage.removeItem("ee.pkce"); localStorage.removeItem("ee.pkce");
+  AI.provider="openrouter"; AI.key=j.key; AI.model=AI.model||AI_DEFAULTS.openrouter.model;
+  aiSave();
+  return true;
 }
 
 function evidenceDigest(){
@@ -1382,14 +1549,32 @@ var SKILLS=("sql python javascript excel figma photoshop illustrator indesign ca
 var DATE_RE=/(19|20)\d{2}|present|current|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
 var BULLET_RE=/^\s*[•·▪◦‣*\-–—]\s+/;
 
+/* Markdown resumes are common, and the syntax has to come off before anything
+   else runs. Underscores are left alone on purpose: snake_case appears in real
+   resumes far more often than underscore italics do. */
+function stripMd(s){
+  return String(s||"")
+    .replace(/^\s{0,3}#{1,6}\s+/,"")
+    .replace(/^\s*>\s?/,"")
+    .replace(/^\s*[-*]{3,}\s*$/,"")
+    .replace(/\*\*([^*\n]+)\*\*/g,"$1")
+    .replace(/\*([^*\n]+)\*/g,"$1")
+    .replace(/`([^`\n]+)`/g,"$1")
+    .replace(/!?\[([^\]]*)\]\([^)\s]*\)/g,"$1")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
 function splitResume(raw){
   var lines=raw.split(/\r?\n/).map(function(l){ return l.replace(/\s+$/,""); });
   var jobs=[], cur=null;
   lines.forEach(function(line){
-    var t=line.trim();
-    if(!t) return;
+    var t0=line.trim();
+    if(!t0) return;
     var isBullet=BULLET_RE.test(line);
-    var clean=t.replace(BULLET_RE,"").trim();
+    var t=stripMd(t0);
+    if(!t) return;
+    var clean=stripMd(t0.replace(BULLET_RE,"")).trim();
     if(isBullet && cur){ cur.bullets.push(clean); return; }
     // A header is a short line, not a bullet, usually carrying a date or a separator.
     var looksHeader = !isBullet && t.length<=90 &&
@@ -1402,9 +1587,12 @@ function splitResume(raw){
       var dm=t.match(/((jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+)?(19|20)\d{2}\b[\s\S]*$/i);
       if(dm){ dates=dm[0].trim(); rest=t.slice(0,dm.index).replace(/[|·,\-–—\s]+$/,"").trim(); }
       var parts=rest.split(/\s*[|·]\s*|\s+[-–—]\s+|\s+\bat\b\s+/i).filter(Boolean);
-      if(cur && cur.bullets.length===0 && !cur.role && !cur.dates){
-        /* Previous line was a bare company name and this is its role and date
-           line. Merge rather than opening a second job. */
+      /* Only merge into the previous header when THIS line actually looks like a
+         role-and-date line, meaning it carries a date or a separator. Without
+         that test a bare name at the top of the resume swallows the first real
+         company as its job title, which is exactly what markdown files hit. */
+      var looksRoleLine = !!dates || /[|·]|\s[-–—]\s/.test(rest);
+      if(cur && cur.bullets.length===0 && !cur.role && !cur.dates && looksRoleLine){
         cur.role=parts[0]||""; if(parts[1]) cur.org=cur.org||parts[1];
         if(dates) cur.dates=dates;
         if(cur.role||cur.dates) return;
@@ -1434,7 +1622,119 @@ function splitResume(raw){
   return units;
 }
 
+/* ---------- file reading ----------
+   PDF and Word need real parsers. Both are loaded on demand, the first time a
+   user actually drops one of those formats, so the page keeps making zero
+   third-party requests for everybody who pastes text or uploads txt/md. */
+function loadScript(src){
+  return new Promise(function(res,rej){
+    if([].some.call(document.scripts,function(s){ return s.src===src; })) return res();
+    var s=document.createElement("script"); s.src=src; s.async=true;
+    s.onload=function(){ res(); }; s.onerror=function(){ rej(new Error("Could not load the reader for that format. Check your connection, or paste the text instead.")); };
+    document.head.appendChild(s);
+  });
+}
+var CDN={
+  pdf:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
+  pdfWorker:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js",
+  docx:"https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"
+};
+function readAsText(file){
+  return new Promise(function(res,rej){
+    var r=new FileReader();
+    r.onload=function(){ res(String(r.result||"")); };
+    r.onerror=function(){ rej(new Error("That file could not be read.")); };
+    r.readAsText(file);
+  });
+}
+function readAsBuffer(file){
+  return new Promise(function(res,rej){
+    var r=new FileReader();
+    r.onload=function(){ res(r.result); };
+    r.onerror=function(){ rej(new Error("That file could not be read.")); };
+    r.readAsArrayBuffer(file);
+  });
+}
+async function pdfToText(file){
+  await loadScript(CDN.pdf);
+  var lib = window.pdfjsLib || (window.pdfjsDistBuildPdf);
+  if(!lib) throw new Error("The PDF reader did not load. Paste the text instead.");
+  lib.GlobalWorkerOptions.workerSrc = CDN.pdfWorker;
+  var buf = await readAsBuffer(file);
+  var doc = await lib.getDocument({data:buf}).promise;
+  var out=[];
+  for(var p=1;p<=doc.numPages;p++){
+    var page = await doc.getPage(p);
+    var tc = await page.getTextContent();
+    /* Rebuild lines from item positions. A naive join loses every line break,
+       and line breaks are exactly what the splitter needs to find job blocks. */
+    var lines={}, items=tc.items;
+    for(var i=0;i<items.length;i++){
+      var it=items[i]; if(!it.str) continue;
+      var y=Math.round(it.transform[5]);
+      (lines[y]=lines[y]||[]).push({x:it.transform[4], s:it.str});
+    }
+    Object.keys(lines).map(Number).sort(function(a,b){ return b-a; }).forEach(function(y){
+      var line=lines[y].sort(function(a,b){ return a.x-b.x; }).map(function(o){ return o.s; }).join(" ");
+      out.push(line.replace(/\s+/g," ").trim());
+    });
+    out.push("");
+  }
+  return out.join("\n");
+}
+async function docxToText(file){
+  await loadScript(CDN.docx);
+  if(!window.mammoth) throw new Error("The Word reader did not load. Paste the text instead.");
+  var buf = await readAsBuffer(file);
+  var r = await window.mammoth.convertToHtml({arrayBuffer:buf});
+  var div=document.createElement("div"); div.innerHTML=r.value||"";
+  /* Turn list items back into bullet lines so the splitter recognises them. */
+  [].forEach.call(div.querySelectorAll("li"),function(li){ li.textContent="• "+li.textContent; });
+  [].forEach.call(div.querySelectorAll("p,li,div,h1,h2,h3,h4,tr"),function(el){
+    el.insertAdjacentText("beforeend","\n");
+  });
+  return (div.innerText||div.textContent||"").replace(/\n{3,}/g,"\n\n");
+}
+async function fileToText(file){
+  var n=(file.name||"").toLowerCase();
+  if(file.size > 12*1024*1024) throw new Error("That file is larger than 12 MB. Save a smaller copy or paste the text.");
+  if(/\.pdf$/.test(n) || file.type==="application/pdf") return await pdfToText(file);
+  if(/\.docx$/.test(n) || /wordprocessingml/.test(file.type||"")) return await docxToText(file);
+  if(/\.doc$/.test(n)) throw new Error("Old .doc files are not readable in a browser. Save as .docx or PDF, or paste the text.");
+  if(/\.(txt|md|markdown|rtf)$/.test(n) || /^text\//.test(file.type||"")) return await readAsText(file);
+  return await readAsText(file);
+}
+async function handleFile(file){
+  var m=$("fileMsg");
+  if(!file) return;
+  m.className="msg on"; m.innerHTML='<span class="spin"></span>Reading '+esc(file.name)+'...';
+  try{
+    var txt = await fileToText(file);
+    if(!txt || txt.trim().length<40) throw new Error("Almost no text came out of that file. If it is a scanned image, a browser cannot read it. Paste the text instead.");
+    $("pasteBox").value = txt.trim();
+    m.className="msg good on";
+    m.textContent = "Read "+esc(file.name)+". Check the text below, then split it into entries.";
+  }catch(err){
+    m.className="msg bad on"; m.textContent = err.message;
+  }
+}
+$("browseBtn").addEventListener("click",function(e){ e.stopPropagation(); $("resumeFile").click(); });
+$("drop").addEventListener("click",function(){ $("resumeFile").click(); });
+$("resumeFile").addEventListener("change",function(e){ handleFile(e.target.files[0]); e.target.value=""; });
+["dragenter","dragover"].forEach(function(ev){
+  $("drop").addEventListener(ev,function(e){ e.preventDefault(); $("drop").classList.add("over"); });
+});
+["dragleave","drop"].forEach(function(ev){
+  $("drop").addEventListener(ev,function(e){ e.preventDefault(); $("drop").classList.remove("over"); });
+});
+$("drop").addEventListener("drop",function(e){
+  e.preventDefault();
+  var f=e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if(f) handleFile(f);
+});
+
 function openPaste(){ $("welcome").classList.remove("on"); $("pasteMsg").classList.remove("on");
+  $("fileMsg").classList.remove("on");
   $("pasteVeil").classList.add("on"); setTimeout(function(){ $("pasteBox").focus(); },80); }
 $("pasteBtn").addEventListener("click",openPaste);
 $("pasteCancel").addEventListener("click",function(){ $("pasteVeil").classList.remove("on"); });
@@ -1496,17 +1796,42 @@ function aiSyncUI(){
   $("aiPasteRow").hidden=!on;
 }
 $("aiBtn").addEventListener("click",function(){
-  $("aiProv").value=AI.provider; $("aiKey").value=AI.key;
-  $("aiModel").value=AI.model||AI_DEFAULTS[AI.provider].model;
+  renderProviders();
+  selectProvider(AI.provider||"openrouter");
+  $("aiKey").value=AI.key;
+  if(AI.model) $("aiModel").value=AI.model;
   $("aiBase").value=AI.baseUrl||"";
-  $("aiUrlField").hidden=AI.provider!=="custom";
   $("aiMsg").classList.remove("on");
   $("aiVeil").classList.add("on");
 });
-$("aiProv").addEventListener("change",function(){
-  var p=$("aiProv").value;
+function renderProviders(){
+  var order=["openrouter","anthropic","openai","google","groq","deepseek","mistral","xai"];
+  $("provGrid").innerHTML=order.map(function(k){
+    var d=AI_DEFAULTS[k];
+    return '<button type="button" data-prov="'+k+'" aria-pressed="'+(AI.provider===k)+'">'+
+      '<span class="pi" style="background:'+d.colour+'">'+d.initials+'</span>'+
+      '<span>'+esc(d.label)+'<small>'+esc(d.note)+'</small></span></button>';
+  }).join("");
+  [].forEach.call($("provGrid").querySelectorAll("[data-prov]"),function(b){
+    b.addEventListener("click",function(){ selectProvider(b.dataset.prov); });
+  });
+}
+function selectProvider(p){
+  $("aiProv").value=p;
   $("aiModel").value=AI_DEFAULTS[p].model;
   $("aiUrlField").hidden=p!=="custom";
+  var d=AI_DEFAULTS[p];
+  $("keyHelp").innerHTML = d.keys
+    ? 'Get a '+esc(d.label)+' key: <a href="'+d.keys+'" target="_blank" rel="noopener">'+d.keys.replace(/^https:\/\//,"")+'</a>, then paste it below.'
+    : 'Enter the endpoint and key for your own OpenAI-compatible service.';
+  [].forEach.call($("provGrid").querySelectorAll("[data-prov]"),function(b){
+    b.setAttribute("aria-pressed", String(b.dataset.prov===p));
+  });
+}
+$("aiProv").addEventListener("change",function(){ selectProvider($("aiProv").value); });
+$("ssoBtn").addEventListener("click",function(){
+  var m=$("aiMsg"); m.innerHTML='<span class="spin"></span>Taking you to OpenRouter...'; m.className="msg on";
+  startOpenRouterSSO().catch(function(e){ m.textContent=e.message; m.className="msg bad on"; });
 });
 $("aiClose").addEventListener("click",function(){ $("aiVeil").classList.remove("on"); });
 $("aiVeil").addEventListener("click",function(e){ if(e.target===$("aiVeil")) $("aiVeil").classList.remove("on"); });
@@ -1685,6 +2010,22 @@ function runATS(){
 /* ---------- boot ---------- */
 aiLoad();
 load(); applyPlan(); renderUnits(); renderKW();
+
+/* Catch the return trip from OpenRouter before anything else paints, and clean
+   the code out of the address bar so a refresh cannot replay it. */
+(function(){
+  var q=new URLSearchParams(location.search);
+  var code=q.get("code");
+  if(!code) return;
+  history.replaceState({}, "", location.origin+location.pathname);
+  var t=$("toast"); t.textContent="Finishing sign-in..."; t.classList.add("on");
+  finishOpenRouterSSO(code).then(function(){
+    aiSyncUI();
+    toast("Connected to OpenRouter. Every major model is available now.");
+  }).catch(function(e){
+    toast("Sign-in did not complete: "+e.message);
+  });
+})();
 if(!S.type) S.type={font:"sans",size:"11",lead:"1.5",accent:"on"};
 $("fFont").value=S.type.font; $("fSize").value=S.type.size;
 $("fLead").value=S.type.lead; $("fAccent").value=S.type.accent;

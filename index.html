@@ -5,6 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Evidence Engine · Build a resume that survives the interview</title>
 <meta name="description" content="Grade every claim on your resume before a recruiter does. No AI writes your bullets, so nothing on your resume can be invented.">
+<link rel="canonical" href="https://evidence-engine-resume.netlify.app/">
+<meta name="theme-color" content="#C4331A">
+
+<!-- Favicon. The inline data URI is the fallback so a missing file never
+     produces a 404 in the console. -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23C4331A'/%3E%3Cpath d='M14 33.5 L26 45 L50 20' fill='none' stroke='%23FCFCFB' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/favicon.svg">
+
+<!-- Social preview. The launch plan is entirely LinkedIn, Reddit and Show HN,
+     so a link with no card is a launch blocker rather than a nicety. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Evidence Engine">
+<meta property="og:url" content="https://evidence-engine-resume.netlify.app/">
+<meta property="og:title" content="Every other AI resume tool writes your bullets for you. This one cannot.">
+<meta property="og:description" content="It grades how well each claim survives an interview, and it will not invent a number to fill a gap. Free, no account, nothing uploaded.">
+<meta property="og:image" content="https://evidence-engine-resume.netlify.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Evidence Engine. Every other AI resume tool writes your bullets for you. This one cannot.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Every other AI resume tool writes your bullets for you. This one cannot.">
+<meta name="twitter:description" content="It grades how well each claim survives an interview, and it will not invent a number to fill a gap.">
+<meta name="twitter:image" content="https://evidence-engine-resume.netlify.app/og-image.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -323,6 +348,24 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 .msg.on{display:block}
 .msg.bad{background:var(--none-bg); color:var(--none)}
 .msg.good{background:var(--audited-bg); color:var(--audited)}
+
+/* ---------- footer + legal ---------- */
+.foot{
+  margin-top:40px; padding-top:18px; border-top:1px solid var(--hairline);
+  display:flex; gap:9px; align-items:center; flex-wrap:wrap;
+  font-size:12.5px; color:var(--muted);
+}
+.foot .sep{opacity:.55}
+.linkbtn{
+  background:none; border:0; padding:0; color:var(--accent);
+  font-size:12.5px; text-decoration:underline; text-underline-offset:2px;
+}
+.linkbtn:hover{filter:brightness(1.15)}
+.modal h4.lh{
+  font-size:13px; font-weight:700; color:var(--ink); margin:16px 0 5px;
+  text-transform:uppercase; letter-spacing:.05em;
+}
+.modal h4.lh:first-of-type{margin-top:0}
 
 .toast{
   position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(80px);
@@ -655,6 +698,14 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
   </div>
 </section>
 
+<footer class="foot noprint">
+  <span>Evidence Engine</span>
+  <span class="sep">·</span>
+  <span>Your data never leaves this browser</span>
+  <span class="sep">·</span>
+  <button class="linkbtn" id="legalBtn">Privacy and terms</button>
+</footer>
+
 </main>
 
 <!-- ============ WELCOME (first run only) ============ -->
@@ -700,6 +751,54 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
     <p style="font-size:12.5px; color:var(--muted); margin-top:14px">
       Nothing is graded automatically. Every entry arrives marked <b>No number yet</b> and you
       decide what it really is. A tool that grades your claims for you would be guessing.</p>
+  </div>
+</div>
+
+<!-- ============ PRIVACY AND TERMS ============ -->
+<div class="veil" id="legalVeil">
+  <div class="modal wide">
+    <h3>Privacy and terms</h3>
+    <p style="color:var(--muted); font-size:12.5px; margin-bottom:16px">Last updated 30 July 2026</p>
+
+    <h4 class="lh">What happens to your data</h4>
+    <p>Nothing you type here is uploaded. There is no account, no login, no database and no server
+       belonging to this tool. Your entries, your resume and your settings are stored by your own
+       browser, on this device, using local storage.</p>
+    <p>That means two things worth knowing. Nobody, including the person who made this, can see
+       your resume. And if you clear your browser data, or use a different device or browser, your
+       work will not be there. Use <b>Save to file</b> to keep a copy you control.</p>
+
+    <h4 class="lh">If you connect your own AI key</h4>
+    <p>This is optional and off by default. If you connect a key, your key and the entries you send
+       go directly from your browser to the provider you chose, such as Anthropic or OpenAI, and are
+       then covered by that provider's own privacy policy. They do not pass through any server owned
+       by this tool, because there is not one. Your key is stored in your browser and you can remove
+       it at any time with <b>Disconnect</b>.</p>
+
+    <h4 class="lh">Analytics</h4>
+    <p>There are no analytics scripts, no cookies, no pixels, no fingerprinting and no third-party
+       trackers on this page. The only outbound request the page makes on its own is to Google Fonts
+       to load the typeface. The hosting provider keeps standard server logs, as all web hosts do.</p>
+
+    <h4 class="lh">Your rights</h4>
+    <p>Because no personal data is collected or held, there is nothing to request, export or delete
+       from anybody else. You already hold all of it. Clearing your browser storage for this site
+       erases it completely and immediately.</p>
+
+    <h4 class="lh">Terms of use</h4>
+    <p>This tool is provided as is, with no warranty. Documents you create belong to you entirely.
+       No claim is made that a resume produced here will pass any particular applicant tracking
+       system, or lead to an interview or an offer. The ATS score shown in the app measures the
+       structure of the document against twelve published checks; it is not a prediction of any
+       third-party tool's result.</p>
+    <p>You are responsible for the accuracy of what you write. The grading is a prompt for honesty,
+       not a verification service, and it cannot confirm that a number you enter is true.</p>
+    <p>The software itself is proprietary. You may use it. You may not copy, resell or redistribute
+       it.</p>
+
+    <div class="btnrow" style="margin-top:18px">
+      <button class="btn" id="legalClose">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1356,6 +1455,11 @@ $("wPaste").addEventListener("click",function(){ closeWelcome(); openPaste(); })
 $("wBlank").addEventListener("click",function(){ closeWelcome(); openEditor(null); });
 $("wDemo").addEventListener("click",function(){ closeWelcome(); $("demoBtn").click(); });
 
+/* ---------- privacy and terms ---------- */
+$("legalBtn").addEventListener("click",function(){ $("legalVeil").classList.add("on"); });
+$("legalClose").addEventListener("click",function(){ $("legalVeil").classList.remove("on"); });
+$("legalVeil").addEventListener("click",function(e){ if(e.target===$("legalVeil")) $("legalVeil").classList.remove("on"); });
+
 /* ---------- paywall ---------- */
 function showVeil(){ $("veil").classList.add("on"); }
 $("upgradeBtn").addEventListener("click",showVeil);
@@ -1597,6 +1701,7 @@ document.addEventListener("keydown",function(e){
   if(e.key==="Escape"){
     $("welcome").classList.contains("on") && closeWelcome();
     $("pasteVeil").classList.remove("on"); $("veil").classList.remove("on");
+    $("legalVeil").classList.remove("on"); $("aiVeil").classList.remove("on");
   }
 });
 </script>

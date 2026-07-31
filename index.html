@@ -365,6 +365,28 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 }
 .or::before,.or::after{content:""; flex:1; height:1px; background:var(--hairline)}
 
+/* ---------- job url + saved jobs ---------- */
+.urlrow{display:flex; gap:8px}
+.urlrow input{flex:1; min-width:0}
+.urlrow .btn{flex:none}
+.job{
+  display:flex; gap:12px; align-items:center; padding:12px 14px; background:var(--surface);
+  border:1px solid var(--hairline); border-left:3px solid var(--band);
+  border-radius:9px; margin-bottom:9px; cursor:pointer;
+}
+.job:hover{border-color:var(--accent)}
+.job.active{border-left-color:var(--accent); background:rgba(196,51,26,.04)}
+.job-main{flex:1; min-width:0}
+.job-main b{display:block; font-size:14px}
+.job-main span{display:block; font-size:12.5px; color:var(--muted); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
+.job-cov{
+  flex:none; font-size:12px; font-weight:700; padding:4px 9px; border-radius:6px;
+  background:var(--page); color:var(--ink-3); border:1px solid var(--hairline);
+}
+.job-cov.hi{background:var(--audited-bg); color:var(--audited); border-color:var(--audited)}
+.job .iconbtn{flex:none}
+
 /* ---------- provider grid ---------- */
 .prov{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:12px 0 4px}
 .prov button{
@@ -594,25 +616,47 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 <!-- ============ 2 TARGET ============ -->
 <section class="panel" id="p1">
   <div class="head">
-    <h2>Paste the job description</h2>
-    <p>The posting is read for the skills, tools and platforms it names. Nothing is sent anywhere.
-       This runs entirely inside your browser.</p>
+    <h2>The jobs you are going for</h2>
+    <p>Paste a link to the posting and it will be fetched, or paste the text. Keep as many as you
+       like: each one remembers its own tailored resume.</p>
   </div>
   <div class="grid2">
-    <div class="card">
-      <div class="row">
-        <div class="field"><label for="jTitle">Role title</label>
-          <input type="text" id="jTitle" placeholder="Senior Operations Analyst"></div>
-        <div class="field"><label for="jCo">Company</label>
-          <input type="text" id="jCo" placeholder="Acme"></div>
+    <div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="field" style="margin-bottom:9px">
+          <label for="jUrl">Link to the job posting</label>
+          <div class="urlrow">
+            <input type="text" id="jUrl" placeholder="https://job-boards.greenhouse.io/acme/jobs/12345" autocomplete="off" spellcheck="false">
+            <button class="btn" id="fetchBtn">Fetch</button>
+          </div>
+          <div class="hint">Works directly with Greenhouse, Lever, Ashby and SmartRecruiters
+            postings. Sites that block automated reads, such as LinkedIn and Indeed, will need the
+            text pasted instead.</div>
+        </div>
+        <div class="msg" id="urlMsg"></div>
+
+        <div class="or"><span>or enter it yourself</span></div>
+
+        <div class="row">
+          <div class="field"><label for="jTitle">Role title</label>
+            <input type="text" id="jTitle" placeholder="Senior Operations Analyst"></div>
+          <div class="field"><label for="jCo">Company</label>
+            <input type="text" id="jCo" placeholder="Acme"></div>
+        </div>
+        <div class="field"><label for="jText">Full job description</label>
+          <textarea id="jText" style="min-height:190px" placeholder="Paste the whole posting, requirements and responsibilities included."></textarea></div>
+        <div class="btnrow">
+          <button class="btn" id="parseBtn">Save this job</button>
+          <button class="btn quiet" id="jClear">Clear</button>
+        </div>
       </div>
-      <div class="field"><label for="jText">Full job description</label>
-        <textarea id="jText" style="min-height:260px" placeholder="Paste the whole posting, requirements and responsibilities included."></textarea></div>
-      <button class="btn" id="parseBtn">Read the posting</button>
+
+      <h3 style="font-size:14px; margin:0 0 10px">Saved jobs</h3>
+      <div id="jobList"></div>
     </div>
     <aside>
       <div class="card">
-        <h3 style="font-size:14px; margin-bottom:4px">What the posting asks for</h3>
+        <h3 style="font-size:14px; margin-bottom:4px">What this posting asks for</h3>
         <p style="font-size:12.5px; color:var(--muted)" id="kwCount">Nothing read yet.</p>
         <div class="tags" id="kwList" style="margin-top:10px"></div>
       </div>
@@ -979,22 +1023,54 @@ var BUY_URL = "https://buy.stripe.com/REPLACE_WITH_YOUR_PAYMENT_LINK";
 var FREE_LIMIT = 5;
 var KEY_SALT = "JJEE1";
 
+/* Jobs are a list. Each one keeps its own keyword set and its own picked
+   entries, so switching between two applications gives two different resumes
+   from the same evidence. S.jd stays as a live pointer to the active job so the
+   rest of the code did not have to change shape. */
+function newJob(o){
+  o=o||{};
+  return {id:o.id||("j"+Date.now()+Math.floor(Math.random()*999)),
+          title:o.title||"", co:o.co||"", url:o.url||"", text:o.text||"",
+          kw:o.kw||[], picked:o.picked||{}};
+}
 var S = {
-  units: [], jd: {title:"", co:"", text:"", kw:[]},
-  picked: {}, hdr: {name:"", title:"", loc:"", email:"", phone:"", link:"", summary:""},
+  units: [], jobs: [], activeJob: null,
+  jd: {title:"", co:"", text:"", kw:[]}, picked: {},
+  hdr: {name:"", title:"", loc:"", email:"", phone:"", link:"", summary:""},
   type: {font:"sans", size:"11", lead:"1.5", accent:"on"},
   customText: "", pro: false, editing: null
 };
+function activeJob(){
+  if(!S.jobs.length) return null;
+  var j=S.jobs.filter(function(x){ return x.id===S.activeJob; })[0];
+  return j || S.jobs[0];
+}
+function syncActive(){
+  var j=activeJob();
+  if(j){ S.activeJob=j.id; S.jd=j; S.picked=j.picked; }
+  else { S.jd={title:"",co:"",text:"",kw:[]}; S.picked={}; }
+}
 
 /* ---------- storage ---------- */
-function save(){ try{ localStorage.setItem("ee.v1", JSON.stringify(S)); }catch(e){} }
+function save(){
+  var j=activeJob(); if(j) j.picked=S.picked;
+  try{ localStorage.setItem("ee.v1", JSON.stringify(S)); }catch(e){}
+}
 function load(){
   try{
     var r = localStorage.getItem("ee.v1"); if(!r) return;
     var d = JSON.parse(r);
-    ["units","jd","picked","hdr","type"].forEach(function(k){ if(d[k]) S[k]=d[k]; });
+    ["units","hdr","type"].forEach(function(k){ if(d[k]) S[k]=d[k]; });
     S.customText = d.customText || "";
     S.pro = !!d.pro;
+    if(Array.isArray(d.jobs) && d.jobs.length){
+      S.jobs=d.jobs.map(newJob); S.activeJob=d.activeJob||S.jobs[0].id;
+    } else if(d.jd && (d.jd.text || (d.jd.kw&&d.jd.kw.length))){
+      /* Migrate the pre-list format: one job becomes the first saved job. */
+      S.jobs=[newJob({title:d.jd.title, co:d.jd.co, text:d.jd.text, kw:d.jd.kw, picked:d.picked||{}})];
+      S.activeJob=S.jobs[0].id;
+    }
+    syncActive();
   }catch(e){}
 }
 
@@ -1162,8 +1238,147 @@ var PHRASE=["paid social","paid media","media buying","landing page","conversion
 "front end","back end","full stack","machine learning","supply chain","financial modeling","stakeholder management",
 "account management","business development","quality assurance","change management","process improvement","a b testing"];
 
+/* ---------- import a posting from its URL ----------
+   Browsers cannot fetch an arbitrary job page: the sites do not send CORS
+   headers. What they can do is call the public JSON API that the big applicant
+   tracking systems already expose for their own embedded boards. That covers a
+   large share of real postings with no backend and no third-party proxy.
+   Anything else has to be pasted, and the message says so plainly. */
+function parseJobUrl(u){
+  var m;
+  try{ u=u.trim(); if(!/^https?:\/\//i.test(u)) u="https://"+u; }catch(e){ return null; }
+  var url; try{ url=new URL(u); }catch(e){ return null; }
+  var host=url.hostname.replace(/^www\./,""), path=url.pathname;
+
+  if(/greenhouse\.io$/.test(host)){
+    m=path.match(/\/([^\/]+)\/jobs\/(\d+)/);
+    if(m) return {ats:"greenhouse", api:"https://boards-api.greenhouse.io/v1/boards/"+m[1]+"/jobs/"+m[2]};
+    m=(url.searchParams.get("gh_jid")||"");
+    var tok=path.split("/").filter(Boolean)[0];
+    if(m && tok) return {ats:"greenhouse", api:"https://boards-api.greenhouse.io/v1/boards/"+tok+"/jobs/"+m};
+  }
+  if(/lever\.co$/.test(host)){
+    m=path.match(/\/([^\/]+)\/([0-9a-f-]{8,})/i);
+    if(m) return {ats:"lever", api:"https://api.lever.co/v0/postings/"+m[1]+"/"+m[2]};
+  }
+  if(/ashbyhq\.com$/.test(host)){
+    m=path.match(/\/([^\/]+)\/([0-9a-f-]{8,})/i);
+    if(m) return {ats:"ashby", api:"https://api.ashbyhq.com/posting-api/job-board/"+m[1], id:m[2]};
+  }
+  if(/smartrecruiters\.com$/.test(host)){
+    m=path.match(/\/([^\/]+)\/(\d+)/);
+    if(m) return {ats:"smartrecruiters", api:"https://api.smartrecruiters.com/v1/companies/"+m[1]+"/postings/"+m[2]};
+  }
+  return {ats:"unknown", host:host};
+}
+/* Greenhouse returns HTML with entities escaped, NOT URI-encoded. Running
+   decodeURIComponent over it throws URIError on any literal percent sign, which
+   means every posting containing a figure like "41%" failed silently. */
+function decodeEntities(s){
+  var t=document.createElement("textarea"); t.innerHTML=String(s||""); return t.value;
+}
+function stripHtml(h){
+  var d=document.createElement("div"); d.innerHTML=h||"";
+  [].forEach.call(d.querySelectorAll("li"),function(li){ li.textContent="• "+li.textContent; });
+  [].forEach.call(d.querySelectorAll("p,li,div,br,h1,h2,h3,h4"),function(el){ el.insertAdjacentText("beforeend","\n"); });
+  return (d.innerText||d.textContent||"").replace(/\n{3,}/g,"\n\n").trim();
+}
+async function fetchJob(rawUrl){
+  var t=parseJobUrl(rawUrl);
+  if(!t) throw new Error("That does not look like a web address.");
+  if(t.ats==="unknown")
+    throw new Error(t.host+" cannot be read automatically from a browser. Open the posting, copy the text, and paste it below. This is a restriction those sites set, not a bug here.");
+  var r = await fetch(t.api,{headers:{"accept":"application/json"}}).catch(function(){
+    throw new Error("Could not reach that board. Paste the text below instead.");
+  });
+  if(!r.ok) throw new Error("That posting returned HTTP "+r.status+". It may have been taken down. Paste the text below instead.");
+  var j = await r.json();
+  if(t.ats==="greenhouse")
+    return {title:j.title||"", co:"", text:stripHtml(decodeEntities(j.content||""))};
+  if(t.ats==="lever")
+    return {title:j.text||"", co:(j.categories&&j.categories.team)||"", text:stripHtml(j.description||"")+"\n"+
+      ((j.lists||[]).map(function(l){ return l.text+"\n"+stripHtml(l.content); }).join("\n"))};
+  if(t.ats==="ashby"){
+    var job=(j.jobs||[]).filter(function(x){ return (x.jobUrl||"").indexOf(t.id)>-1 || x.id===t.id; })[0];
+    if(!job) throw new Error("That role is no longer listed on the board. Paste the text below instead.");
+    return {title:job.title||"", co:"", text:stripHtml(job.descriptionHtml||job.descriptionPlain||"")};
+  }
+  if(t.ats==="smartrecruiters"){
+    var sec=(j.jobAd&&j.jobAd.sections)||{};
+    var parts=["companyDescription","jobDescription","qualifications","additionalInformation"]
+      .map(function(k){ return sec[k]&&sec[k].text ? stripHtml(sec[k].text) : ""; }).filter(Boolean);
+    return {title:j.name||"", co:(j.company&&j.company.name)||"", text:parts.join("\n\n")};
+  }
+  throw new Error("Unsupported board.");
+}
+$("fetchBtn").addEventListener("click",function(){
+  var u=$("jUrl").value.trim(), m=$("urlMsg");
+  if(!u){ m.textContent="Paste the link to the posting first."; m.className="msg bad on"; return; }
+  m.innerHTML='<span class="spin"></span>Fetching the posting...'; m.className="msg on";
+  fetchJob(u).then(function(d){
+    if(d.title) $("jTitle").value=d.title;
+    if(d.co) $("jCo").value=d.co;
+    $("jText").value=d.text||"";
+    m.className="msg good on";
+    m.textContent="Fetched "+(d.title||"the posting")+". Check it below, then save the job.";
+  }).catch(function(e){
+    m.className="msg bad on"; m.textContent=e.message;
+  });
+});
+$("jClear").addEventListener("click",function(){
+  $("jUrl").value=""; $("jTitle").value=""; $("jCo").value=""; $("jText").value="";
+  $("urlMsg").classList.remove("on");
+});
+
+/* ---------- saved jobs ---------- */
+function renderJobs(){
+  var box=$("jobList");
+  if(!S.jobs.length){
+    box.innerHTML='<div class="empty" style="padding:24px"><h3>No jobs saved yet</h3>'+
+      '<p>Add one above and your entries get ranked against it.</p></div>';
+    return;
+  }
+  box.innerHTML=S.jobs.map(function(j){
+    var cov=coverageFor(j);
+    return '<div class="job'+(j.id===S.activeJob?" active":"")+'" data-job="'+j.id+'">'+
+      '<div class="job-main"><b>'+esc(j.title||"Untitled role")+'</b>'+
+      '<span>'+esc(j.co||"")+(j.co&&j.url?" · ":"")+esc(j.url? j.url.replace(/^https?:\/\/(www\.)?/,"").slice(0,46) : "")+'</span></div>'+
+      '<span class="job-cov'+(cov>=60?" hi":"")+'">'+cov+'%</span>'+
+      '<button class="iconbtn" data-jrm="'+j.id+'" title="Remove" aria-label="Remove job">✕</button>'+
+    '</div>';
+  }).join("");
+  [].forEach.call(box.querySelectorAll("[data-job]"),function(el){
+    el.addEventListener("click",function(e){
+      if(e.target.closest("[data-jrm]")) return;
+      S.activeJob=el.dataset.job; syncActive(); save();
+      $("jTitle").value=S.jd.title||""; $("jCo").value=S.jd.co||"";
+      $("jText").value=S.jd.text||""; $("jUrl").value=S.jd.url||"";
+      renderJobs(); renderKW(); toast("Now tailoring for "+(S.jd.title||"this job"));
+    });
+  });
+  [].forEach.call(box.querySelectorAll("[data-jrm]"),function(b){
+    b.addEventListener("click",function(e){
+      e.stopPropagation();
+      var id=b.dataset.jrm, j=S.jobs.filter(function(x){return x.id===id;})[0];
+      if(!confirm("Remove "+((j&&j.title)||"this job")+"?\n\nYour evidence entries are not affected.")) return;
+      S.jobs=S.jobs.filter(function(x){ return x.id!==id; });
+      if(S.activeJob===id) S.activeJob=S.jobs.length?S.jobs[0].id:null;
+      syncActive(); save(); renderJobs(); renderKW(); renderScore(); toast("Job removed");
+    });
+  });
+}
+function coverageFor(j){
+  if(!j.kw||!j.kw.length||!S.units.length) return 0;
+  var covered={};
+  S.units.forEach(function(u){
+    if(j.picked[u.id]===false) return;
+    scoreUnit(u,j.kw).hits.forEach(function(h){ covered[h]=1; });
+  });
+  return Math.round(Object.keys(covered).length/j.kw.length*100);
+}
+
 function parseJD(){
-  var raw=$("jText").value; if(!raw.trim()){ toast("Paste the posting first"); return; }
+  var raw=$("jText").value; if(!raw.trim()){ toast("Add the posting text first"); return; }
   var low=" "+raw.toLowerCase().replace(/[^a-z0-9+#./\- ]/g," ").replace(/\s+/g," ")+" ";
   var found={}, claimed={};
   /* Phrases first. Their component words are then claimed and excluded from the
@@ -1186,8 +1401,19 @@ function parseJD(){
   });
   var kw=Object.keys(found).map(function(k){ return {k:k,n:found[k]}; })
     .sort(function(a,b){ return b.n-a.n; }).slice(0,34);
-  S.jd={title:$("jTitle").value.trim(), co:$("jCo").value.trim(), text:raw, kw:kw};
-  save(); renderKW(); toast("Read "+kw.length+" terms from the posting"); go(2);
+
+  var title=$("jTitle").value.trim(), co=$("jCo").value.trim(), url=$("jUrl").value.trim();
+  var existing=activeJob();
+  /* Editing the job that is already open updates it. Anything else is a new
+     saved job, so two applications never overwrite each other. */
+  if(existing && existing.text===raw){
+    existing.title=title; existing.co=co; existing.url=url; existing.kw=kw;
+  } else {
+    var j=newJob({title:title, co:co, url:url, text:raw, kw:kw});
+    S.jobs.push(j); S.activeJob=j.id;
+  }
+  syncActive(); save(); renderJobs(); renderKW(); renderScore();
+  toast("Saved. "+kw.length+" terms read from the posting."); go(2);
 }
 function renderKW(){
   var kw=S.jd.kw||[];
@@ -1209,8 +1435,13 @@ function renderMatch(){
   if(!S.units.length){ box.innerHTML='<div class="empty"><h3>No entries to rank</h3><p>Add evidence first.</p></div>';
     $("covN").textContent="0%"; $("gapList").innerHTML=""; return; }
   if(!kw.length){ box.innerHTML=""; return; }
-  $("matchNote").textContent="Ranked against "+(S.jd.title||"the posting")+
-    (S.jd.co?" at "+S.jd.co:"")+". Turn anything off that you do not want on the page.";
+  var anyHit = S.units.some(function(u){ return scoreUnit(u,kw).hits.length>0; });
+  $("matchNote").innerHTML = anyHit
+    ? "Ranked against <b>"+esc(S.jd.title||"the posting")+"</b>"+(S.jd.co?" at "+esc(S.jd.co):"")+
+      ". Turn anything off that you do not want on the page."
+    : "<b>Nothing here overlaps this posting.</b> Not one of your entries mentions anything "+
+      esc(S.jd.title||"this role")+" asks for, so none were selected. That is a real signal about "+
+      "the fit. You can still switch entries on by hand below.";
 
   var rows=S.units.map(function(u){ var r=scoreUnit(u,kw); return {u:u,s:r.s,hits:r.hits}; })
     .sort(function(a,b){ return b.s-a.s; });
@@ -1233,7 +1464,10 @@ function renderMatch(){
   }).join("");
 
   [].forEach.call(box.querySelectorAll("[data-pick]"),function(c){
-    c.addEventListener("change",function(){ S.picked[+c.dataset.pick]=c.checked; save(); renderMatch(); }); });
+    c.addEventListener("change",function(){
+      S.picked[+c.dataset.pick]=c.checked;
+      var j=activeJob(); if(j) j.picked=S.picked;
+      save(); renderMatch(); renderJobs(); }); });
 
   var covered={}, chosen=rows.filter(function(r){ return S.picked[r.u.id]; });
   chosen.forEach(function(r){ r.hits.forEach(function(h){ covered[h]=1; }); });
@@ -1284,7 +1518,10 @@ function renderPaper(){
         '<div class="rorg"><span>'+esc(f.org)+'</span>'+(f.dates?'<em>'+esc(f.dates)+'</em>':"")+'</div>'+
         (f.role?'<div class="rrole">'+esc(f.role)+'</div>':"")+
         '<ul>'+us.map(function(u){ return '<li>'+esc(bullet(u))+'</li>'; }).join("")+'</ul></div>';
-    }).join(""):'<div class="empty"><h3>Nothing selected</h3><p>Turn entries on in the Match step.</p></div>')+
+    }).join(""):'<div class="empty"><h3>No entries were selected for this job</h3>'+
+      '<p>Nothing in your experience overlapped what this posting asks for, so nothing was chosen '+
+      'automatically. That is worth knowing before you apply. Go to <b>Match</b> and switch on the '+
+      'entries you still want to show, or pick a different job.</p></div>')+
     (isPro()?"":'<div class="wm">Built with Evidence Engine · free version</div>');
   applyType();
 }
@@ -2009,7 +2246,7 @@ function runATS(){
 
 /* ---------- boot ---------- */
 aiLoad();
-load(); applyPlan(); renderUnits(); renderKW();
+load(); applyPlan(); renderUnits(); renderJobs(); renderKW();
 
 /* Catch the return trip from OpenRouter before anything else paints, and clean
    the code out of the address bar so a refresh cannot replay it. */
@@ -2030,7 +2267,8 @@ if(!S.type) S.type={font:"sans",size:"11",lead:"1.5",accent:"on"};
 $("fFont").value=S.type.font; $("fSize").value=S.type.size;
 $("fLead").value=S.type.lead; $("fAccent").value=S.type.accent;
 aiSyncUI();
-if(S.jd.text){ $("jText").value=S.jd.text; $("jTitle").value=S.jd.title; $("jCo").value=S.jd.co; }
+if(S.jd.text){ $("jText").value=S.jd.text; $("jTitle").value=S.jd.title||"";
+  $("jCo").value=S.jd.co||""; $("jUrl").value=S.jd.url||""; }
 
 /* Welcome shows once, and only to someone with no work in progress. */
 try{

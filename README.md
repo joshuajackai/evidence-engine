@@ -60,6 +60,24 @@ is refused with a clear message; a browser cannot read it.
 Verified against generated fixtures in all four formats: same 2 companies, same
 roles, same dates, no syntax leakage.
 
+## Job links and the saved-jobs list
+
+Paste a link to a posting and it is fetched. Keep as many jobs as you like; each
+one holds its own keyword set and its own selected entries, so switching between
+two applications gives two different resumes from the same evidence.
+
+A browser cannot fetch an arbitrary job page, because job sites do not send CORS
+headers. What it can do is call the public JSON API that the big applicant
+tracking systems already expose for their own embedded boards. **Greenhouse,
+Lever, Ashby and SmartRecruiters are verified working from the live origin.**
+LinkedIn and Indeed cannot be read this way and the app says so in plain words
+rather than failing silently.
+
+Defect worth remembering: Greenhouse HTML-entity-escapes its `content` field, it
+does not URI-encode it. Running `decodeURIComponent` over it throws `URIError` on
+any literal percent sign, so every posting containing a figure like "41%" failed
+silently. Decode entities with a textarea instead.
+
 ## Bring your own model
 
 **One-click sign-in works through OpenRouter only, and that is a platform

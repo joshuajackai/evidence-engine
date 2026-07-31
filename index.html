@@ -358,6 +358,7 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 .msg.on{display:block}
 .msg.bad{background:var(--none-bg); color:var(--none)}
 .msg.good{background:var(--audited-bg); color:var(--audited)}
+.msg.warn{background:#FDF3DC; color:#7A5200}
 
 /* ---------- file drop ---------- */
 .drop{
@@ -1295,11 +1296,22 @@ function toast(t){ var el=$("toast"); el.textContent=t; el.classList.add("on");
 var GRADE={audited:["a","g-audited","Proven"],estimated:["e","g-estimated","My estimate"],
            activity:["c","g-activity","Volume"],none:["n","g-none","No number yet"]};
 
-/* Compose a bullet only from user-authored fields. Never generate. */
+/* Compose a bullet only from user-authored fields. Never generate.
+
+   The metric and the constraint are often lifted out of the action sentence on
+   import, so appending them blindly printed the same clause twice. Append only
+   what the sentence does not already say. */
+function saysAlready(hay, needle){
+  var flat=function(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim(); };
+  var h=flat(hay), n=flat(needle);
+  return !n || h.indexOf(n)>-1;
+}
 function bullet(u){
   var out=(u.action||"").trim().replace(/\.+$/,"");
-  if(u.metric && u.metricType!=="none") out += ". " + u.metric.trim().replace(/\.+$/,"");
-  if(u.constraint) out += ". " + u.constraint.trim().replace(/\.+$/,"");
+  if(u.metric && u.metricType!=="none" && !saysAlready(out,u.metric))
+    out += ". " + u.metric.trim().replace(/\.+$/,"");
+  if(u.constraint && !saysAlready(out,u.constraint))
+    out += ". " + u.constraint.trim().replace(/\.+$/,"");
   return out ? out+"." : "";
 }
 
@@ -2880,6 +2892,270 @@ function stripMd(s){
     .trim();
 }
 
+/* =========================================================================
+   CLEAN-UP PASS
+   Real resumes are not clean text. A PDF export brings ligatures, smart quotes,
+   page furniture, hyphens split across line breaks and bullets wrapped over
+   three lines. Feeding that straight into the splitter produces fragments, and
+   feeding it to an ATS produces a mangled parse. Everything is normalised here
+   first, and the user is told what changed so nothing happens invisibly.
+   ========================================================================= */
+function normalizeResume(raw){
+  var fixes=[], s=String(raw||"");
+  function note(cond,label){ if(cond) fixes.push(label); }
+
+  var before=s;
+  s=s.replace(/ﬁ/g,"fi").replace(/ﬂ/g,"fl").replace(/ﬀ/g,"ff")
+     .replace(/ﬃ/g,"ffi").replace(/ﬄ/g,"ffl");
+  note(s!==before,"ligatures unpacked");
+
+  before=s;
+  s=s.replace(/[‘’‚‛′]/g,"'")
+     .replace(/[“”„‟″]/g,'"')
+     /* Includes U+2010 hyphen, U+2011 non-breaking hyphen, U+2012 figure dash
+        and U+2212 minus. Word and InDesign emit all of them and none of them
+        are the ASCII hyphen a parser is looking for. */
+     .replace(/[‐‑‒–—―−]/g,"-")
+     .replace(/…/g,"...");
+  note(s!==before,"smart quotes and dashes straightened");
+
+  before=s;
+  s=s.replace(/[     ]/g," ")
+     .replace(/[​-‍﻿­]/g,"")
+     .replace(/\t+/g,"  ");
+  note(s!==before,"invisible and non-breaking characters removed");
+
+  before=s;
+  s=s.replace(/^[ \t]*[▪●◦‣⁃∙·•○❖➢➜]\s*/gm,"• ");
+  note(s!==before,"bullet glyphs standardised");
+
+  before=s;
+  s=s.replace(/^\s*(page\s*\d+\s*(of\s*\d+)?|\d+\s*\/\s*\d+)\s*$/gim,"")
+     .replace(/^\s*\d{1,2}\s*$/gm,"")
+     .replace(/^\s*(confidential|curriculum vitae|r[eé]sum[eé])\s*$/gim,"");
+  note(s!==before,"page numbers and headers dropped");
+
+  /* A word hyphenated across a line break is one word, not two. */
+  before=s;
+  s=s.replace(/([a-z])-\n\s*([a-z])/g,"$1$2");
+  note(s!==before,"words rejoined across line breaks");
+
+  /* Letter-spaced text. A PDF that applies tracking to a heading or a contact
+     line can export one glyph per token, so "josh@example.com" arrives as
+     "j o s h @ e x a m p l e . c o m". Four or more single-character tokens in
+     a row does not occur in real prose, which makes this safe to collapse. */
+  before=s;
+  s=s.replace(/(?:(?:^|(?<=\s))[A-Za-z0-9@._+-] ){3,}[A-Za-z0-9@._+-](?=\s|$)/g,
+    function(run){ return run.replace(/ /g,""); });
+  note(s!==before,"letter-spaced text collapsed");
+
+  /* Contact details still split around the separators. */
+  before=s;
+  s=s.replace(/([\w.+-]+)\s*@\s*([\w-]+)\s*\.\s*(\w{2,})/g,"$1@$2.$3");
+  note(s!==before,"email addresses reassembled");
+
+  /* Rejoin wrapped continuation lines. A line that does not end a sentence
+     followed by one starting lowercase is one bullet split by the exporter. */
+  var lines=s.split(/\r?\n/), out=[], joined=0;
+  for(var i=0;i<lines.length;i++){
+    var cur=lines[i];
+    while(i+1<lines.length){
+      var nxt=lines[i+1];
+      var curT=cur.trim(), nxtT=nxt.trim();
+      if(!curT || !nxtT) break;
+      if(/[.;:!?]$/.test(curT)) break;
+      if(BULLET_RE.test(nxt)) break;
+      if(!/^[a-z(]/.test(nxtT)) break;
+      if(curT.length<25) break;
+      cur=curT+" "+nxtT; i++; joined++;
+    }
+    out.push(cur);
+  }
+  s=out.join("\n");
+  note(joined>0, joined+" wrapped line"+(joined>1?"s":"")+" rejoined");
+
+  before=s;
+  s=s.replace(/[ ]{3,}/g," ").replace(/\n{3,}/g,"\n\n").trim();
+  note(s!==before,"spacing tidied");
+
+  /* Two-column PDFs interleave text and there is no reliable repair. Detect it
+     and say so rather than silently producing nonsense. */
+  var body=s.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  var shortRun=0, worstRun=0;
+  body.forEach(function(l){
+    if(l.trim().length<26){ shortRun++; worstRun=Math.max(worstRun,shortRun); } else shortRun=0;
+  });
+  var suspect = body.length>15 && worstRun>=8;
+
+  return {text:s, fixes:fixes, suspectTwoColumn:suspect};
+}
+
+/* =========================================================================
+   KPI EXTRACTION
+   Importing every bullet as "No number yet" throws away the work the user
+   already did. A bullet reading "lifted demo requests 41%" arrives quantified
+   and should stay quantified.
+
+   The one thing this must not do is claim provenance. A number found in a
+   resume is the user's claim, not an audited fact, so nothing here is ever
+   graded Proven. It lands on "My estimate" with a note asking where the number
+   came from, and the user promotes it. That keeps the grading honest while
+   still doing the tedious part.
+   ========================================================================= */
+
+/* Numbers that are not results. Years, dates, phone fragments, version and
+   product names, and ordinary "24/7" style figures. */
+var NOT_A_METRIC=[
+  /\b(19|20)\d{2}\b/,                                   // a year
+  /\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/,                   // a date or 24/7
+  /\b(ga|http|covid|iso|sect(ion)?|v)\s?-?\s?\d/i,      // GA4, COVID-19, v2
+  /\bwindows|office|excel\s+\d/i
+];
+var MONTHS=/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*$/i;
+
+/* Ranked strongest first. An outcome beats a duration in the same sentence. */
+/* The percent alternative deliberately has no trailing \b. "41%" followed by a
+   space has no word boundary after the sign, so \b silently killed every
+   percentage in the file, which is the single most common resume metric. */
+var METRIC_PATTERNS=[
+  {k:"pct",   re:/\b\d[\d,]*(\.\d+)?\s?(?:%|percentage points?|percent\b|\bpp\b)/i},
+  {k:"mult",  re:/\b\d[\d,]*(\.\d+)?\s?x\b(?!\s?\d)/i},
+  {k:"money", re:/[$£€]\s?\d[\d,]*(\.\d+)?\s?(k|m|bn|b|million|billion|mm)?\b/i},
+  {k:"money", re:/\b(six|seven|eight|nine)[- ]figures?\b/i},
+  {k:"money", re:/\b\d[\d,]*(\.\d+)?\s?(k|m|million|billion)\s+(in|of)\s+\w+/i},
+  {k:"delta", re:/\bfrom\s+[\d.,]+\s?\w{0,4}\s+to\s+[\d.,]+\s?\w{0,4}/i},
+  {k:"rank",  re:/\b(?:top|no\.?|#|position|rank(?:ed)?)\s?\d+\b/i},
+  {k:"count", re:/\b\d[\d,]{0,8}\+?[-\s]+(?=[a-z])/}
+];
+
+/* "with no change to ad spend" is the most valuable half of a resume bullet and
+   it belongs in the held-flat field, not buried in the sentence. */
+var CONSTRAINT_RE=[
+  /\b(?:with|at|on|and)\s+(?:no|zero)\s+(?:change|increase|additional|extra|added|new)\b[^.;]*/i,
+  /\bwithout\s+(?:increasing|adding|raising|changing|any)\b[^.;]*/i,
+  /\b(?:on\s+)?the\s+same\s+(?:budget|spend|headcount|team|staff|traffic|audience|price|pricing|product|store|licen[cs]e|resources?)\b[^.;]*/i,
+  /\b(?:budget|spend|headcount|pricing|traffic|team)\s+(?:(?:stayed|remained|was|kept|held)\s+)?(?:flat|unchanged|the same)\b[^.;]*/i,
+  /\bno\s+(?:extra|additional|new)\s+(?:spend|budget|headcount|hires?|tools?)\b[^.;]*/i
+];
+
+function extractMetric(text){
+  var s=String(text||"").trim();
+  var out={type:"none", metric:"", constraint:""};
+  if(!s) return out;
+
+  CONSTRAINT_RE.some(function(re){
+    var m=s.match(re);
+    if(m){ out.constraint=tidyClause(m[0]); return true; }
+    return false;
+  });
+
+  var hit=null;
+  for(var i=0;i<METRIC_PATTERNS.length && !hit;i++){
+    var p=METRIC_PATTERNS[i], re=new RegExp(p.re.source,"gi"), m;
+    while((m=re.exec(s))){
+      if(!plausibleNumber(s,m)) continue;
+      hit={kind:p.k, at:m.index, len:m[0].length}; break;
+    }
+  }
+  if(!hit) return out;
+
+  out.metric = tidyClause(clauseAround(s, hit.at, hit.len));
+  if(!out.metric) return out;
+
+  /* A count of things produced is volume, which the ladder ranks below a
+     result. Everything else here is an outcome. */
+  out.type = (hit.kind==="count") ? "activity" : "estimated";
+  return out;
+}
+
+function plausibleNumber(s, m){
+  var frag=m[0];
+  for(var i=0;i<NOT_A_METRIC.length;i++) if(NOT_A_METRIC[i].test(frag)) return false;
+  /* "Jan 2023" and "Q3 2024" are dates wearing a number's clothes. */
+  if(MONTHS.test(s.slice(Math.max(0,m.index-6), m.index))) return false;
+  /* A bare count needs a noun worth counting, not a duration or a team size. */
+  if(/^\s*\d[\d,]*\+?[-\s]+$/.test(frag)){
+    var after=s.slice(m.index+frag.length, m.index+frag.length+22).toLowerCase();
+    if(/^(year|month|week|day|hour|minute|quarter|time|person|people|member|other|of\b)/.test(after)) return false;
+    /* "a team of 5 designers" describes the room, not the result. */
+    if(/\b(team|group|staff|crew|squad|department)\s+of\s+$/i.test(s.slice(Math.max(0,m.index-16), m.index))) return false;
+  }
+  return true;
+}
+
+/* Widen from the number to the clause that gives it meaning, and no further.
+   "41%" on its own is not a metric. */
+function clauseAround(s, at, len){
+  var lefts=[0], rights=[s.length];
+  [". ","; ",", ",": "].forEach(function(d){
+    var L=s.lastIndexOf(d,at); if(L>-1) lefts.push(L+d.length);
+    var R=s.indexOf(d,at+len); if(R>-1) rights.push(R);
+  });
+  var start=Math.max.apply(null,lefts), end=Math.min.apply(null,rights);
+  var clause=s.slice(start,end);
+
+  /* If the number sits after an "and", the first half is a different claim. */
+  var rel=at-start, andAt=clause.toLowerCase().lastIndexOf(" and ",rel);
+  if(andAt>0){ clause=clause.slice(andAt+5); rel-=andAt+5; }
+
+  /* Everything after "by replacing..." is method, not result. Cut it. */
+  var numEnd=rel+len, lc=clause.toLowerCase(), cut=clause.length;
+  [" by "," while "," after "," through "," using "," via "," thanks to "," despite "].forEach(function(w){
+    var k=lc.indexOf(w,numEnd);
+    if(k<0 || k>=cut) return;
+    /* "adopted by 4 squads" carries a second quantity. Cutting there throws
+       away half the metric and leaves a dangling participle. */
+    if(/\d/.test(clause.slice(k, k+34))) return;
+    cut=k;
+  });
+  clause=clause.slice(0,cut);
+
+  if(clause.length>96){
+    var trimmed=clause.slice(0,96);
+    clause=trimmed.slice(0, Math.max(trimmed.lastIndexOf(" "), 60));
+  }
+  return clause;
+}
+
+/* "Senior Web Designer - Demand Designer" and "Demand Designer - Senior Web
+   Designer" are the same header written by two different people, and position
+   alone cannot tell them apart. Score both sides instead. Seniority words are
+   the strongest signal available, because a company is rarely called "Senior
+   anything" while a title very often is. */
+var ROLE_WORDS=/\b(designer|engineer|developer|manager|director|analyst|specialist|coordinator|consultant|architect|writer|copywriter|strategist|marketer|scientist|researcher|administrator|producer|editor|recruiter|accountant|nurse|teacher|technician|officer|associate|assistant|intern|lead|head|president|founder|partner|illustrator|animator|photographer|videographer|artist|buyer|planner|supervisor|representative|advisor|controller|auditor|generalist|operator|programmer|tester|trainer|curator|advocate|liaison|steward|clerk|agent)\b/i;
+var SENIORITY=/\b(senior|junior|lead|principal|staff|chief|head\s+of|vp|vice\s+president|director\s+of|sr\.?|jr\.?|associate|assistant|entry|mid|executive|global|regional|deputy|interim|freelance|contract)\b/i;
+/* "marketing", "digital" and "creative" are deliberately absent. They appear in
+   job titles far more often than they identify a company, and including them
+   made "Marketing Designer" score as an employer. */
+var ORG_WORDS=/\b(inc|llc|ltd|l\.l\.c|corp|gmbh|plc|pty|s\.a|agency|studio|group|labs?|media|partners|solutions|technologies|systems|consulting|university|college|hospital|bank|foundation|institute|school|ventures|capital|works|collective)\b\.?/i;
+
+function scoreAsRole(s){
+  var n=0;
+  /* Leading seniority is near proof of a title. Trailing is much weaker,
+     because "Copy Chief" is a company and "Chief" is the last word in it. */
+  if(SENIORITY.test(s)) n += /^\s*(?:the\s+)?(?:senior|junior|lead|principal|staff|chief|head\s+of|vp|vice\s+president|director\s+of|sr\.?|jr\.?|associate|assistant|executive|global|regional|deputy|interim|freelance|contract)\b/i.test(s) ? 3 : 1;
+  if(ROLE_WORDS.test(s)) n+=2;
+  if(/\bof\b/i.test(s)) n+=1;
+  if(ORG_WORDS.test(s)) n-=3;
+  return n;
+}
+/* Returns [company, role]. */
+function orderRoleOrg(a,b){
+  if(!b) return [a||"",""];
+  var ra=scoreAsRole(a), rb=scoreAsRole(b);
+  if(rb>ra) return [a,b];       // second half is the title, so first is the company
+  if(ra>rb) return [b,a];       // first half is the title
+  return [a,b];                 // tie, keep the order as written
+}
+
+function tidyClause(c){
+  c=String(c||"").replace(BULLET_RE,"").replace(/\s+/g," ").trim()
+     .replace(/^(?:and|that|which|while|with|by|to|for|in)\s+/i,"")
+     .replace(/[,;:]+$/,"").trim();
+  if(c.length<4) return "";
+  return c.charAt(0).toUpperCase()+c.slice(1);
+}
+
 /* Resumes have sections, and ignoring that was the single worst bug in this
    parser. A SKILLS heading became a company and every comma-separated skill line
    became an achievement, so an import produced a wall of junk entries before it
@@ -2942,7 +3218,7 @@ function splitResume(raw){
     if(isBullet && cur){ cur.bullets.push(clean); return; }
     // A header is a short line, not a bullet, usually carrying a date or a separator.
     var looksHeader = !isBullet && t.length<=90 &&
-      (DATE_RE.test(t) || /[|·]|\s[-–—]\s/.test(t) || /^[A-Z][^.!?]*$/.test(t));
+      (DATE_RE.test(t) || /[|·•]|\s[-–—]\s/.test(t) || /^[A-Z][^.!?]*$/.test(t));
     if(looksHeader){
       var dates="", rest=t;
       /* Cut at an optional month word plus a four digit year, and take everything
@@ -2950,19 +3226,29 @@ function splitResume(raw){
          which left "March" behind and it became the job title. */
       var dm=t.match(/((jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+)?(19|20)\d{2}\b[\s\S]*$/i);
       if(dm){ dates=dm[0].trim(); rest=t.slice(0,dm.index).replace(/[|·,\-–—\s]+$/,"").trim(); }
-      var parts=rest.split(/\s*[|·]\s*|\s+[-–—]\s+|\s+\bat\b\s+/i).filter(Boolean);
+      /* Separators seen in the wild: pipe, middot, bullet, en/em dash, slash,
+         and the word "at". Missing the bullet left "Marketing Designer • Copy
+         Chief" sitting in the company field as one string. */
+      /* Comma is a separator in "Lead Product Designer, Bright Labs" and part of
+         the name in "Acme, Inc". Split on it only when what follows is not a
+         legal suffix. */
+      var sepd=rest.replace(/,\s+(?!(inc|llc|ltd|co|corp|gmbh|plc|pty|s\.a|l\.p)\b\.?)/i," | ");
+      var parts=sepd.split(/\s*[|·•‖]\s*|\s+[-–—]\s+|\s+\/\s+|\s+\bat\b\s+/i).filter(Boolean);
       /* Only merge into the previous header when THIS line actually looks like a
          role-and-date line, meaning it carries a date or a separator. Without
          that test a bare name at the top of the resume swallows the first real
          company as its job title, which is exactly what markdown files hit. */
-      var looksRoleLine = !!dates || /[|·]|\s[-–—]\s/.test(rest);
+      var looksRoleLine = !!dates || /[|·•]|\s[-–—]\s/.test(rest);
       if(cur && cur.bullets.length===0 && !cur.role && !cur.dates && looksRoleLine){
-        cur.role=parts[0]||""; if(parts[1]) cur.org=cur.org||parts[1];
+        var pair=orderRoleOrg(parts[0]||"", parts[1]||"");
+        cur.role = pair[1] || pair[0] || "";
+        if(pair[1]) cur.org = cur.org || pair[0];
         if(dates) cur.dates=dates;
         if(cur.role||cur.dates) return;
       }
       if(!rest && dates && cur){ cur.dates=cur.dates||dates; return; }
-      cur={org:parts[0]||rest, role:parts[1]||"", dates:dates, bullets:[]};
+      var ord=orderRoleOrg(parts[0]||rest, parts[1]||"");
+      cur={org:ord[0]||rest, role:ord[1]||"", dates:dates, bullets:[]};
       jobs.push(cur);
       return;
     }
@@ -2993,8 +3279,11 @@ function splitResume(raw){
         if(new RegExp("\\b"+s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(b)) tags.push(s);
       });
       tags=tags.slice(0,7);
+      var kpi=extractMetric(b);
       units.push({id:id++, org:j.org||"Untitled", role:j.role||"", dates:j.dates||"",
-        action:b, metricType:"none", metric:"", constraint:"", evidence:"", benchmark:"", tags:tags});
+        action:b, metricType:kpi.type, metric:kpi.metric, constraint:kpi.constraint,
+        evidence:kpi.type==="none"?"":"Pulled from your resume on import. Confirm where this number came from, then move it up to Proven.",
+        benchmark:"", tags:tags});
     });
   });
   return units;
@@ -3089,9 +3378,26 @@ async function handleFile(file){
   try{
     var txt = await fileToText(file);
     if(!txt || txt.trim().length<40) throw new Error("Almost no text came out of that file. If it is a scanned image, a browser cannot read it. Paste the text instead.");
-    $("pasteBox").value = txt.trim();
-    m.className="msg good on";
-    m.textContent = "Read "+esc(file.name)+". Check the text below, then split it into entries.";
+
+    /* Clean before anything is logged. An export full of ligatures, page
+       furniture and half-sentences parses badly here and reads badly to an ATS,
+       and both problems are fixed by the same pass. */
+    var norm = normalizeResume(txt);
+    $("pasteBox").value = norm.text;
+
+    var html = "Read "+esc(file.name)+".";
+    if(norm.fixes.length){
+      html += ' Cleaned it up first: <strong>'+esc(norm.fixes.join(", "))+'</strong>.';
+    }
+    html += " Check the text below, then split it into entries.";
+    if(norm.suspectTwoColumn){
+      html += '<br><span style="color:#8A5A00">This looks like it came from a two-column layout, '+
+              'so the reading order may be scrambled. Applicant tracking systems hit the same problem, '+
+              'which is worth knowing before you send this file anywhere. Read it through below and fix '+
+              'anything out of order.</span>';
+    }
+    m.className = norm.suspectTwoColumn ? "msg warn on" : "msg good on";
+    m.innerHTML = html;
   }catch(err){
     m.className="msg bad on"; m.textContent = err.message;
   }
@@ -3119,11 +3425,17 @@ $("pasteCancel").addEventListener("click",function(){ $("pasteVeil").classList.r
 $("pasteGo").addEventListener("click",function(){
   var raw=$("pasteBox").value, m=$("pasteMsg");
   if(raw.trim().length<40){ m.textContent="That looks too short. Paste the whole resume."; m.className="msg bad on"; return; }
-  var found=splitResume(raw);
+  /* Idempotent, so running it again after handleFile costs nothing and it still
+     catches text pasted straight out of a PDF viewer. */
+  var norm=normalizeResume(raw);
+  var found=splitResume(norm.text);
   if(!found.length){ m.textContent="Nothing could be split out of that. Try adding one by hand instead."; m.className="msg bad on"; return; }
   S.units=S.units.concat(found); save(); renderUnits();
   $("pasteVeil").classList.remove("on"); $("pasteBox").value="";
-  toast("Found "+found.length+" entries. Now grade them, starting at the top.");
+  var q=found.filter(function(u){ return u.metricType!=="none"; }).length;
+  toast("Found "+found.length+" entries"+
+    (q? " and pulled a number out of "+q+" of them. Check each number is right, then say where it came from."
+      : ". Now grade them, starting at the top."));
 });
 
 /* ---------- welcome ---------- */

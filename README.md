@@ -7,8 +7,12 @@ words, and the tool grades how well each claim would survive an interview. There
 is no model writing your achievements, which is why nothing on the resume can be
 invented.
 
-**Live:** _(Netlify URL goes here)_
+**Live:** https://evidence-engine-resume.netlify.app
 **Status:** free, no account, no signup. Monetization is behind a single flag.
+
+The subdomain is `evidence-engine-resume` because `evidence-engine.netlify.app`
+was already claimed by another Netlify account. Netlify subdomains are globally
+unique across all users, not per account.
 
 ---
 
@@ -87,12 +91,14 @@ literally true rather than a marketing line.
 | File | Purpose |
 |---|---|
 | `index.html` | The entire application. This is what deploys. |
-| `netlify.toml` | Headers and caching. |
+| `netlify.toml` | Headers, caching, and 404s for anything private. |
 | `keygen.template.html` | Licence key generator with the salt removed. |
-| `docs/LAUNCH.md` | Pricing, distribution and kill criteria. |
 
-**`keygen.html` is intentionally not in this repository.** It holds the salt.
-It lives on one machine and is listed in `.gitignore`.
+Two files are deliberately absent, both listed in `.gitignore`:
+
+- **`keygen.html`** holds the salt. It lives on one machine.
+- **`LAUNCH.md`** holds pricing, distribution and kill criteria. Netlify serves
+  the repository root, so anything committed here is publicly fetchable.
 
 ## Turning on payment
 

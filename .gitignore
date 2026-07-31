@@ -19,3 +19,6 @@ _f-*
 Thumbs.db
 .vscode/
 .idea/
+
+# local deploy staging
+_deploy/

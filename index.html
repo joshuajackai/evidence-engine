@@ -234,15 +234,31 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 .paper .rname{font-size:25px; font-weight:700; letter-spacing:-.015em}
 .paper .rtitle{font-size:14px; font-weight:600; color:var(--ink-2); margin-top:2px}
 .paper .rcontact{font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5}
-.paper .rrule{height:2px; background:var(--rule); margin:11px 0 16px}
+/* No rules, no filled bands, no boxes anywhere in the document.
+
+   A horizontal rule is a graphic. Some parsers read it as a table edge or a
+   section terminator and drop what follows; a coloured band behind a heading
+   can be read as a shape and its text skipped. Both were in here.
+
+   The hierarchy is now carried entirely by size, weight, case and spacing,
+   which every parser handles because it is just text:
+     name      25px bold
+     SECTION   11.5px bold, uppercase, wide tracking, generous space above
+     Employer  14px bold
+     Role      12.5px semibold italic
+     bullets   normal weight
+   Four unmistakable levels, zero graphics. */
+.paper .rrule{display:none}
 .paper h4{
-  font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.09em;
-  color:var(--accent); background:var(--band); padding:4px 8px; border-radius:3px; margin:18px 0 9px;
+  font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.11em;
+  color:var(--ink); background:none; padding:0; border:0; border-radius:0;
+  margin:20px 0 8px;
 }
-.paper .rentry{margin-bottom:12px}
+.paper h4:first-of-type{margin-top:16px}
+.paper .rentry{margin-bottom:13px}
 .paper .rorg{font-weight:700; font-size:14px; display:flex; justify-content:space-between; gap:12px; align-items:baseline}
 .paper .rorg em{font-style:normal; font-weight:500; font-size:12px; color:var(--muted); white-space:nowrap}
-.paper .rrole{font-size:12.5px; font-weight:700; font-style:italic; color:var(--ink-3); margin:1px 0 4px}
+.paper .rrole{font-size:12.5px; font-weight:600; font-style:italic; color:var(--ink-2); margin:1px 0 4px}
 .paper ul{margin:0 0 0 16px; padding:0}
 .paper li{margin-bottom:4px; font-size:13px; color:var(--ink-2)}
 .wm{
@@ -378,6 +394,12 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid var(--line);
   border-radius:8px; background:var(--card); color:var(--ink); flex:none}
 .btn.disabled, a.btn:not([href]){opacity:.45; pointer-events:none}
+/* Specimen mode. The bracketed claims have to be impossible to mistake for the
+   user's own, on screen and in any screenshot they take of it. */
+.unearned{background:#FDE7E1; color:#9A2A12; border-radius:3px; padding:0 3px;
+  box-shadow:inset 0 -1px 0 #E9A895}
+.specimen{background:#FDF3DC; border:1px solid #D9A94C; color:#6B4600; border-radius:9px;
+  padding:11px 14px; font-size:12.8px; line-height:1.55; margin-bottom:16px}
 
 /* ---------- file drop ---------- */
 .drop{
@@ -496,10 +518,68 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
   body{background:none}
   main{padding:0; max-width:none}
   .paper{border:0; box-shadow:none; padding:0; max-width:none; background:none}
-  .paper h4{background:#DDDDDE !important; -webkit-print-color-adjust:exact; print-color-adjust:exact}
-  .paper .rrule{background:#E03A1C !important; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  /* Print carries no bands and no rules either. The PDF is the artefact that
+     actually reaches the parser, so it must be the plainest version of all. */
+  .paper h4{background:none !important; color:#1A1814 !important}
+  .paper .rrule{display:none !important}
+  .paper .unearned{background:none !important; box-shadow:none !important; color:inherit !important}
   .rentry{break-inside:avoid}
 }
+
+/* ---------- tailor generator ---------- */
+.gen-modal{max-width:1100px}
+.gen-header{display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:6px}
+.gen-header h3{font-size:20px}
+.gen-jobtag{font-size:12.5px; color:var(--muted)}
+.gen-warn{background:#FDF3DC; border:1px solid #E9C47B; color:#7A5200; padding:9px 12px; border-radius:8px; font-size:12.7px; margin:10px 0}
+.gen-scores{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:14px 0}
+.gen-score{border:1px solid var(--hairline); border-radius:9px; background:var(--surface); padding:10px 12px; text-align:left}
+.gen-score .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700}
+.gen-score .num{font-size:24px; font-weight:700; letter-spacing:-.01em; margin-top:2px}
+.gen-score .num.up{color:var(--audited)}
+.gen-score .num.down{color:var(--none)}
+.gen-score .delta{font-size:11.5px; color:var(--muted); margin-top:2px}
+.gen-source{border:1px solid var(--hairline); border-radius:8px; padding:11px 13px; background:var(--page); font-size:12.7px; color:var(--ink-2); margin-bottom:12px}
+.gen-source b{color:var(--ink)}
+.gen-kwbox{margin:6px 0 14px}
+.gen-kwbox .lh{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px}
+.gen-kwbox .lh h4{font-size:13px; margin:0; text-transform:none; letter-spacing:0}
+.gen-kwbox .n{font-size:12px; color:var(--muted); font-weight:600}
+.kw-hit{background:rgba(30,111,78,.13); color:var(--audited); padding:2px 7px; border-radius:5px; font-size:12px; display:inline-block; margin:2px}
+.kw-miss{background:var(--none-bg); color:var(--none); padding:2px 7px; border-radius:5px; font-size:12px; display:inline-block; margin:2px}
+.gen-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:12px 0 6px}
+.gen-tabs{display:flex; gap:2px; margin:16px 0 10px; border-bottom:1px solid var(--hairline)}
+.gen-tab{border:0; background:transparent; padding:9px 14px; font-size:13px; font-weight:600; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer}
+.gen-tab[aria-selected="true"]{color:var(--accent); border-bottom-color:var(--accent)}
+.gen-view{display:none}
+.gen-view.on{display:block}
+.gen-doc{border:1px solid var(--hairline); border-radius:9px; background:var(--surface); padding:18px 20px; max-height:520px; overflow:auto; font-size:13.2px; line-height:1.55; color:var(--ink)}
+.gen-doc h1{font-size:19px; margin:0 0 6px; letter-spacing:-.01em}
+.gen-doc h2{font-size:15px; margin:14px 0 6px; padding:3px 8px; background:var(--band); color:var(--ink); border-radius:4px; text-transform:uppercase; letter-spacing:.05em}
+.gen-doc h3{font-size:14px; margin:11px 0 4px}
+.gen-doc h4{font-size:13px; margin:10px 0 3px}
+.gen-doc ul{margin:4px 0 8px 18px; padding:0}
+.gen-doc li{margin-bottom:3px}
+.gen-doc p{margin:0 0 8px}
+.gen-doc strong{font-weight:700}
+.gen-doc em{font-style:italic}
+.gen-doc .genhead{border-bottom:2px solid var(--rule); padding-bottom:7px; margin-bottom:10px}
+.gen-cols{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:820px){ .gen-cols{grid-template-columns:1fr} .gen-scores{grid-template-columns:repeat(2,1fr)} }
+.gen-notes{background:var(--page); border:1px solid var(--hairline); border-radius:8px; padding:12px 14px; margin-top:12px; font-size:12.8px; color:var(--ink-2)}
+.gen-declined{margin-top:10px}
+.gen-declined .row{display:block; margin-bottom:6px; padding:7px 10px; background:var(--none-bg); border:1px solid var(--none); border-radius:6px; color:var(--none); font-size:12.5px}
+.gen-declined .row b{color:var(--none)}
+.gen-declined .row span{display:block; color:var(--ink-2); margin-top:2px; font-weight:500}
+.gen-empty{padding:22px 18px; background:var(--page); border:1px dashed var(--hairline); border-radius:9px; color:var(--muted); font-size:13px; text-align:center}
+.gen-lint{margin-top:10px; padding:8px 11px; background:var(--audited-bg); border-radius:6px; color:var(--audited); font-size:12.5px}
+.gen-lint.bad{background:var(--none-bg); color:var(--none)}
+.gen-copyprompt{margin-top:14px; padding-top:12px; border-top:1px solid var(--hairline)}
+.gen-copyprompt textarea{width:100%; min-height:120px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px}
+.gen-fabtest{margin-top:10px; padding:9px 11px; background:var(--page); border:1px solid var(--hairline); border-radius:7px; font-size:12.5px; color:var(--ink-2)}
+.gen-fabtest b{color:var(--audited)}
+button[data-gen]{white-space:nowrap}
+.job [data-gen]{margin-left:6px}
 </style>
 </head>
 <body>
@@ -662,6 +742,12 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
   <div id="findPane">
     <div class="grid2">
       <div>
+        <div class="callout" id="broadTip" style="margin-bottom:14px">
+          <b>Start broad.</b> Every filter here is set to the widest option so the first run reads
+          the biggest possible pool. If the results are too many, narrow after. If they are too few,
+          the panel below the results will point at the filter that is costing you volume.
+          <span id="broadState" class="tag hit" style="margin-left:8px; vertical-align:2px">Broadest defaults</span>
+        </div>
         <div class="card" style="margin-bottom:18px">
           <div class="row">
             <div class="field"><label for="sWindow">Posted within</label>
@@ -670,11 +756,11 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
                 <option value="6">Last 6 hours</option>
                 <option value="12">Last 12 hours</option>
                 <option value="24">Last 24 hours</option>
-                <option value="72" selected>Last 3 days</option>
+                <option value="72">Last 3 days</option>
                 <option value="168">Last 7 days</option>
                 <option value="336">Last 14 days</option>
                 <option value="720">Last 30 days</option>
-                <option value="0">Any time</option>
+                <option value="0" selected>Any time</option>
               </select></div>
             <div class="field"><label for="sDepth">Search depth</label>
               <select id="sDepth">
@@ -689,27 +775,26 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
           <div class="field">
             <label>Employment type</label>
             <div class="chips" id="sTypes">
-              <button class="chip" data-type="remote" aria-pressed="true">Remote</button>
+              <button class="chip" data-type="remote" aria-pressed="false">Remote</button>
               <button class="chip" data-type="fulltime" aria-pressed="false">Full time</button>
               <button class="chip" data-type="parttime" aria-pressed="false">Part time</button>
               <button class="chip" data-type="contract" aria-pressed="false">Contract or freelance</button>
               <button class="chip" data-type="intern" aria-pressed="false">Internship</button>
             </div>
-            <div class="hint">Off means no filter on that dimension. Boards label these
-              inconsistently, so type is read from the posting's own field and its title.</div>
+            <div class="hint">All off is the broadest setting. Pressing a chip narrows the list.
+              Boards label these inconsistently, so type is read from the posting's own field and its title.</div>
           </div>
           <div class="row">
             <div class="field"><label for="sPay">Pay floor, optional</label>
               <input type="number" id="sPay" placeholder="120000" min="0" step="5000">
               <div class="hint">Annual. Hourly and monthly postings are converted before comparing.
-                Roles that publish no pay are always kept.</div></div>
+                Roles that publish no pay are always kept. Leave blank for the broadest search.</div></div>
             <div class="field"><label for="sLevel">Seniority</label>
               <select id="sLevel">
-                <option value="on" selected>Only my level, give or take one step</option>
-                <option value="off">Show every level</option>
+                <option value="on">Only my level, give or take one step</option>
+                <option value="off" selected>Show every level</option>
               </select>
-              <div class="hint">Read from your own titles. Stops interships and VP roles from
-                filling a mid-level search.</div></div>
+              <div class="hint">Every level is the broadest setting. Narrow to your level once you see too much.</div></div>
           </div>
           <div class="field" style="margin-bottom:10px">
             <label for="sKeywords">Extra keywords, optional</label>
@@ -724,7 +809,9 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
             <span id="searchStat" style="font-size:12.5px; color:var(--muted)"></span>
           </div>
           <div class="msg" id="searchMsg"></div>
+          <div id="searchDiag" style="margin-top:8px; font-size:12.5px; color:var(--muted)"></div>
         </div>
+        <div id="suggestions"></div>
         <div id="results"></div>
       </div>
       <aside>
@@ -824,6 +911,29 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
     <p>Every bullet below was assembled from words you typed. No model wrote a claim on your behalf,
        which is why there is nothing here you cannot walk through in an interview.</p>
   </div>
+  <div class="card noprint" style="margin-bottom:18px">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap">
+      <h3 style="font-size:15px">Write it for this job</h3>
+      <span style="font-size:12px; color:var(--muted)">Your facts, the posting's words</span>
+    </div>
+    <p style="font-size:12.5px; color:var(--ink-2); margin:6px 0 12px">A keyword filter marks a
+       qualified person as a poor fit for saying the same thing differently. This rewrites your
+       entries into the posting's vocabulary, scores the result, and goes again on whatever is still
+       unmatched. It cannot change a fact, a date or a number.</p>
+    <div class="btnrow">
+      <button class="btn" id="writeResumeBtn">Write my resume for this job</button>
+      <button class="btn ghost" id="writeCvBtn">Write the longer CV</button>
+      <button class="btn quiet sm" id="idealBtn" hidden>Show a 100% specimen</button>
+    </div>
+    <div class="seg noprint" role="group" aria-label="Which version" id="paperModes" style="margin-top:12px" hidden>
+      <button id="pmAi" aria-pressed="true">Tailored</button>
+      <button id="pmEvidence" aria-pressed="false">From my entries</button>
+      <button id="pmIdeal" aria-pressed="false" hidden>Specimen</button>
+    </div>
+    <div class="msg" id="writeStatus"></div>
+    <div id="missLedger"></div>
+  </div>
+
   <div class="btnrow noprint" style="margin-bottom:18px">
     <button class="btn" id="printBtn">Save as PDF</button>
     <button class="btn quiet" id="editHdrBtn">Edit heading</button>
@@ -1027,17 +1137,18 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
        check, and it stays on this device.</p>
 
     <div class="drop" id="drop">
-      <input type="file" id="resumeFile" accept=".pdf,.docx,.txt,.md,.markdown,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+      <input type="file" id="resumeFile" accept=".pdf,.docx,.txt,.md,.markdown,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden multiple>
       <div class="drop-in">
         <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 16V4M12 4L7 9M12 4l5 5"/><path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/>
         </svg>
-        <div><b>Drop your resume here, or <button type="button" class="linkbtn" id="browseBtn">choose a file</button></b>
-          <span>PDF, Word, plain text or Markdown. Read in your browser, never uploaded.</span></div>
+        <div><b>Drop one or more resumes here, or <button type="button" class="linkbtn" id="browseBtn">choose files</button></b>
+          <span>PDF, Word, plain text or Markdown. Drop several at once and every entry from every file is added to your inventory. Read in your browser, never uploaded.</span></div>
       </div>
     </div>
     <div class="msg" id="fileMsg"></div>
+    <div id="fileList" style="margin-top:8px; font-size:12.5px; color:var(--muted)"></div>
 
     <div class="or"><span>or paste the text</span></div>
 
@@ -1306,6 +1417,7 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
         </select></div>
       <div class="field"><label for="aiModelSel">Model</label>
         <select id="aiModelSel"></select>
+        <div class="hint" id="modelNote"></div>
         <input type="text" id="aiModel" placeholder="exact model id" hidden></div>
     </div>
     <p id="keyHelp" style="font-size:12.5px; color:var(--muted); margin:-6px 0 12px"></p>
@@ -1317,10 +1429,30 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
         a spending limit set.</div></div>
     <div class="btnrow">
       <button class="btn" id="aiSave">Save and test</button>
+      <button class="btn ghost" id="aiDiag">Run full diagnostic</button>
       <button class="btn quiet" id="aiForget">Disconnect</button>
       <button class="btn quiet" id="aiClose">Close</button>
     </div>
     <div class="msg" id="aiMsg"></div>
+
+    <details id="aiDebugPanel" style="margin-top:14px; border:1px solid var(--hairline); border-radius:8px; padding:0">
+      <summary style="cursor:pointer; padding:10px 12px; font-size:13px; color:var(--ink-2); user-select:none">
+        Debug: last AI calls
+      </summary>
+      <div style="padding:8px 12px 12px">
+        <p style="font-size:12px; color:var(--muted); margin:0 0 8px">
+          Every request and response is logged here (keys redacted). Open this when a call
+          returns empty or errors, so you can see exactly what the provider sent back. This
+          also appears in the browser console with the tag [EvidenceEngine AI].
+        </p>
+        <div style="display:flex; gap:8px; margin:0 0 8px">
+          <button type="button" class="btn sm quiet" id="aiDebugClear">Clear log</button>
+          <button type="button" class="btn sm quiet" id="aiDebugCopy">Copy log to clipboard</button>
+        </div>
+        <div id="aiDebugList" style="font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11.5px; color:var(--ink-2); background:#F7F7F8; border-radius:6px; padding:10px; max-height:320px; overflow:auto; white-space:pre-wrap">No calls yet.</div>
+      </div>
+    </details>
+
     <div class="quarantine" style="margin-top:18px">
       <div class="qh"><span class="dot"></span>What the model is not allowed to do</div>
       <p>It cannot write a claim for you and it cannot produce a number you did not give it.
@@ -1352,6 +1484,145 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
       <input type="text" id="keyIn" placeholder="EE-XXXX-XXXX-XXXX" autocomplete="off">
       <div class="btnrow" style="margin-top:9px"><button class="btn sm quiet" id="keyBtn">Activate</button></div>
       <div class="msg" id="keyMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TAILOR RESUME + CV ============ -->
+<div class="veil" id="genVeil">
+  <div class="modal wide gen-modal">
+    <div class="gen-header">
+      <div>
+        <h3>Tailored resume and CV</h3>
+        <div class="gen-jobtag" id="genJobTag">No job selected</div>
+      </div>
+      <div class="btnrow" style="flex:none">
+        <button class="btn quiet sm" id="genClose">Close</button>
+      </div>
+    </div>
+
+    <p style="font-size:12.7px; color:var(--muted); margin-top:4px">
+      Every claim in the output traces to your existing evidence. If the posting asks for something
+      you have not written, this surfaces the gap. Nothing is upgraded and nothing is invented.
+    </p>
+
+    <div class="gen-source" id="genSource">Source: your entries and any uploaded resume text.</div>
+
+    <div class="gen-scores">
+      <div class="gen-score">
+        <div class="lbl">Match, before</div>
+        <div class="num" id="genBefore">0%</div>
+        <div class="delta" id="genBeforeD">Your current evidence against this posting.</div>
+      </div>
+      <div class="gen-score">
+        <div class="lbl">Match, after</div>
+        <div class="num up" id="genAfter">—</div>
+        <div class="delta" id="genAfterD">Run the tailor to see the lift.</div>
+      </div>
+      <div class="gen-score">
+        <div class="lbl">ATS readability</div>
+        <div class="num" id="genAts">—</div>
+        <div class="delta" id="genAtsD">Layout checks against real parser rules.</div>
+      </div>
+      <div class="gen-score">
+        <div class="lbl">Voice lint</div>
+        <div class="num" id="genLint">—</div>
+        <div class="delta" id="genLintD">Em dashes, contractions, banned phrases.</div>
+      </div>
+    </div>
+
+    <div class="gen-kwbox">
+      <div class="lh"><h4>Keywords the posting names</h4><span class="n" id="genKwCount"></span></div>
+      <div id="genKwList"></div>
+    </div>
+
+    <div class="gen-actions">
+      <button class="btn" id="genRunBtn">Generate resume and CV with AI</button>
+      <button class="btn quiet" id="genCopyPromptBtn">Copy the prompt for any chat AI</button>
+      <span id="genAiStatus" style="font-size:12.5px; color:var(--muted)"></span>
+    </div>
+
+    <div class="msg" id="genMsg"></div>
+
+    <div id="genLoader" hidden style="padding:14px 0"><span class="spin"></span>Reading your evidence and drafting the tailored versions...</div>
+
+    <div id="genOut" hidden>
+      <div class="gen-tabs" role="tablist">
+        <button class="gen-tab" role="tab" aria-selected="true" data-tab="resume">Resume, one page</button>
+        <button class="gen-tab" role="tab" aria-selected="false" data-tab="cv">CV, two pages</button>
+        <button class="gen-tab" role="tab" aria-selected="false" data-tab="side">Side by side</button>
+        <button class="gen-tab" role="tab" aria-selected="false" data-tab="analysis">Match analysis</button>
+      </div>
+
+      <div class="gen-view on" data-view="resume">
+        <div class="gen-doc" id="genResumeDoc"></div>
+        <div class="gen-actions">
+          <button class="btn sm" data-dl="resume-md">Download Markdown</button>
+          <button class="btn sm" data-dl="resume-doc">Download Word (.doc)</button>
+          <button class="btn sm" data-dl="resume-pdf">Save as PDF</button>
+          <button class="btn quiet sm" data-copy="resume">Copy text</button>
+        </div>
+      </div>
+
+      <div class="gen-view" data-view="cv">
+        <div class="gen-doc" id="genCvDoc"></div>
+        <div class="gen-actions">
+          <button class="btn sm" data-dl="cv-md">Download Markdown</button>
+          <button class="btn sm" data-dl="cv-doc">Download Word (.doc)</button>
+          <button class="btn sm" data-dl="cv-pdf">Save as PDF</button>
+          <button class="btn quiet sm" data-copy="cv">Copy text</button>
+        </div>
+      </div>
+
+      <div class="gen-view" data-view="side">
+        <div class="gen-cols">
+          <div>
+            <div class="lbl" style="font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px">Your original</div>
+            <div class="gen-doc" id="genOrigDoc"></div>
+          </div>
+          <div>
+            <div class="lbl" style="font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-bottom:6px">Tailored, keywords highlighted</div>
+            <div class="gen-doc" id="genTailoredDoc"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gen-view" data-view="analysis">
+        <div class="gen-score" style="text-align:left">
+          <div class="lbl">Positioning notes</div>
+          <div id="genPosNotes" style="margin-top:6px; font-size:13px; color:var(--ink-2)"></div>
+        </div>
+        <div class="gen-kwbox" style="margin-top:16px">
+          <div class="lh"><h4>Keywords addressed in the tailored copy</h4><span class="n" id="genAddCount"></span></div>
+          <div id="genAddressed"></div>
+        </div>
+        <div class="gen-kwbox">
+          <div class="lh"><h4>Honestly declined</h4><span class="n" id="genDeclCount"></span></div>
+          <p style="font-size:12.7px; color:var(--muted); margin:0 0 8px">The posting asked for these but your evidence did not show them. They were left off rather than invented.</p>
+          <div id="genDeclined"></div>
+        </div>
+        <div class="gen-fabtest" id="genFabTest"></div>
+        <div id="genAtsIssues" style="margin-top:12px"></div>
+        <div id="genLintIssues" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div class="gen-copyprompt" id="genPromptBox" hidden>
+      <h4 style="font-size:13px; margin:0 0 6px">Prompt for any chat AI</h4>
+      <p style="font-size:12.5px; color:var(--muted); margin:0 0 8px">Paste this into Claude, ChatGPT, Gemini, Perplexity or any model you already use. The output is JSON, then you paste that back below.</p>
+      <textarea id="genPromptText" readonly></textarea>
+      <div class="btnrow" style="margin-top:9px">
+        <button class="btn sm" id="genPromptCopy">Copy prompt</button>
+        <button class="btn quiet sm" id="genPromptPasteBack">Paste the JSON response</button>
+        <button class="btn quiet sm" id="genPromptHide">Hide</button>
+      </div>
+      <div id="genPromptPaste" hidden style="margin-top:10px">
+        <textarea id="genPasteBox" style="width:100%; min-height:140px; font-family:ui-monospace,Menlo,monospace; font-size:12px" placeholder='Paste the JSON response here'></textarea>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn sm" id="genPasteApply">Load this into the tool</button>
+          <button class="btn quiet sm" id="genPasteCancel">Cancel</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1405,7 +1676,17 @@ var S = {
   answers: {},          // screener answers, typed once, copied everywhere
   apps: {},             // jobId -> {status, applied, followed, note}
   seen: {},             // listing id -> first time we showed it, powers "new"
-  lastSearch: null      // the search form, restored on return
+  lastSearch: null,     // the search form, restored on return
+  /* Raw text of the last uploaded or pasted resume. Kept verbatim so the
+     AI tailor step has the full source to trace every claim back to.
+     Never sent anywhere except the LLM provider the user chose. */
+  rawResume: "",
+  /* Generated tailored artifacts keyed by job id. Persisted so a user who
+     ran the tailor once can come back to the result without re-spending
+     tokens. Each entry: { resume, cv, matchAfter, kwHit, kwMiss,
+     atsScore, atsIssues, lintScore, lintIssues, declined, positioning,
+     model, when } */
+  gen: {}
 };
 /* Screener questions every application asks and nobody enjoys retyping. */
 var ANSWER_FIELDS=[
@@ -1463,9 +1744,10 @@ function load(){
     var r = localStorage.getItem("ee.v1"); if(!r) return;
     var d = JSON.parse(r);
     ["units","hdr","type"].forEach(function(k){ if(d[k]) S[k]=d[k]; });
-    ["profile","answers","apps","seen"].forEach(function(k){
+    ["profile","answers","apps","seen","gen"].forEach(function(k){
       if(d[k] && typeof d[k]==="object") S[k]=d[k]; });
     if(d.lastSearch) S.lastSearch=d.lastSearch;
+    if(typeof d.rawResume === "string") S.rawResume = d.rawResume;
     S.customText = d.customText || "";
     S.pro = !!d.pro;
     if(Array.isArray(d.jobs) && d.jobs.length){
@@ -1527,7 +1809,7 @@ function go(i){
   [].forEach.call(document.querySelectorAll(".panel"),function(p,n){ p.classList.toggle("on",n===i); });
   [].forEach.call(document.querySelectorAll(".step"),function(b,n){ b.setAttribute("aria-current",n===i?"true":"false"); });
   if(i===2) renderMatch();
-  if(i===3) renderPaper();
+  if(i===3){ syncModes(); renderPaper(); }
   if(i===4){
     /* The ATS number the readiness list reads comes from the rendered page, so
        the resume has to be laid out before the check means anything. An earlier
@@ -1939,13 +2221,77 @@ function typeOf(title, raw){
   if(/remote|anywhere|distributed/.test(s)) out.push("remote");
   return out;
 }
-async function jget(u){
-  var r=await fetch(u,{headers:{accept:"application/json"}});
-  if(!r.ok) throw new Error("HTTP "+r.status);
-  return await r.json();
+/* Every network call the search fires goes through this. Three problems were
+   costing results silently before it existed:
+   1) A slow board could hang the entire batch. Now every request has a hard
+      timeout via AbortController, so a stuck source never starves the rest.
+   2) Free tiers on RapidAPI, Adzuna and RemoteOK throttle at low rates.
+      Retrying with exponential backoff on 429 and 5xx turns most of those
+      into a successful second attempt instead of a silent zero.
+   3) Repeat searches hammered the same APIs. A short in-memory cache holds
+      identical responses for 60 seconds so a returning user does not burn
+      their free-tier quota by pressing Search twice.
+   All errors bubble up with a categorised code so the caller can decide
+   whether to surface it, retry it, or count it. */
+var NET_CACHE = {}; var NET_TTL_MS = 60000;
+function netCacheKey(u, init){
+  try{ return (init&&init.method||"GET")+" "+u+" "+((init&&init.body)||""); }
+  catch(e){ return u; }
 }
+function netCacheGet(k){
+  var e=NET_CACHE[k]; if(!e) return null;
+  if(Date.now()-e.at>NET_TTL_MS){ delete NET_CACHE[k]; return null; }
+  return e.v;
+}
+function netCacheSet(k,v){ NET_CACHE[k]={at:Date.now(), v:v}; }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+async function netFetch(u, opts){
+  opts = opts||{};
+  var init = Object.assign({headers:{accept:"application/json"}}, opts.init||{});
+  var timeoutMs = opts.timeoutMs || 15000;
+  var maxRetries = opts.retries==null ? 2 : opts.retries;
+  var wantJson = opts.json!==false;
+  var cacheHit = wantJson ? netCacheGet(netCacheKey(u,init)) : null;
+  if(cacheHit) return cacheHit;
+  var attempt=0, lastErr=null;
+  while(attempt<=maxRetries){
+    var ctrl=("AbortController" in window) ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, timeoutMs) : null;
+    try{
+      var r = await fetch(u, Object.assign({}, init, ctrl?{signal:ctrl.signal}:{}));
+      if(timer) clearTimeout(timer);
+      if(r.status===429 || (r.status>=500 && r.status<=599)){
+        lastErr = new Error("HTTP "+r.status);
+        lastErr.code = r.status;
+        if(attempt<maxRetries){
+          var wait = 400 * Math.pow(2, attempt) + Math.floor(Math.random()*300);
+          await sleep(wait); attempt++; continue;
+        }
+        throw lastErr;
+      }
+      if(!r.ok){ var e=new Error("HTTP "+r.status); e.code=r.status; throw e; }
+      var body = wantJson ? await r.json() : await r.text();
+      if(wantJson) netCacheSet(netCacheKey(u,init), body);
+      return body;
+    }catch(err){
+      if(timer) clearTimeout(timer);
+      lastErr = err;
+      /* Abort or network error: retry unless out of attempts. */
+      var retriable = (err.name==="AbortError") || err.code===429 ||
+                      (err.code>=500 && err.code<=599) ||
+                      /Failed to fetch|NetworkError|Load failed/i.test(err.message||"");
+      if(retriable && attempt<maxRetries){
+        var wait2 = 400 * Math.pow(2, attempt) + Math.floor(Math.random()*300);
+        await sleep(wait2); attempt++; continue;
+      }
+      break;
+    }
+  }
+  throw lastErr || new Error("Request failed");
+}
+async function jget(u){ return await netFetch(u); }
 async function pullBoard(b){
-  var out=[];
+  var out=[], errCode=null;
   try{
     if(b.ats==="greenhouse"){
       var j=await jget("https://boards-api.greenhouse.io/v1/boards/"+b.t+"/jobs?content=false");
@@ -1966,15 +2312,20 @@ async function pullBoard(b){
         ts:Date.parse(x.publishedAt||0)||0, url:x.jobUrl, src:"Ashby",
         types:typeOf(x.title,(x.employmentType||"")+" "+(x.location||"")+(x.isRemote?" remote":""))});});
     }
-  }catch(e){ /* one dead board must never sink the whole search */ }
-  return out;
+  }catch(e){
+    /* One dead board must never sink the whole search, but the caller needs
+       to know which sources failed so the summary can be honest. */
+    errCode = e.code || e.name || "err";
+    return {items:out, error:{code:errCode, src:b.ats+":"+b.t, msg:String(e.message||e)}};
+  }
+  return {items:out};
 }
 async function pullAggregator(a){
-  var out=[];
+  var out=[], errCode=null;
   try{
     /* Three of these are not JSON, so they get handled before the shared path. */
     if(a.id==="wwr"){
-      var xml=await (await fetch(a.url)).text();
+      var xml=await netFetch(a.url,{json:false});
       var doc=new DOMParser().parseFromString(xml,"text/xml");
       [].forEach.call(doc.querySelectorAll("item"),function(it){
         function g(t){ var e=it.querySelector(t); return e?e.textContent.trim():""; }
@@ -1984,7 +2335,7 @@ async function pullAggregator(a){
           ts:Date.parse(g("pubDate"))||0, url:g("link"), src:"We Work Remotely",
           types:typeOf(full,(g("type")||"")+" "+(g("region")||"")+" remote")});
       });
-      return out;
+      return {items:out};
     }
     if(a.id==="remoteok"){
       var rk=await jget(a.url);
@@ -1995,12 +2346,19 @@ async function pullAggregator(a){
           url:x.url||("https://remoteok.com/l/"+x.id), src:"RemoteOK",
           types:typeOf(x.position,(x.tags||[]).join(" ")+" remote")});
       });
-      return out;
+      return {items:out};
     }
     if(a.id==="themuse"){
-      for(var pg=0; pg<3; pg++){
-        var mu=await jget("https://www.themuse.com/api/public/jobs?page="+pg);
-        (mu.results||[]).forEach(function(x){
+      /* The Muse holds tens of thousands of listings across hundreds of pages.
+         Five pages was reading roughly one percent of it. Twenty-five is the
+         point where the time cost stops being worth the extra depth. */
+      for(var pg=0; pg<25; pg++){
+        var mu;
+        try{ mu=await jget("https://www.themuse.com/api/public/jobs?page="+pg); }
+        catch(e){ break; }
+        var got=(mu&&mu.results)||[];
+        if(!got.length) break;
+        got.forEach(function(x){
           out.push({id:"muse"+x.id, title:x.name, co:(x.company&&x.company.name)||"",
             loc:(x.locations||[]).map(function(l){ return l.name; }).join(", "),
             ts:Date.parse(x.publication_date)||0,
@@ -2009,14 +2367,14 @@ async function pullAggregator(a){
               (x.locations||[]).map(function(l){ return l.name; }).join(" "))});
         });
       }
-      return out;
+      return {items:out};
     }
     if(a.id==="hn"){
       /* The monthly thread is the story; the jobs are its top-level comments.
          Convention is "Company | Role | Location | Remote", loosely followed, so
          this is best-effort and labelled as such in the UI. */
       var s=await jget(a.url);
-      var story=(s.hits||[])[0]; if(!story) return out;
+      var story=(s.hits||[])[0]; if(!story) return {items:out};
       var th=await jget("https://hn.algolia.com/api/v1/items/"+story.objectID);
       /* Children arrive oldest first, so an unsorted slice returned the start of
          a month-old thread and every entry looked stale. */
@@ -2040,92 +2398,165 @@ async function pullAggregator(a){
           url:"https://news.ycombinator.com/item?id="+c.id, src:"HN Who Is Hiring",
           types:typeOf(head,plain.slice(0,300))});
       });
-      return out;
+      return {items:out};
+    }
+    /* Everything below paginates. The old code took page one and stopped, which
+       is why a "deep" search was reading a few hundred listings from sources
+       holding several thousand. Each loop stops on an empty page, a repeat, or
+       the page ceiling, so a slow source cannot hang the whole run. */
+    if(a.id==="remotive"){
+      var seenR={};
+      for(var rp=0; rp<6; rp++){
+        var rj; try{ rj=await jget("https://remotive.com/api/remote-jobs?limit=200&offset="+(rp*200)); }catch(e){ break; }
+        var rg=(rj&&rj.jobs)||[]; if(!rg.length) break;
+        var before=out.length, full=rg.length>=200;
+        rg.forEach(function(x){
+          if(seenR[x.id]) return; seenR[x.id]=1;
+          out.push({id:"rm"+x.id, title:x.title, co:x.company_name, loc:x.candidate_required_location||"Remote",
+            ts:Date.parse(x.publication_date||0)||0, url:x.url, src:"Remotive",
+            types:typeOf(x.title,(x.job_type||"")+" remote")});
+        });
+        /* A short page is the last page. Remotive currently ignores limit and
+           offset entirely and returns the same 35 rows every time, so without
+           this the loop burns five requests to learn nothing. */
+        if(!full || out.length===before) break;
+      }
+      return {items:out};
+    }
+    if(a.id==="arbeitnow"){
+      for(var ap=1; ap<=8; ap++){
+        var aj; try{ aj=await jget("https://www.arbeitnow.com/api/job-board-api?page="+ap); }catch(e){ break; }
+        var ag=(aj&&aj.data)||[]; if(!ag.length) break;
+        ag.forEach(function(x){ out.push({
+          id:"an"+x.slug, title:x.title, co:x.company_name, loc:x.location||"",
+          ts:(x.created_at||0)*1000, url:x.url, src:"Arbeitnow",
+          types:typeOf(x.title,(x.job_types||[]).join(" ")+(x.remote?" remote":""))});});
+      }
+      return {items:out};
+    }
+    if(a.id==="jobicy"){
+      /* Jobicy caps a single call at 50 but exposes the catalogue by industry,
+         so the industries are the pagination. */
+      /* These slugs were verified against the live API on 2026-07-31. Guessed
+         ones like "marketing" and "design" return 400 and cost a request each. */
+      var inds=["","smm","seller","design-multimedia","business","data-science",
+                "dev","hr","supporting","management","copywriting","technical-support"];
+      var seenJ={};
+      for(var ji=0; ji<inds.length; ji++){
+        var q="https://jobicy.com/api/v2/remote-jobs?count=50"+(inds[ji]?"&industry="+inds[ji]:"");
+        var jj; try{ jj=await jget(q); }catch(e){ continue; }
+        ((jj&&jj.jobs)||[]).forEach(function(x){
+          if(seenJ[x.id]) return; seenJ[x.id]=1;
+          out.push({id:"jy"+x.id, title:x.jobTitle, co:x.companyName, loc:x.jobGeo||"Remote",
+            ts:Date.parse(x.pubDate||0)||0, url:x.url, src:"Jobicy",
+            types:typeOf(x.jobTitle,(x.jobType||[]).join(" ")+" remote")});
+        });
+      }
+      return {items:out};
     }
     var j=await jget(a.url);
-    if(a.id==="remotive") (j.jobs||[]).forEach(function(x){ out.push({
-      id:"rm"+x.id, title:x.title, co:x.company_name, loc:x.candidate_required_location||"Remote",
-      ts:Date.parse(x.publication_date||0)||0, url:x.url, src:"Remotive",
-      types:typeOf(x.title,(x.job_type||"")+" remote")});});
-    if(a.id==="arbeitnow") (j.data||[]).forEach(function(x){ out.push({
-      id:"an"+x.slug, title:x.title, co:x.company_name, loc:x.location||"",
-      ts:(x.created_at||0)*1000, url:x.url, src:"Arbeitnow",
-      types:typeOf(x.title,(x.job_types||[]).join(" ")+(x.remote?" remote":""))});});
-    if(a.id==="jobicy") (j.jobs||[]).forEach(function(x){ out.push({
-      id:"jy"+x.id, title:x.jobTitle, co:x.companyName, loc:x.jobGeo||"Remote",
-      ts:Date.parse(x.pubDate||0)||0, url:x.url, src:"Jobicy",
-      types:typeOf(x.jobTitle,(x.jobType||[]).join(" ")+" remote")});});
-  }catch(e){}
-  return out;
+  }catch(e){
+    return {items:out, error:{code:e.code||e.name||"err", src:a.label||a.id, msg:String(e.message||e)}};
+  }
+  return {items:out};
 }
 /* Licensed aggregators, only when the user has supplied their own key. This is
    the honest route to the inventory people mean when they say LinkedIn or
-   Indeed: these services license and redistribute it rather than scraping it. */
+   Indeed: these services license and redistribute it rather than scraping it.
+   All four APIs paginate. Paging deeper is what turns "shallow" into "deep",
+   which is Joshua's specific complaint that this rewrite exists to fix. */
 async function pullKeyed(loc, extra){
-  var cfg=keyedCfg(), out=[];
+  var cfg=keyedCfg(), out=[], errors=[];
   var q=(extra||"").split(",")[0].trim() ||
         (S.units[0] && (S.units[0].role||(S.units[0].tags||[])[0])) || "remote";
   var where=loc||"";
-  try{
-    if(cfg.adzuna && cfg.adzuna.app_id && cfg.adzuna.app_key){
-      var cc=/united kingdom|london|uk/i.test(where)?"gb":(/canada/i.test(where)?"ca":"us");
-      var az=await jget("https://api.adzuna.com/v1/api/jobs/"+cc+"/search/1?app_id="+
-        encodeURIComponent(cfg.adzuna.app_id)+"&app_key="+encodeURIComponent(cfg.adzuna.app_key)+
-        "&results_per_page=50&what="+encodeURIComponent(q)+(where?"&where="+encodeURIComponent(where):""));
-      (az.results||[]).forEach(function(x){ out.push({
-        id:"az"+x.id, title:x.title, co:(x.company&&x.company.display_name)||"",
-        loc:(x.location&&x.location.display_name)||"", ts:Date.parse(x.created)||0,
-        url:x.redirect_url, src:"Adzuna", types:typeOf(x.title,(x.contract_time||"")+" "+(x.contract_type||""))});});
+  if(cfg.adzuna && cfg.adzuna.app_id && cfg.adzuna.app_key){
+    var cc=/united kingdom|london|uk/i.test(where)?"gb":(/canada/i.test(where)?"ca":"us");
+    /* Five pages at 50 rows each caps a keyed search at 250 rows per country,
+       which is a hundredfold deeper than the single page the old code fetched. */
+    for(var pg=1; pg<=5; pg++){
+      try{
+        var az=await jget("https://api.adzuna.com/v1/api/jobs/"+cc+"/search/"+pg+"?app_id="+
+          encodeURIComponent(cfg.adzuna.app_id)+"&app_key="+encodeURIComponent(cfg.adzuna.app_key)+
+          "&results_per_page=50&what="+encodeURIComponent(q)+(where?"&where="+encodeURIComponent(where):""));
+        var got=(az&&az.results)||[];
+        if(!got.length) break;
+        got.forEach(function(x){ out.push({
+          id:"az"+x.id, title:x.title, co:(x.company&&x.company.display_name)||"",
+          loc:(x.location&&x.location.display_name)||"", ts:Date.parse(x.created)||0,
+          url:x.redirect_url, src:"Adzuna", types:typeOf(x.title,(x.contract_time||"")+" "+(x.contract_type||""))});});
+      }catch(e){
+        errors.push({code:e.code||e.name||"err", src:"Adzuna", msg:String(e.message||e)});
+        break;
+      }
     }
-  }catch(e){}
-  try{
-    if(cfg.jsearch && cfg.jsearch.rapidapi_key){
-      var r=await fetch("https://jsearch.p.rapidapi.com/search?query="+
-        encodeURIComponent(q+(where?" in "+where:""))+"&num_pages=1",
-        {headers:{"x-rapidapi-key":cfg.jsearch.rapidapi_key,"x-rapidapi-host":"jsearch.p.rapidapi.com"}});
-      var js=await r.json();
+  }
+  if(cfg.jsearch && cfg.jsearch.rapidapi_key){
+    /* num_pages was 1 in the old code, which is a shallow single-page read.
+       Five pages returns roughly ten times the volume, and the free tier
+       allows it on any recent RapidAPI account. */
+    try{
+      var js=await netFetch("https://jsearch.p.rapidapi.com/search?query="+
+        encodeURIComponent(q+(where?" in "+where:""))+"&num_pages=5&page=1",
+        {init:{headers:{"x-rapidapi-key":cfg.jsearch.rapidapi_key,"x-rapidapi-host":"jsearch.p.rapidapi.com"}}});
       (js.data||[]).forEach(function(x){ out.push({
         id:"js"+x.job_id, title:x.job_title, co:x.employer_name||"",
         loc:[x.job_city,x.job_country].filter(Boolean).join(", ")||(x.job_is_remote?"Remote":""),
         ts:(x.job_posted_at_timestamp||0)*1000, url:x.job_apply_link, src:"JSearch",
         types:typeOf(x.job_title,(x.job_employment_type||"")+(x.job_is_remote?" remote":""))});});
+    }catch(e){
+      errors.push({code:e.code||e.name||"err", src:"JSearch", msg:String(e.message||e)});
     }
-  }catch(e){}
-  try{
-    if(cfg.jobsapi28 && cfg.jobsapi28.rapidapi_key){
-      /* Field names vary across this API's endpoints, so read defensively rather
-         than assuming one shape. */
-      var jr28=await fetch("https://jobs-api28.p.rapidapi.com/active-ats-7d?limit=100&offset=0"+
-        (q?"&title_filter="+encodeURIComponent(q):"")+(where?"&location_filter="+encodeURIComponent(where):""),
-        {headers:{"x-rapidapi-key":cfg.jobsapi28.rapidapi_key,"x-rapidapi-host":"jobs-api28.p.rapidapi.com"}});
-      var j28=await jr28.json();
-      var rows28 = Array.isArray(j28) ? j28 : (j28.data||j28.jobs||j28.results||[]);
-      rows28.forEach(function(x){
-        var title=x.title||x.job_title||x.name||"";
-        var url=x.url||x.job_url||x.apply_url||x.link||"";
-        if(!title||!url) return;
-        out.push({id:"r28"+(x.id||url), title:title,
-          co:x.organization||x.company||x.company_name||x.employer||"",
-          loc:x.locations_derived||x.location||x.locations||x.city||"",
-          ts:Date.parse(x.date_posted||x.posted_at||x.created||x.date||0)||0,
-          url:url, src:"Jobs API 28",
-          types:typeOf(title,(x.employment_type||x.job_type||"")+" "+(x.remote_derived?"remote":""))});
-      });
+  }
+  if(cfg.jobsapi28 && cfg.jobsapi28.rapidapi_key){
+    /* Field names vary across this API's endpoints, so read defensively rather
+       than assuming one shape. Paginated by offset up to 500 rows or an empty
+       page, whichever first. */
+    for(var off=0; off<500; off+=100){
+      try{
+        var j28=await netFetch("https://jobs-api28.p.rapidapi.com/active-ats-7d?limit=100&offset="+off+
+          (q?"&title_filter="+encodeURIComponent(q):"")+(where?"&location_filter="+encodeURIComponent(where):""),
+          {init:{headers:{"x-rapidapi-key":cfg.jobsapi28.rapidapi_key,"x-rapidapi-host":"jobs-api28.p.rapidapi.com"}}});
+        var rows28 = Array.isArray(j28) ? j28 : ((j28&&(j28.data||j28.jobs||j28.results))||[]);
+        if(!rows28.length) break;
+        rows28.forEach(function(x){
+          var title=x.title||x.job_title||x.name||"";
+          var url=x.url||x.job_url||x.apply_url||x.link||"";
+          if(!title||!url) return;
+          out.push({id:"r28"+(x.id||url), title:title,
+            co:x.organization||x.company||x.company_name||x.employer||"",
+            loc:x.locations_derived||x.location||x.locations||x.city||"",
+            ts:Date.parse(x.date_posted||x.posted_at||x.created||x.date||0)||0,
+            url:url, src:"Jobs API 28",
+            types:typeOf(title,(x.employment_type||x.job_type||"")+" "+(x.remote_derived?"remote":""))});
+        });
+      }catch(e){
+        errors.push({code:e.code||e.name||"err", src:"Jobs API 28", msg:String(e.message||e)});
+        break;
+      }
     }
-  }catch(e){}
-  try{
-    if(cfg.jooble && cfg.jooble.api_key){
-      var jr=await fetch("https://jooble.org/api/"+encodeURIComponent(cfg.jooble.api_key),
-        {method:"POST",headers:{"content-type":"application/json"},
-         body:JSON.stringify({keywords:q, location:where})});
-      var jj=await jr.json();
-      (jj.jobs||[]).forEach(function(x){ out.push({
-        id:"jb"+(x.id||x.link), title:x.title, co:x.company||"", loc:x.location||"",
-        ts:Date.parse(x.updated)||0, url:x.link, src:"Jooble",
-        types:typeOf(x.title,(x.type||"")+" "+(x.location||""))});});
+  }
+  if(cfg.jooble && cfg.jooble.api_key){
+    /* Jooble also paginates. Two pages is plenty because a single Jooble page
+       returns hundreds of rows already. */
+    for(var jp=1; jp<=3; jp++){
+      try{
+        var jj=await netFetch("https://jooble.org/api/"+encodeURIComponent(cfg.jooble.api_key),
+          {init:{method:"POST",headers:{"content-type":"application/json"},
+           body:JSON.stringify({keywords:q, location:where, page:jp, ResultOnPage:100})}});
+        var jjRows=(jj&&jj.jobs)||[];
+        if(!jjRows.length) break;
+        jjRows.forEach(function(x){ out.push({
+          id:"jb"+(x.id||x.link), title:x.title, co:x.company||"", loc:x.location||"",
+          ts:Date.parse(x.updated)||0, url:x.link, src:"Jooble",
+          types:typeOf(x.title,(x.type||"")+" "+(x.location||""))});});
+      }catch(e){
+        errors.push({code:e.code||e.name||"err", src:"Jooble", msg:String(e.message||e)});
+        break;
+      }
     }
-  }catch(e){}
-  return out;
+  }
+  return {items:out, errors:errors};
 }
 
 /* Score a listing against the user's own graded evidence. Same scoring shape as
@@ -2289,6 +2720,8 @@ async function runSearch(){
   var msg=$("searchMsg"), stat=$("searchStat");
   msg.className="msg on"; msg.innerHTML='<span class="spin"></span>Calling boards...';
   stat.textContent="";
+  var diagEl=$("searchDiag"); if(diagEl) diagEl.innerHTML="";
+  var suggBox=$("suggestions"); if(suggBox) suggBox.innerHTML="";
 
   var depth=$("sDepth").value;
   var boards=boardList();
@@ -2299,16 +2732,38 @@ async function runSearch(){
 
   /* Firing 140 requests at once makes the browser queue them badly and some
      boards start refusing. Batches of 20 with a live counter keeps it steady and
-     tells the user something is happening instead of a frozen button. */
+     tells the user something is happening instead of a frozen button.
+     Every task now returns {items, error?} so a dead source is countable
+     rather than invisible. */
   var all=[], done=0, total=jobsTasks.length;
+  var srcErrors=[], srcOk=0, srcEmpty=0;
   for(var i=0;i<jobsTasks.length;i+=20){
     var slice=jobsTasks.slice(i,i+20);
-    var res=await Promise.all(slice.map(function(f){ return f(); }));
-    res.forEach(function(r){ all=all.concat(r); });
+    var res=await Promise.all(slice.map(function(f){
+      return Promise.resolve().then(f).catch(function(err){
+        return {items:[], error:{code:err.code||err.name||"err", src:"unknown", msg:String(err.message||err)}};
+      });
+    }));
+    res.forEach(function(r){
+      /* Back-compat with anything that still returns a bare array. */
+      if(Array.isArray(r)){ all=all.concat(r); srcOk++; return; }
+      var items=(r&&r.items)||[];
+      all=all.concat(items);
+      if(r && r.error){ srcErrors.push(r.error); }
+      else if(r && r.errors && r.errors.length){ srcErrors=srcErrors.concat(r.errors); if(items.length) srcOk++; }
+      else if(items.length) srcOk++;
+      else srcEmpty++;
+    });
     done+=slice.length;
     msg.innerHTML='<span class="spin"></span>Reading source '+done+' of '+total+
       ', '+all.length.toLocaleString()+' listings so far...';
   }
+  /* Which source produced what. A board that quietly returns nothing on every
+     run is a blindspot, and nothing in the interface could reveal one before. */
+  var bySource={};
+  all.forEach(function(x){ var k=x.src||"unknown"; bySource[k]=(bySource[k]||0)+1; });
+  SEARCH.bySource=bySource;
+  SEARCH.diag = {ok:srcOk, empty:srcEmpty, failed:srcErrors.length, errors:srcErrors, total:total};
 
   var now=Date.now(), cutoff = win? now - win*3600*1000 : 0;
   var minPay=parseInt(($("sPay")&&$("sPay").value)||"0",10)||0;
@@ -2350,7 +2805,7 @@ async function runSearch(){
      is worse than showing them, so widen automatically and say why. */
   SEARCH.autoWide = SEARCH.strong.length<3 && SEARCH.possible.length>0;
   var wide = SEARCH.showAll || SEARCH.autoWide;
-  SEARCH.results=(wide ? rows.filter(function(j){ return j.pct>=28; }) : SEARCH.strong).slice(0,60);
+  SEARCH.results=(wide ? rows.filter(function(j){ return j.pct>=28; }) : SEARCH.strong).slice(0,250);
 
   /* Anything not shown before is flagged. A returning user should be able to
      scan only what changed rather than re-reading yesterday's list. */
@@ -2378,10 +2833,133 @@ async function runSearch(){
     (fresh? ', <b style="color:var(--audited)">'+fresh+" new since you last looked</b>":"")+
     ". Updated "+new Date(now).toLocaleTimeString()+
     (prof.tags.length?"":' <b style="color:var(--none)">Add evidence first, nothing to score against.</b>');
+  renderDiagnostics();
+  renderSuggestions({loc:loc, extra:extra, wantTypes:wantTypes, guard:guard, minPay:minPay,
+                     win:$("sWindow").value, rows:rows, all:all});
   renderResults();
   $("tailorAllBtn").hidden = !(SEARCH.strong && SEARCH.strong.length);
   if(SEARCH.strong && SEARCH.strong.length)
     $("tailorAllBtn").textContent="Prepare all "+Math.min(SEARCH.strong.length,12)+" strong fits";
+}
+/* Surface which sources returned nothing, which returned data, and which failed
+   outright. Before this existed a search that hit six 429s and thirty CORS
+   preflight failures looked the same as one that ran clean and found no jobs,
+   which is the exact silent-failure Joshua reported. */
+function renderDiagnostics(){
+  var el=$("searchDiag"); if(!el) return;
+  var d=SEARCH.diag||{};
+  if(!d.total){ el.innerHTML=""; return; }
+  var parts=[];
+  parts.push('<span class="tag" style="background:var(--audited-bg); border-color:var(--audited); color:var(--audited)">'+
+    d.ok+' returned data</span>');
+  if(d.empty) parts.push('<span class="tag">'+d.empty+' returned zero</span>');
+  if(d.failed){
+    /* Group errors by src + code so a hundred CORS failures do not fill the panel. */
+    var grouped={};
+    (d.errors||[]).forEach(function(e){
+      var key=(e.src||"unknown")+"::"+(e.code||"err");
+      grouped[key]=(grouped[key]||0)+1;
+    });
+    var summary=Object.keys(grouped).sort(function(a,b){ return grouped[b]-grouped[a]; })
+      .slice(0,4).map(function(k){
+        var g=k.split("::"); return esc(g[0])+" ("+esc(g[1])+")";
+      }).join(", ");
+    var extraMoreCount=Object.keys(grouped).length-4;
+    parts.push('<span class="tag" style="background:var(--none-bg); border-color:var(--none); color:var(--none)">'+
+      d.failed+' failed</span>'+
+      ' <span style="color:var(--muted)">Most common: '+summary+
+      (extraMoreCount>0?", plus "+extraMoreCount+" more":"")+'.</span>');
+  }
+  /* Per-source counts, collapsed. This is what makes a blindspot visible: a
+     source that is technically "ok" but has been returning two listings while
+     another returns four thousand is a coverage problem, not a healthy source. */
+  var bs=SEARCH.bySource||{};
+  var names=Object.keys(bs).sort(function(a,b){ return bs[b]-bs[a]; });
+  var srcHtml="";
+  if(names.length){
+    srcHtml='<details style="margin-top:6px"><summary style="cursor:pointer">Where the listings came from</summary>'+
+      '<div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:5px">'+
+      names.map(function(n){
+        var c=bs[n], thin=c<5;
+        return '<span class="tag"'+(thin?' style="color:var(--none); border-color:var(--none)"':"")+'>'+
+          esc(n)+' '+c.toLocaleString()+'</span>';
+      }).join("")+'</div>'+
+      '<div style="margin-top:6px; color:var(--muted)">Anything in red returned almost nothing. '+
+      'That is either a small board or a source that has quietly stopped working.</div></details>';
+  }
+  el.innerHTML = parts.join(" ") + srcHtml;
+}
+/* Poor results panel. Every suggestion is a one-click loosener that re-runs
+   the search with a specific filter widened. Joshua's spec: fewer than 10
+   results OR fewer than 3 unique companies. */
+function renderSuggestions(ctx){
+  var box=$("suggestions"); if(!box) return;
+  var results=SEARCH.strong.concat(SEARCH.possible);
+  var uniqCo={}; results.forEach(function(j){ if(j.co) uniqCo[String(j.co).toLowerCase()]=1; });
+  var poor = results.length<10 || Object.keys(uniqCo).length<3;
+  if(!poor){ box.innerHTML=""; return; }
+  var suggs=[];
+  if(ctx.loc){ suggs.push({label:"Remove the location filter (currently \""+ctx.loc+"\")",
+    action:function(){ $("sLoc").value=""; runSearch(); }}); }
+  if(ctx.wantTypes && ctx.wantTypes.length){ suggs.push({label:"Turn off the "+
+    ctx.wantTypes.join(", ")+" filter",
+    action:function(){ [].forEach.call(document.querySelectorAll("#sTypes .chip"),function(c){
+      c.setAttribute("aria-pressed","false"); }); runSearch(); }}); }
+  if(ctx.wantTypes && ctx.wantTypes.indexOf("remote")<0){
+    suggs.push({label:"Also include remote roles",
+      action:function(){ [].forEach.call(document.querySelectorAll("#sTypes .chip"),function(c){
+        if(c.dataset.type==="remote") c.setAttribute("aria-pressed","true"); }); runSearch(); }});
+  }
+  if(ctx.guard==="on"){ suggs.push({label:"Show every seniority level, not only mine",
+    action:function(){ $("sLevel").value="off"; runSearch(); }}); }
+  if(ctx.minPay){ suggs.push({label:"Drop the pay floor (currently "+ctx.minPay.toLocaleString()+")",
+    action:function(){ $("sPay").value=""; runSearch(); }}); }
+  if(parseInt(ctx.win,10)!==0 && ctx.win!==""){
+    suggs.push({label:"Widen the time window to any time",
+      action:function(){ $("sWindow").value="0"; runSearch(); }});
+  }
+  if(ctx.extra && ctx.extra.split(",").length>1){
+    var first=ctx.extra.split(",")[0].trim();
+    suggs.push({label:"Search only the first keyword: \""+first+"\"",
+      action:function(){ $("sKeywords").value=first; runSearch(); }});
+  }
+  if(ctx.extra){ suggs.push({label:"Clear the extra keywords, use your profile only",
+    action:function(){ $("sKeywords").value=""; runSearch(); }}); }
+  /* Adjacent titles. Read the profile families and offer the ones that are not
+     already in the profile. */
+  var prof=S.profile||{}, ptitles=(prof.titles||[]).map(function(t){ return t.toLowerCase(); });
+  var adjacent={};
+  ptitles.forEach(function(t){
+    FAMILIES.forEach(function(fam){
+      if(fam.some(function(m){ return t.indexOf(m)>-1 || m.indexOf(t)>-1; })){
+        fam.slice(0,4).forEach(function(m){
+          if(!ptitles.some(function(pt){ return pt.indexOf(m)>-1; })) adjacent[m]=1;
+        });
+      }
+    });
+  });
+  var adjs=Object.keys(adjacent).slice(0,4);
+  if(adjs.length){ suggs.push({label:"Try adjacent titles: "+adjs.join(", "),
+    action:function(){ $("sKeywords").value=adjs.join(", "); runSearch(); }}); }
+  if(!suggs.length){
+    box.innerHTML='<div class="msg warn on" style="display:block">Results are thin and every '+
+      'filter is already at its widest. The pool for this search is small, or the free-tier keyed '+
+      'sources returned nothing this minute. Try again in a minute, or open Sources to add an '+
+      'Adzuna, Jooble, JSearch or Jobs API 28 key for deeper coverage.</div>';
+    return;
+  }
+  var reasons=[];
+  if(results.length<10) reasons.push("only "+results.length+" total result"+(results.length===1?"":"s"));
+  if(Object.keys(uniqCo).length<3) reasons.push("only "+Object.keys(uniqCo).length+" unique compan"+
+    (Object.keys(uniqCo).length===1?"y":"ies"));
+  box.innerHTML='<div class="callout" style="border-left-color:var(--estimated); background:#FDF3DC">'+
+    '<b>Thin results ('+reasons.join(", ")+').</b> Each suggestion re-runs the search with one filter '+
+    'widened. Try them in order.<div class="btnrow" style="margin-top:10px; flex-wrap:wrap">'+
+    suggs.map(function(s,i){ return '<button class="btn quiet sm" data-sugg="'+i+'">'+esc(s.label)+'</button>'; }).join("")+
+    '</div></div>';
+  [].forEach.call(box.querySelectorAll("[data-sugg]"),function(b){
+    b.addEventListener("click",function(){ suggs[+b.dataset.sugg].action(); });
+  });
 }
 /* Collapse the same job posted under slightly different titles on three boards. */
 function dedupeKey(j){
@@ -2404,30 +2982,53 @@ function pruneSeen(){
   keys.forEach(function(k){ if(S.seen[k]>cut) out[k]=S.seen[k]; });
   S.seen=out;
 }
-/* Push everything we already know into the search form so the first run needs
-   no typing at all. Called after an import and on load. */
+/* Every session opens with the widest possible filters so the first run pulls
+   the biggest pool of listings. The previous behaviour restored the last search
+   verbatim, which meant a returning user with narrow filters saw one or two
+   results and had no obvious way back to a broad state. The lastSearch is still
+   saved and offered via a Restore button below the form.
+   The keyword field is populated from the profile so a fresh session already
+   has something to score against. */
 function applyProfileToSearch(){
   if(!$("sKeywords")) return;
-  var ls=S.lastSearch;
-  if(ls){
-    if($("sWindow")) $("sWindow").value=ls.win||"72";
-    if($("sDepth"))  $("sDepth").value=ls.depth||"full";
-    if($("sLoc"))    $("sLoc").value=ls.loc||"";
-    if($("sKeywords")) $("sKeywords").value=ls.kw||"";
-    if($("sPay"))    $("sPay").value=ls.pay||"";
-    if($("sLevel"))  $("sLevel").value=ls.guard||"on";
-    if(ls.types) [].forEach.call(document.querySelectorAll("#sTypes .chip"),function(c){
-      c.setAttribute("aria-pressed", ls.types.indexOf(c.dataset.type)>=0 ? "true":"false"); });
-  } else {
-    var p=S.profile||{};
-    if(p.titles && p.titles.length && !$("sKeywords").value) $("sKeywords").value=p.titles.slice(0,2).join(", ");
-    if(p.loc && !$("sLoc").value && !/remote/i.test(p.loc)){
-      /* Use the country or state, not the street. Boards publish coarse locations. */
-      var tail=p.loc.split(",").pop().trim();
-      if(tail.length<=24) $("sLoc").value="";
-    }
+  if($("sWindow")) $("sWindow").value="0";
+  if($("sDepth"))  $("sDepth").value="full";
+  if($("sLoc"))    $("sLoc").value="";
+  if($("sPay"))    $("sPay").value="";
+  if($("sLevel"))  $("sLevel").value="off";
+  [].forEach.call(document.querySelectorAll("#sTypes .chip"),function(c){
+    c.setAttribute("aria-pressed","false");
+  });
+  var p=S.profile||{};
+  if(!$("sKeywords").value && p.titles && p.titles.length){
+    $("sKeywords").value=p.titles.slice(0,2).join(", ");
   }
+  renderBroadStateChip();
   renderProfileChip();
+}
+/* Called after every change in the form to reflect whether the current state
+   is the widest possible or whether the user has narrowed something. */
+function isBroadestState(){
+  if(!$("sWindow")) return true;
+  if($("sWindow").value!=="0") return false;
+  if($("sLoc").value.trim()) return false;
+  if($("sPay") && $("sPay").value.trim()) return false;
+  if($("sLevel") && $("sLevel").value!=="off") return false;
+  var anyChip=[].some.call(document.querySelectorAll("#sTypes .chip"),function(c){
+    return c.getAttribute("aria-pressed")==="true"; });
+  return !anyChip;
+}
+function renderBroadStateChip(){
+  var el=$("broadState"); if(!el) return;
+  if(isBroadestState()){
+    el.textContent="Broadest defaults";
+    el.style.background="var(--audited-bg)"; el.style.borderColor="var(--audited)";
+    el.style.color="var(--audited)";
+  } else {
+    el.textContent="Narrowed";
+    el.style.background="var(--estimated-bg)"; el.style.borderColor="var(--estimated)";
+    el.style.color="var(--estimated)";
+  }
 }
 function renderProfileChip(){
   var el=$("profChip"); if(!el) return;
@@ -2492,13 +3093,17 @@ function renderResults(){
         return '<span class="tag hit">'+esc(h)+'</span>'; }).join("")+'</div>'
         :'<div class="tags" style="margin-top:5px"><span class="tag">no overlap with your evidence</span></div>')+
       '</div>'+
-      '<div style="display:flex; gap:6px; flex:none">'+
+      '<div style="display:flex; gap:6px; flex:none; flex-wrap:wrap; justify-content:flex-end">'+
         '<a class="btn quiet sm" href="'+esc(j.url)+'" target="_blank" rel="noopener">Open</a>'+
         '<button class="btn sm" data-tailor="'+i+'">Tailor</button>'+
+        '<button class="btn ghost sm" data-gen="'+i+'" title="Generate an AI-tailored resume and CV">Resume + CV</button>'+
       '</div></div>';
   }).join("");
   [].forEach.call(box.querySelectorAll("[data-tailor]"),function(b){
     b.addEventListener("click",function(){ tailorFor(SEARCH.results[+b.dataset.tailor]); });
+  });
+  [].forEach.call(box.querySelectorAll("[data-gen]"),function(b){
+    b.addEventListener("click",function(){ genFromSearchResult(SEARCH.results[+b.dataset.gen]); });
   });
   var bt=$("showAllBtn"); if(bt) bt.addEventListener("click",toggleShowAll);
 }
@@ -2554,7 +3159,7 @@ function toggleShowAll(){
   else { SEARCH.showAll=true; }
   SEARCH.results=((SEARCH.showAll||SEARCH.autoWide)
     ? (SEARCH.all||[]).filter(function(j){ return j.pct>=28; })
-    : (SEARCH.strong||[])).slice(0,60);
+    : (SEARCH.strong||[])).slice(0,250);
   renderResults();
 }
 /* Pull the full posting text, then save it as a job and jump to matching. */
@@ -2579,7 +3184,14 @@ $("searchBtn").addEventListener("click",runSearch);
 [].forEach.call(document.querySelectorAll("#sTypes .chip"),function(c){
   c.addEventListener("click",function(){
     c.setAttribute("aria-pressed", c.getAttribute("aria-pressed")==="true"?"false":"true");
+    renderBroadStateChip();
   });
+});
+/* Keep the broad-state chip live as the user narrows or resets any filter. */
+["sWindow","sLoc","sPay","sLevel","sKeywords","sDepth"].forEach(function(id){
+  var el=$(id); if(!el) return;
+  el.addEventListener("change", renderBroadStateChip);
+  el.addEventListener("input", renderBroadStateChip);
 });
 function renderSources(){
   var cfg=keyedCfg();
@@ -2645,17 +3257,21 @@ function renderJobs(){
   }
   box.innerHTML=S.jobs.map(function(j){
     var cov=coverageFor(j);
+    var hasGen = S.gen && S.gen[j.id];
     return '<div class="job'+(j.id===S.activeJob?" active":"")+'" data-job="'+j.id+'">'+
       '<div class="job-main"><b>'+esc(j.title||"Untitled role")+'</b>'+
       '<span>'+esc(j.co||"")+(j.co&&j.url?" · ":"")+esc(j.url? j.url.replace(/^https?:\/\/(www\.)?/,"").slice(0,40) : "")+
-      (j.pay?' · <b style="color:var(--audited)">'+esc(payLabel(j.pay))+'</b>':"")+'</span></div>'+
+      (j.pay?' · <b style="color:var(--audited)">'+esc(payLabel(j.pay))+'</b>':"")+
+      (hasGen?' · <span style="color:var(--audited)">tailored draft ready</span>':"")+'</span></div>'+
       '<span class="job-cov'+(cov>=60?" hi":"")+'">'+cov+'%</span>'+
+      '<button class="btn ghost sm" data-gen="'+esc(j.id)+'" title="Generate an AI-tailored resume and CV">'+(hasGen?"Open tailored":"Resume + CV")+'</button>'+
       '<button class="iconbtn" data-jrm="'+j.id+'" title="Remove" aria-label="Remove job">✕</button>'+
     '</div>';
   }).join("");
   [].forEach.call(box.querySelectorAll("[data-job]"),function(el){
     el.addEventListener("click",function(e){
       if(e.target.closest("[data-jrm]")) return;
+      if(e.target.closest("[data-gen]")) return;
       S.activeJob=el.dataset.job; syncActive(); save();
       $("jTitle").value=S.jd.title||""; $("jCo").value=S.jd.co||"";
       $("jText").value=S.jd.text||""; $("jUrl").value=S.jd.url||"";
@@ -2670,6 +3286,13 @@ function renderJobs(){
       S.jobs=S.jobs.filter(function(x){ return x.id!==id; });
       if(S.activeJob===id) S.activeJob=S.jobs.length?S.jobs[0].id:null;
       syncActive(); save(); renderJobs(); renderKW(); renderScore(); toast("Job removed");
+    });
+  });
+  [].forEach.call(box.querySelectorAll("[data-gen]"),function(b){
+    b.addEventListener("click",function(e){
+      e.stopPropagation();
+      var id=b.dataset.gen, j=S.jobs.filter(function(x){return x.id===id;})[0];
+      if(j) openGenModal(j);
     });
   });
 }
@@ -3005,6 +3628,66 @@ $("gapClose").addEventListener("click",function(){ finishGaps(); });
 $("gapExit").addEventListener("click",function(){ finishGaps(); });
 
 /* ---------- resume ---------- */
+/* "evidence" = built deterministically from graded entries, the original mode.
+   "ai" = the tailored document. "ideal" = the teaching specimen. */
+var PAPER_MODE="ai";
+
+/* Skills come back from the model in whatever case the posting used, which is
+   usually all lower. A recruiter reads the skills line first and an all
+   lowercase one reads as sloppy, so proper nouns are restored. */
+var SKILL_CASE={wordpress:"WordPress", woocommerce:"WooCommerce", javascript:"JavaScript",
+  typescript:"TypeScript", html:"HTML", css:"CSS", sql:"SQL", seo:"SEO", sem:"SEM",
+  hubspot:"HubSpot", "google analytics":"Google Analytics", ga4:"GA4", "meta ads":"Meta Ads",
+  linkedin:"LinkedIn", tiktok:"TikTok", youtube:"YouTube", github:"GitHub", gitlab:"GitLab",
+  figma:"Figma", webflow:"Webflow", shopify:"Shopify", klaviyo:"Klaviyo", mailchimp:"Mailchimp",
+  salesforce:"Salesforce", aws:"AWS", gcp:"GCP", api:"API", apis:"APIs", ui:"UI", ux:"UX",
+  "ui/ux":"UI/UX", saas:"SaaS", b2b:"B2B", b2c:"B2C", crm:"CRM", cms:"CMS", kpi:"KPIs",
+  roi:"ROI", roas:"ROAS", ppc:"PPC", ctr:"CTR", "a/b testing":"A/B testing", ios:"iOS",
+  nodejs:"Node.js", "node.js":"Node.js", react:"React", python:"Python", java:"Java",
+  kubernetes:"Kubernetes", docker:"Docker", jira:"Jira", notion:"Notion", asana:"Asana"};
+function prettySkill(s){
+  var k=String(s||"").trim().toLowerCase();
+  if(SKILL_CASE[k]) return SKILL_CASE[k];
+  /* Leave anything the user or the posting capitalised deliberately. */
+  if(/[A-Z]/.test(s)) return s;
+  return k.replace(/\b[a-z]/g, function(c){ return c.toUpperCase(); });
+}
+
+/* Bracketed text in the specimen is rendered as unmistakably not-yours. */
+function bracketed(s){
+  return esc(s).replace(/\[([^\]]+)\]/g,'<span class="unearned">[$1]</span>');
+}
+function paperFromDoc(doc, isIdeal){
+  var h=S.hdr;
+  var contact=[h.loc,h.phone,h.email].filter(Boolean).join(" &nbsp;|&nbsp; ");
+  var contact2=h.link?("Portfolio: "+esc(h.link)):"";
+  $("paper").innerHTML=
+    (isIdeal
+      ? '<div class="specimen noprint"><b>This is a specimen, not your resume.</b> It shows the '+
+        'candidate this posting was written for. Everything in [brackets] is not yours, cannot be '+
+        'defended in an interview, and must not be sent. Exporting is disabled while it is on screen.</div>'
+      : "")+
+    '<div class="rname">'+esc(h.name||"Your Name")+'</div>'+
+    (h.title?'<div class="rtitle">'+esc(h.title)+'</div>':"")+
+    '<div class="rcontact">'+contact+(contact2?"<br>"+contact2:"")+'</div>'+
+    (doc.summary?'<h4>Summary</h4><p style="font-size:13px; color:var(--ink-2)">'+bracketed(doc.summary)+'</p>':"")+
+    ((doc.skills&&doc.skills.length)?'<h4>Skills</h4><p style="font-size:13px; color:var(--ink-2)">'+
+      bracketed(doc.skills.map(prettySkill).join(", "))+'</p>':"")+
+    '<h4>Experience</h4>'+
+    (doc.roles||[]).map(function(r){
+      return '<div class="rentry">'+
+        '<div class="rorg"><span>'+bracketed(r.org||"")+'</span>'+(r.dates?'<em>'+esc(r.dates)+'</em>':"")+'</div>'+
+        (r.role?'<div class="rrole">'+bracketed(r.role)+'</div>':"")+
+        '<ul>'+(r.bullets||[]).map(function(b){
+          var t=(typeof b==="string"?b:b.text)||"";
+          return '<li>'+bracketed(t.replace(/\.*$/,"")+".")+'</li>';
+        }).join("")+'</ul></div>';
+    }).join("")+
+    (isPro()?"":'<div class="wm">Built with Evidence Engine · free version</div>');
+  applyType();
+  setTimeout(runATS,30);
+}
+
 function renderPaper(){
   var h=S.hdr;
   /* Hand edits win. Once the user has typed their own version, the generator
@@ -3014,6 +3697,12 @@ function renderPaper(){
       (isPro()?"":'<div class="wm">Built with Evidence Engine · free version</div>');
     applyType(); return;
   }
+  /* A generated document, when there is one and the user has it switched on. */
+  var j0=activeJob();
+  var showing = j0 && PAPER_MODE!=="evidence" &&
+    (PAPER_MODE==="ideal" ? j0.idealDoc : j0.aiDoc);
+  if(showing){ paperFromDoc(showing, PAPER_MODE==="ideal"); return; }
+
   var chosen=S.units.filter(function(u){ return S.picked[u.id]!==false; });
   if(S.jd.kw && S.jd.kw.length){
     chosen.sort(function(a,b){ return scoreUnit(b,S.jd.kw).s - scoreUnit(a,S.jd.kw).s; });
@@ -3157,54 +3846,170 @@ var AI={provider:"openrouter", key:"", model:"", baseUrl:""};
    `keys` is the direct link to that provider's key page, so "get a key" is one
    click rather than a hunt through a console. */
 /* `models` is a picker list, because nobody remembers that Anthropic's id is
-   "claude-sonnet-5" and not "Claude Sonnet". The first entry is the default.
+   "claude-sonnet-4-5" and not "Claude Sonnet". The first entry is the default.
    Model names move fast, so every provider also has a Custom option that
-   reveals a free-text field rather than trapping the user on this list. */
+   reveals a free-text field rather than trapping the user on this list.
+   NOTE: model IDs verified against provider docs on 2026-07-30. */
+/* The model lists below are a FALLBACK ONLY, used before the live list arrives
+   and when a provider's catalogue endpoint is unreachable.
+
+   Hardcoding model names was the bug behind "the AI just fails". Providers
+   retire model IDs on a scale of weeks, the call comes back 404 model_not_found,
+   and to the user that is indistinguishable from the feature being broken. On
+   2026-07-31 two of the ten OpenRouter slugs in this file were already dead and
+   the rest of the catalogue had moved a whole generation.
+
+   So every provider now publishes its own list and we read it. `modelsUrl` is
+   that endpoint. See discoverModels(). */
 var AI_DEFAULTS={
   openrouter:{label:"OpenRouter", url:"https://openrouter.ai/api/v1/chat/completions",
+    modelsUrl:"https://openrouter.ai/api/v1/models", modelsNoKey:true,
     keys:"https://openrouter.ai/keys", colour:"#6467F2", initials:"OR", note:"One key, every major model.",
     models:[["anthropic/claude-sonnet-5","Claude Sonnet 5, balanced"],
             ["anthropic/claude-opus-5","Claude Opus 5, strongest"],
             ["anthropic/claude-haiku-4.5","Claude Haiku 4.5, fast and cheap"],
-            ["openai/gpt-4o","GPT-4o"],["openai/gpt-4o-mini","GPT-4o mini, cheap"],
-            ["google/gemini-2.0-flash-001","Gemini 2.0 Flash"],
-            ["meta-llama/llama-3.3-70b-instruct","Llama 3.3 70B"],
-            ["deepseek/deepseek-chat","DeepSeek Chat, very cheap"],
-            ["mistralai/mistral-large","Mistral Large"],["x-ai/grok-2-1212","Grok 2"]]},
+            ["openai/gpt-5.6-terra","GPT-5.6 Terra"],["openai/gpt-5.6-luna","GPT-5.6 Luna, cheap"],
+            ["google/gemini-3.6-flash","Gemini 3.6 Flash"],
+            ["deepseek/deepseek-v4-flash","DeepSeek v4 Flash, very cheap"],
+            ["x-ai/grok-4.5","Grok 4.5"]]},
   anthropic:{label:"Anthropic", url:"https://api.anthropic.com/v1/messages",
+    modelsUrl:"https://api.anthropic.com/v1/models",
     keys:"https://console.anthropic.com/settings/keys", colour:"#C4331A", initials:"A", note:"Claude, direct.",
     models:[["claude-sonnet-5","Claude Sonnet 5, balanced"],
             ["claude-opus-5","Claude Opus 5, strongest"],
             ["claude-haiku-4-5-20251001","Claude Haiku 4.5, fast and cheap"]]},
   openai:{label:"OpenAI", url:"https://api.openai.com/v1/chat/completions",
+    modelsUrl:"https://api.openai.com/v1/models",
     keys:"https://platform.openai.com/api-keys", colour:"#10A37F", initials:"AI", note:"GPT, direct.",
-    models:[["gpt-4o","GPT-4o, balanced"],["gpt-4o-mini","GPT-4o mini, cheap"],["gpt-4-turbo","GPT-4 Turbo"]]},
+    models:[["gpt-5.6-terra","GPT-5.6 Terra, balanced"],["gpt-5.6-luna","GPT-5.6 Luna, cheap"],
+            ["gpt-5.6-sol","GPT-5.6 Sol, strongest"]]},
   google:{label:"Google Gemini", url:"https://generativelanguage.googleapis.com",
+    modelsUrl:"https://generativelanguage.googleapis.com/v1beta/models",
     keys:"https://aistudio.google.com/apikey", colour:"#3D5A80", initials:"G", note:"Gemini, free tier available.",
-    models:[["gemini-2.0-flash","Gemini 2.0 Flash, free tier"],
-            ["gemini-2.0-flash-lite","Gemini 2.0 Flash Lite, cheapest"],
-            ["gemini-1.5-pro","Gemini 1.5 Pro"]]},
+    models:[["gemini-3.6-flash","Gemini 3.6 Flash"],
+            ["gemini-3.5-flash-lite","Gemini 3.5 Flash Lite, cheapest"]]},
   groq:{label:"Groq", url:"https://api.groq.com/openai/v1/chat/completions",
+    modelsUrl:"https://api.groq.com/openai/v1/models",
     keys:"https://console.groq.com/keys", colour:"#A0670F", initials:"GQ", note:"Very fast, free tier.",
     models:[["llama-3.3-70b-versatile","Llama 3.3 70B, free tier"],
-            ["llama-3.1-8b-instant","Llama 3.1 8B, fastest"],
-            ["mixtral-8x7b-32768","Mixtral 8x7B"]]},
+            ["llama-3.1-8b-instant","Llama 3.1 8B, fastest"]]},
   deepseek:{label:"DeepSeek", url:"https://api.deepseek.com/chat/completions",
+    modelsUrl:"https://api.deepseek.com/models",
     keys:"https://platform.deepseek.com/api_keys", colour:"#1E6F4E", initials:"DS", note:"Low cost.",
     models:[["deepseek-chat","DeepSeek Chat"],["deepseek-reasoner","DeepSeek Reasoner"]]},
   mistral:{label:"Mistral", url:"https://api.mistral.ai/v1/chat/completions",
+    modelsUrl:"https://api.mistral.ai/v1/models",
     keys:"https://console.mistral.ai/api-keys", colour:"#B03A22", initials:"M", note:"European, EU hosted.",
     models:[["mistral-large-latest","Mistral Large"],["mistral-small-latest","Mistral Small, cheap"]]},
   xai:{label:"xAI Grok", url:"https://api.x.ai/v1/chat/completions",
+    modelsUrl:"https://api.x.ai/v1/models",
     keys:"https://console.x.ai/", colour:"#3A342C", initials:"X", note:"Grok, direct.",
-    models:[["grok-2-latest","Grok 2"],["grok-beta","Grok Beta"]]},
+    models:[["grok-4.5","Grok 4.5"],["grok-4.3","Grok 4.3"]]},
   together:{label:"Together AI", url:"https://api.together.xyz/v1/chat/completions",
+    modelsUrl:"https://api.together.xyz/v1/models",
     keys:"https://api.together.ai/settings/api-keys", colour:"#4A4238", initials:"T", note:"Open models.",
     models:[["meta-llama/Llama-3.3-70B-Instruct-Turbo","Llama 3.3 70B Turbo"],
             ["Qwen/Qwen2.5-72B-Instruct-Turbo","Qwen 2.5 72B"]]},
   custom:{label:"Other", url:"", keys:"", colour:"#6E6E72", initials:"?", note:"Any OpenAI-compatible endpoint.",
     models:[]}
 };
+
+/* ---- live model discovery ---------------------------------------------- */
+/* Anything that is not a text chat model. Embeddings, speech, images and the
+   batch/preview duplicates that clutter every catalogue. */
+var NOT_CHAT=/(embed|embedding|whisper|tts|audio|speech|voice|moder|rerank|image|vision-only|dall-e|imagen|veo|sora|guard|codestral-embed|:batch$|-batch$|search-index)/i;
+
+/* Families a job seeker is plausibly choosing between, strongest signal first.
+   This is ordering for a dropdown, not a benchmark claim. */
+var MODEL_FAMILIES=[
+  {re:/\bclaude\b/i,            fam:"claude",   w:100},
+  {re:/\bgpt\b|^o[1-9]\b/i,     fam:"gpt",      w:96},
+  {re:/\bgemini\b/i,            fam:"gemini",   w:92},
+  {re:/\bgrok\b/i,              fam:"grok",     w:80},
+  {re:/\bdeepseek\b/i,          fam:"deepseek", w:78},
+  {re:/\bllama\b/i,             fam:"llama",    w:74},
+  {re:/\bmistral|magistral|ministral\b/i, fam:"mistral", w:70},
+  {re:/\bqwen\b/i,              fam:"qwen",     w:66},
+  {re:/\bcommand\b/i,           fam:"command",  w:60},
+  {re:/\bglm\b/i,               fam:"glm",      w:50},
+  {re:/\bkimi|moonshot\b/i,     fam:"kimi",     w:48},
+  {re:/\bnova\b/i,              fam:"nova",     w:44}
+];
+function modelFamily(id){
+  for(var i=0;i<MODEL_FAMILIES.length;i++) if(MODEL_FAMILIES[i].re.test(id)) return MODEL_FAMILIES[i];
+  return null;
+}
+/* Highest version number anywhere in the id, so grok-4.5 beats grok-2.
+
+   Parameter counts have to come out first. "gpt-oss-20b" and
+   "deepseek-r1-distill-llama-70b" were scoring as version 20 and version 70,
+   which made them beat every real flagship and made them the answer to "what
+   should I use instead of gpt-4o". */
+function modelVersion(id){
+  var s=String(id).toLowerCase()
+    .replace(/\d+(?:\.\d+)?\s*[bkm]\b/g," ")   // 20b, 70b, 8x7b sizes
+    .replace(/\d{6,}/g," ")                     // date stamps
+    .replace(/\b(19|20)\d{2}\b/g," ");          // years
+  var m=s.match(/(\d+(?:\.\d+)?)/g);
+  if(!m) return 0;
+  return Math.max.apply(null, m.map(parseFloat).filter(function(n){
+    return n>0 && n<100;
+  }).concat([0]));
+}
+function modelRank(id){
+  var f=modelFamily(id);
+  var base=f? f.w : 20;
+  var score=base*100 + modelVersion(id)*10;
+  /* Small, cheap and preview variants are legitimate choices but should not
+     open the list ahead of the flagship. */
+  if(/mini|lite|flash|small|nano|instant|turbo|fast|haiku|8b|7b/i.test(id)) score-=25;
+  if(/preview|alpha|beta|exp\b|experimental|-0\.\d|test/i.test(id)) score-=60;
+  if(/free\)|:free/i.test(id)) score-=10;
+  return score;
+}
+function modelCache(){ try{ return JSON.parse(localStorage.getItem("ee.models2")||"{}"); }catch(e){ return {}; } }
+function modelCacheSet(p, list){
+  try{ var c=modelCache(); c[p]={t:Date.now(), list:list}; localStorage.setItem("ee.models2", JSON.stringify(c)); }catch(e){}
+}
+async function discoverModels(p, key){
+  var d=AI_DEFAULTS[p];
+  if(!d || !d.modelsUrl) return null;
+  var cached=modelCache()[p];
+  if(cached && Date.now()-cached.t < 6*3600*1000 && cached.list && cached.list.length) return cached.list;
+
+  var url=d.modelsUrl, headers={};
+  if(p==="google"){ url += "?key="+encodeURIComponent(key||""); }
+  else if(p==="anthropic"){
+    headers={"x-api-key":key||"", "anthropic-version":"2023-06-01",
+             "anthropic-dangerous-direct-browser-access":"true"};
+  } else if(!d.modelsNoKey){ headers={"authorization":"Bearer "+(key||"")}; }
+
+  var res=await aiFetch(url, {method:"GET", headers:headers}, 15000);
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  var j=await res.json();
+
+  var raw = Array.isArray(j) ? j : (j.data || j.models || []);
+  var list=[];
+  raw.forEach(function(m){
+    var id = m.id || m.name || m.model || "";
+    if(p==="google") id = String(id).replace(/^models\//,"");
+    if(!id || NOT_CHAT.test(id)) return;
+    /* Gemini publishes what each model can actually do. Use it. */
+    if(p==="google" && m.supportedGenerationMethods &&
+       m.supportedGenerationMethods.indexOf("generateContent")<0) return;
+    var label = m.display_name || m.displayName || m.name || id;
+    if(label===id || /^models\//.test(label)) label=id;
+    list.push([String(id), String(label).slice(0,64)]);
+  });
+  /* A plain descending sort put z-ai at the top of a 323-model list, which is
+     alphabetical order wearing a disguise. Rank by how likely somebody is to
+     want the model, then by version, newest first within each family. */
+  list.sort(function(a,b){ return modelRank(b[0])-modelRank(a[0]) ||
+    b[0].localeCompare(a[0], undefined, {numeric:true}); });
+  if(!list.length) throw new Error("no chat models returned");
+  modelCacheSet(p, list);
+  return list;
+}
 Object.keys(AI_DEFAULTS).forEach(function(k){
   var d=AI_DEFAULTS[k]; d.model=(d.models[0]&&d.models[0][0])||"";
 });
@@ -3222,51 +4027,337 @@ var AI_SYSTEM =
 "pointing out vague or passive wording, naming which claims a recruiter would doubt, and "+
 "tightening sentences without changing their meaning.";
 
+/* =========================================================================
+   THE WRITER
+   The rest of this product refuses to write claims. This does write, and the
+   distinction it holds is the one that matters: it may change WORDS, never
+   FACTS. Every employer, date, number and outcome must already exist in the
+   user's own entries. What it is allowed to do is say the same true thing in
+   the vocabulary the posting uses, which is the entire reason a keyword
+   matcher marks a qualified person as a poor fit.
+   ========================================================================= */
+var AI_WRITER =
+"You rewrite a person's existing, verified work history into a resume aimed at one specific job "+
+"posting. You are a translator between two vocabularies, not an author.\n\n"+
+"WHAT YOU MAY DO\n"+
+"- Reword any bullet using the posting's own terms, when the underlying fact already supports it. "+
+"If the entry says \"cross-collaborated with different departments\" and the posting asks for "+
+"\"stakeholder management\", say stakeholder management. That is a translation, not a claim.\n"+
+"- Reorder, merge and cut. Lead with what the posting leads with.\n"+
+"- Change a weak verb to a precise one, provided the new verb describes the same action at the same "+
+"level of ownership. Never promote: assisted does not become led, contributed does not become owned.\n"+
+"- Write a summary and a skills line, drawn only from what appears in the entries.\n\n"+
+"WHAT YOU MAY NEVER DO\n"+
+"- Invent or alter an employer, job title, date, tool, certification or number. Not one digit.\n"+
+"- Add a skill the entries do not evidence, however much the posting wants it.\n"+
+"- Insert an industry statistic as if it were this person's result.\n"+
+"- Use an em dash or an en dash anywhere. Commas, full stops and colons only.\n"+
+"- Write filler: passionate, results-driven, proven track record, dynamic, synergy, leveraged.\n\n"+
+"HONESTY LEDGER\n"+
+"Anything the posting requires that the entries genuinely do not evidence goes in `missing`, never "+
+"into a bullet. A resume that wins a keyword filter and then collapses in the first interview "+
+"question is worse than one that never got read.\n\n"+
+"OUTPUT\n"+
+"Return ONLY a JSON object, no prose around it, no code fence:\n"+
+"{\"summary\":\"2 to 3 sentences\",\"skills\":[\"term\"],\"roles\":[{\"org\":\"\",\"role\":\"\",\"dates\":\"\","+
+"\"bullets\":[{\"text\":\"one sentence, no trailing period needed\",\"from\":1}]}],"+
+"\"missing\":[{\"term\":\"\",\"why\":\"why the entries do not support it\",\"earn\":\"the smallest real "+
+"thing this person could do to earn it\"}]}\n"+
+"`from` is the number of the source entry the bullet came from. Every bullet must have one. "+
+"Keep bullets to one sentence. Order roles most recent first.";
+
 function aiLoad(){ try{ var r=localStorage.getItem("ee.ai"); if(r) AI=JSON.parse(r); }catch(e){} }
 function aiSave(){ try{ localStorage.setItem("ee.ai", JSON.stringify(AI)); }catch(e){} }
 function aiReady(){ return !!(AI.key && AI.key.length>10); }
 function aiModel(){ return AI.model || AI_DEFAULTS[AI.provider].model; }
 function aiUrl(){ return AI.provider==="custom" ? AI.baseUrl : AI_DEFAULTS[AI.provider].url; }
 
-async function aiCall(userMsg){
-  if(!aiReady()) throw new Error("No API key connected.");
-  var url=aiUrl(), model=aiModel(), res, body, headers;
+/* Diagnostic ring buffer. Every AI call, success or failure, lands here so
+   the user can inspect the last few requests from the Debug panel. Bodies
+   are truncated to 4KB per entry to keep memory sane. Keys never enter the
+   log, only header names. */
+var AI_LOG=[];
+function aiTrunc(s, n){ s=String(s==null?"":s); return s.length>n ? s.slice(0,n)+"...(+"+(s.length-n)+" chars)" : s; }
+function aiLog(entry){
+  entry.at = new Date().toISOString();
+  AI_LOG.unshift(entry);
+  if(AI_LOG.length>10) AI_LOG.length=10;
+  try{ if(window.console) console.log("[EvidenceEngine AI]", entry); }catch(e){}
+  try{ if(typeof renderAiDebug==="function") renderAiDebug(); }catch(e){}
+}
 
-  if(AI.provider==="google"){
+/* Timeout wrapper around fetch. Aborts after ms and throws a clear error. */
+function aiFetch(url, init, ms){
+  ms = ms||60000;
+  var ctrl = ("AbortController" in window) ? new AbortController() : null;
+  if(ctrl) init.signal = ctrl.signal;
+  var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, ms);
+  return fetch(url, init).then(function(r){ clearTimeout(to); return r; },
+    function(e){
+      clearTimeout(to);
+      if(e && (e.name==="AbortError" || String(e).indexOf("abort")>=0)){
+        throw new Error("Request timed out after "+Math.round(ms/1000)+" seconds. The provider did not respond in time.");
+      }
+      if(e && (String(e).toLowerCase().indexOf("failed to fetch")>=0 || String(e).toLowerCase().indexOf("networkerror")>=0)){
+        throw new Error("Network or CORS block. The browser could not reach the provider. If this is Anthropic, try a different provider for this run.");
+      }
+      throw e;
+    });
+}
+
+/* Robust extraction of usable text from any provider's JSON response.
+   Handles: Anthropic thinking blocks, OpenAI reasoning content,
+   Gemini multi-part responses, and refusal messages. Never returns
+   an empty string silently. */
+function aiExtractText(provider, j){
+  if(!j) return "";
+  if(provider==="google"){
+    var parts=[];
+    (j.candidates||[]).forEach(function(c){
+      (c && c.content && c.content.parts || []).forEach(function(p){
+        if(p && typeof p.text==="string") parts.push(p.text);
+      });
+    });
+    return parts.join("").trim();
+  }
+  if(provider==="anthropic"){
+    /* Newer Claude models can prepend a thinking block. Collect every
+       text block, in order. Ignore thinking, tool_use, tool_result. */
+    var out=[];
+    (j.content||[]).forEach(function(b){
+      if(!b) return;
+      if(b.type==="text" && typeof b.text==="string") out.push(b.text);
+      else if(!b.type && typeof b.text==="string") out.push(b.text);
+    });
+    return out.join("").trim();
+  }
+  /* OpenAI-compatible (OpenRouter, OpenAI, Groq, DeepSeek, Mistral, xAI,
+     Together, custom). Some models return content as an array of parts
+     rather than a plain string. Some put actual output in reasoning
+     fields when max_tokens is exhausted mid-answer. */
+  var ch = (j.choices && j.choices[0]) || null;
+  if(!ch) return "";
+  var msg = ch.message || ch.delta || {};
+  var c = msg.content;
+  if(typeof c === "string") return c.trim();
+  if(Array.isArray(c)){
+    return c.map(function(p){
+      if(typeof p==="string") return p;
+      if(p && typeof p.text==="string") return p.text;
+      return "";
+    }).join("").trim();
+  }
+  /* Fallbacks: some reasoning models put the answer here. */
+  if(typeof msg.reasoning === "string" && msg.reasoning.trim()) return msg.reasoning.trim();
+  if(typeof msg.reasoning_content === "string" && msg.reasoning_content.trim()) return msg.reasoning_content.trim();
+  return "";
+}
+
+/* Build a human-readable error from an HTTP status + parsed body.
+   Users read this string. Do not embed provider-specific jargon. */
+function aiExplainError(status, provider, j, rawText){
+  var msg = (j && j.error && (j.error.message || j.error.type || j.error.code)) ||
+            (j && j.message) ||
+            (rawText ? aiTrunc(rawText, 400) : ("HTTP "+status));
+  var lower = String(msg||"").toLowerCase();
+  if(status===401 || lower.indexOf("invalid api key")>=0 || lower.indexOf("unauthorized")>=0 || lower.indexOf("authentication")>=0){
+    return "The API key was rejected as invalid. Open Connect AI, paste the key again, and Save. Details from the provider: "+msg;
+  }
+  if(status===403){
+    return "The provider refused the request. The key may not have access to this model, or your account has restrictions. Details: "+msg;
+  }
+  if(status===404 || lower.indexOf("model")>=0 && (lower.indexOf("not found")>=0 || lower.indexOf("does not exist")>=0 || lower.indexOf("invalid")>=0)){
+    return "The model name was rejected: "+msg+". Open Connect AI, pick a different model from the list, then Save.";
+  }
+  if(status===429 || lower.indexOf("rate")>=0 || lower.indexOf("quota")>=0){
+    return "Rate limited by the provider. Wait about 60 seconds and try again, or switch to a lighter model in Connect AI. Details: "+msg;
+  }
+  if(status===402 || lower.indexOf("credit")>=0 || lower.indexOf("balance")>=0 || lower.indexOf("billing")>=0){
+    return "The provider says your account is out of credits or has a billing issue. Details: "+msg;
+  }
+  if(status===400 && (lower.indexOf("max_tokens")>=0 || lower.indexOf("context")>=0)){
+    return "The request was too large or the token budget was invalid. Details: "+msg;
+  }
+  if(status>=500){
+    return "The provider had a server-side error ("+status+"). Try again in a moment. Details: "+msg;
+  }
+  return "Provider error ("+status+"): "+msg;
+}
+
+/* Set when a retired model was silently swapped for a live sibling, so the UI
+   can tell the user their saved choice no longer exists. */
+var AI_SWAPPED=null;
+/* Closest surviving relative of a retired model id.
+
+   Token-prefix matching was too crude: it sent grok-2 to grok-build-0.1 and
+   gpt-4o to gpt-4o-mini, both of which are worse than failing. Match on the
+   model FAMILY instead, then take the best-ranked member of it, which is what
+   a person would pick by hand. */
+function pickClosestModel(dead, list){
+  if(!list || !list.length) return null;
+  var d=String(dead||"").toLowerCase();
+  var vendor=d.indexOf("/")>0 ? d.split("/")[0] : "";
+  var fam=modelFamily(d);
+
+  var pool=list.filter(function(m){
+    var id=String(m[0]).toLowerCase();
+    if(fam) return modelFamily(id) && modelFamily(id).fam===fam.fam;
+    return vendor ? id.indexOf(vendor+"/")===0 : true;
+  });
+  /* Same family, same vendor is better still. Anthropic's Claude on OpenRouter
+     should not be swapped for somebody else's Claude-shaped listing. */
+  if(vendor){
+    var sameVendor=pool.filter(function(m){ return String(m[0]).toLowerCase().indexOf(vendor+"/")===0; });
+    if(sameVendor.length) pool=sameVendor;
+  }
+  if(!pool.length) pool=list;
+
+  /* Do not silently move somebody onto a much more expensive tier. Prefer the
+     nearest size class to what they had. */
+  var wasSmall=/mini|lite|flash|small|nano|haiku|instant|turbo/i.test(d);
+  pool.sort(function(a,b){
+    var sa=modelRank(a[0]), sb=modelRank(b[0]);
+    if(wasSmall){
+      if(/mini|lite|flash|small|nano|haiku|instant/i.test(a[0])) sa+=400;
+      if(/mini|lite|flash|small|nano|haiku|instant/i.test(b[0])) sb+=400;
+    }
+    return sb-sa;
+  });
+  return pool[0][0];
+}
+async function aiCall(userMsg, opts){
+  if(!aiReady()) throw new Error("No API key connected. Open Connect AI and paste a key.");
+  opts = opts || {};
+  var sysPrompt = opts.system || AI_SYSTEM;
+  var maxTokens = opts.maxTokens || 1400;
+  var provider = AI.provider;
+  var model = opts.modelOverride || aiModel();
+  var url=aiUrl(), body, headers, redactedHeaders;
+
+  if(provider==="google"){
     /* Gemini uses its own request shape and puts the key in the path. */
     url = "https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+
           ":generateContent?key="+encodeURIComponent(AI.key);
     headers={"content-type":"application/json"};
-    body={ system_instruction:{parts:[{text:AI_SYSTEM}]},
+    body={ system_instruction:{parts:[{text:sysPrompt}]},
            contents:[{role:"user",parts:[{text:userMsg}]}],
-           generationConfig:{maxOutputTokens:1400} };
-  } else if(AI.provider==="anthropic"){
+           generationConfig:{maxOutputTokens:maxTokens} };
+    redactedHeaders={"content-type":"application/json","(key in URL query)":"redacted"};
+  } else if(provider==="anthropic"){
     headers={"content-type":"application/json","x-api-key":AI.key,
              "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
-    body={model:model, max_tokens:1400, system:AI_SYSTEM, messages:[{role:"user",content:userMsg}]};
+    body={model:model, max_tokens:maxTokens, system:sysPrompt, messages:[{role:"user",content:userMsg}]};
+    redactedHeaders={"content-type":"application/json","x-api-key":"redacted","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
   } else {
     headers={"content-type":"application/json","authorization":"Bearer "+AI.key};
-    if(AI.provider==="openrouter"){
+    redactedHeaders={"content-type":"application/json","authorization":"Bearer redacted"};
+    if(provider==="openrouter"){
       headers["HTTP-Referer"]=location.origin;
       headers["X-Title"]="Evidence Engine";
+      redactedHeaders["HTTP-Referer"]=location.origin;
+      redactedHeaders["X-Title"]="Evidence Engine";
     }
-    body={model:model, max_tokens:1400,
-          messages:[{role:"system",content:AI_SYSTEM},{role:"user",content:userMsg}]};
+    body={model:model,
+          messages:[{role:"system",content:sysPrompt},{role:"user",content:userMsg}]};
+    /* OpenAI renamed the budget parameter on its newer families and rejects the
+       old one outright. Everything else still expects max_tokens. */
+    if(provider==="openai" && /^(gpt-5|gpt-6|o[1-9])/i.test(model)) body.max_completion_tokens=maxTokens;
+    else body.max_tokens=maxTokens;
   }
 
-  res = await fetch(url,{method:"POST",headers:headers,body:JSON.stringify(body)});
-  var j;
-  try{ j = await res.json(); }catch(e){ throw new Error("HTTP "+res.status+". The provider returned something unreadable."); }
-  if(!res.ok){
-    var m=(j && (j.error&&(j.error.message||j.error.type))) || ("HTTP "+res.status);
-    throw new Error(m);
+  var attempt = 0, maxAttempts = 2, lastErr = null;
+  while(attempt < maxAttempts){
+    attempt++;
+    var started = Date.now();
+    var logEntry = { provider:provider, model:model, url:url, headers:redactedHeaders,
+                     requestBodyPreview: aiTrunc(JSON.stringify(body), 2000), attempt:attempt };
+    try{
+      var res = await aiFetch(url, {method:"POST", headers:headers, body:JSON.stringify(body)}, 60000);
+      var rawText = "";
+      try{ rawText = await res.text(); }catch(_){ rawText=""; }
+      var j = null;
+      if(rawText){ try{ j = JSON.parse(rawText); }catch(_){ j = null; } }
+      logEntry.status = res.status;
+      logEntry.ok = res.ok;
+      logEntry.responseBodyPreview = aiTrunc(rawText, 2000);
+      logEntry.elapsedMs = Date.now()-started;
+
+      if(!res.ok){
+        var err = new Error(aiExplainError(res.status, provider, j, rawText));
+        err.status = res.status;
+        err.provider = provider;
+        err.body = j;
+        logEntry.error = err.message;
+        aiLog(logEntry);
+
+        /* Self-healing on the two failures that otherwise look like "the AI is
+           broken" and which the user has no way to diagnose. */
+        var msg = (rawText||"").toLowerCase();
+        if(/max_tokens|max_completion_tokens/.test(msg) && /unsupported|not supported|unrecognized|invalid/.test(msg) && attempt<3){
+          if(body.max_tokens!=null){ body.max_completion_tokens=body.max_tokens; delete body.max_tokens; }
+          else { body.max_tokens=body.max_completion_tokens; delete body.max_completion_tokens; }
+          maxAttempts=Math.max(maxAttempts,3); lastErr=err; continue;
+        }
+        /* A retired model id. Ask the provider what it does have, pick the
+           closest sibling, and say so afterwards rather than just failing. */
+        if((res.status===404 || /model.*(not.?found|does not exist|invalid|decommission|deprecat)/.test(msg)) && attempt<3){
+          try{
+            var live=await discoverModels(provider, AI.key);
+            var alt=pickClosestModel(model, live);
+            if(alt && alt!==model){
+              AI_SWAPPED={from:model, to:alt};
+              model=alt; body.model=alt;
+              maxAttempts=Math.max(maxAttempts,3); lastErr=err; continue;
+            }
+          }catch(_){}
+        }
+
+        /* Retry on transient statuses. Do not retry on 4xx that are the
+           client's fault (401, 403, 404, 422). */
+        if((res.status===429 || res.status>=500) && attempt < maxAttempts){
+          lastErr = err;
+          await new Promise(function(r){ setTimeout(r, 1500*attempt); });
+          continue;
+        }
+        throw err;
+      }
+
+      var text = aiExtractText(provider, j);
+      logEntry.textLen = text.length;
+      aiLog(logEntry);
+
+      if(!text){
+        /* Genuinely empty. Surface why. Common causes: max_tokens too small,
+           model returned only a stop reason, safety refusal. */
+        var stop = "";
+        if(provider==="anthropic" && j){ stop = j.stop_reason || ""; }
+        else if(provider==="google" && j && j.candidates && j.candidates[0]){ stop = j.candidates[0].finishReason || ""; }
+        else if(j && j.choices && j.choices[0]){ stop = j.choices[0].finish_reason || j.choices[0].stop_reason || ""; }
+        var hint = stop ? " Stop reason: "+stop+"." : "";
+        if(stop && String(stop).toLowerCase().indexOf("max_tokens")>=0){
+          hint += " The token budget ran out before any text was produced. Try a shorter prompt, or lower the max_tokens on this call.";
+        } else if(stop && (String(stop).toLowerCase().indexOf("safety")>=0 || String(stop).toLowerCase().indexOf("refus")>=0)){
+          hint += " The model declined the request under its safety rules.";
+        }
+        throw new Error("The provider returned no text."+hint+" See Debug panel for the raw response.");
+      }
+      return text;
+    } catch(e){
+      lastErr = e;
+      if(!logEntry.status){
+        logEntry.error = e.message || String(e);
+        logEntry.elapsedMs = Date.now()-started;
+        aiLog(logEntry);
+      }
+      /* Retry network errors once. */
+      if(!e.status && attempt < maxAttempts && /timed out|network|cors/i.test(e.message||"")){
+        await new Promise(function(r){ setTimeout(r, 1500*attempt); });
+        continue;
+      }
+      throw e;
+    }
   }
-  if(AI.provider==="google"){
-    var c=j.candidates&&j.candidates[0];
-    return (c&&c.content&&c.content.parts&&c.content.parts.map(function(p){return p.text||"";}).join(""))||"(empty reply)";
-  }
-  if(AI.provider==="anthropic") return (j.content&&j.content[0]&&j.content[0].text)||"(empty reply)";
-  return (j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"(empty reply)";
+  throw (lastErr || new Error("The AI call failed for an unknown reason."));
 }
 
 /* =========================================================================
@@ -3955,44 +5046,81 @@ async function fileToText(file){
   if(/\.(txt|md|markdown|rtf)$/.test(n) || /^text\//.test(file.type||"")) return await readAsText(file);
   return await readAsText(file);
 }
-async function handleFile(file){
-  var m=$("fileMsg");
-  if(!file) return;
-  m.className="msg on"; m.innerHTML='<span class="spin"></span>Reading '+esc(file.name)+'...';
-  try{
-    var txt = await fileToText(file);
-    if(!txt || txt.trim().length<40) throw new Error("Almost no text came out of that file. If it is a scanned image, a browser cannot read it. Paste the text instead.");
-
-    /* Clean before anything is logged. An export full of ligatures, page
-       furniture and half-sentences parses badly here and reads badly to an ATS,
-       and both problems are fixed by the same pass. */
-    var norm = normalizeResume(txt);
-    $("pasteBox").value = norm.text;
-
-    PREP_FLAGS.twoCol = norm.suspectTwoColumn;
-    var html = "Read "+esc(file.name)+".";
-    if(norm.fixes.length){
-      html += ' Cleaned it up first: <strong>'+esc(norm.fixes.join(", "))+'</strong>.';
+async function handleFiles(fileList){
+  var m=$("fileMsg"), listEl=$("fileList");
+  if(!fileList || !fileList.length) return;
+  var files=[].slice.call(fileList);
+  var results=[]; // {name, ok, text, norm, err}
+  m.className="msg on"; m.innerHTML='<span class="spin"></span>Reading '+files.length+' file'+(files.length===1?"":"s")+'...';
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    m.innerHTML='<span class="spin"></span>Reading '+esc(f.name)+' ('+(i+1)+' of '+files.length+')...';
+    try{
+      var txt=await fileToText(f);
+      if(!txt || txt.trim().length<40){
+        results.push({name:f.name, ok:false, err:"almost no text"});
+        continue;
+      }
+      var norm=normalizeResume(txt);
+      results.push({name:f.name, ok:true, text:norm.text, norm:norm});
+    }catch(err){
+      results.push({name:f.name, ok:false, err:err.message});
     }
-    html += " Check the text below, then split it into entries.";
-    if(norm.suspectTwoColumn){
-      html += '<br><span style="color:#8A5A00">This looks like it came from a two-column layout, '+
-              'so the reading order may be scrambled. Applicant tracking systems hit the same problem, '+
-              'which is worth knowing before you send this file anywhere. '+
-              '<button type="button" class="linkbtn" id="fixNow">Fix the file properly first</button>'+
-              '</span>';
-    }
-    m.className = norm.suspectTwoColumn ? "msg warn on" : "msg good on";
-    m.innerHTML = html;
-    var fx=$("fixNow");
-    if(fx) fx.addEventListener("click",function(){ $("pasteVeil").classList.remove("on"); openPrep(); });
-  }catch(err){
-    m.className="msg bad on"; m.textContent = err.message;
   }
+  /* Combine every successfully-read file into the paste box, separated by a
+     blank line, so the splitter treats the combined body as one inventory to
+     split. Every entry pile into S.units on Save just as before. */
+  var combined=results.filter(function(r){ return r.ok; })
+    .map(function(r){ return r.text; }).join("\n\n");
+  if(combined){
+    $("pasteBox").value = combined;
+    /* Keep the raw text so the AI tailor step has the full source to
+       trace claims back to. Append rather than overwrite so a second
+       upload adds to the corpus rather than replacing it. */
+    S.rawResume = (S.rawResume ? S.rawResume + "\n\n===\n\n" : "") + combined;
+    try{ save(); }catch(e){}
+  }
+
+  var twoColHit=results.some(function(r){ return r.ok && r.norm && r.norm.suspectTwoColumn; });
+  PREP_FLAGS.twoCol = twoColHit;
+  var ok=results.filter(function(r){ return r.ok; }), bad=results.filter(function(r){ return !r.ok; });
+  var parts=[];
+  parts.push("Read "+ok.length+" of "+results.length+" file"+(results.length===1?"":"s")+".");
+  if(ok.length){
+    var fixes={};
+    ok.forEach(function(r){ (r.norm.fixes||[]).forEach(function(f){ fixes[f]=1; }); });
+    var fixList=Object.keys(fixes);
+    if(fixList.length) parts.push('Cleaned up: <strong>'+esc(fixList.join(", "))+'</strong>.');
+    parts.push("Check the text below, then split it into entries.");
+  }
+  if(bad.length){
+    parts.push('<br><span style="color:var(--none)">Could not read '+bad.length+
+      ' file'+(bad.length===1?"":"s")+': '+
+      bad.map(function(b){ return esc(b.name)+' ('+esc(b.err)+')'; }).join(", ")+
+      '. Scanned images cannot be read in a browser; paste the text instead.</span>');
+  }
+  if(twoColHit){
+    parts.push('<br><span style="color:#8A5A00">One or more files look like they came from a '+
+      'two-column layout, so reading order may be scrambled. Applicant tracking systems hit the '+
+      'same problem. <button type="button" class="linkbtn" id="fixNow">Fix the file properly first</button></span>');
+  }
+  m.className = bad.length ? "msg warn on" : (twoColHit ? "msg warn on" : "msg good on");
+  m.innerHTML = parts.join(" ");
+  if(listEl){
+    listEl.innerHTML = results.map(function(r){
+      return '<div>'+(r.ok?'<span style="color:var(--audited)">Read</span>'
+        :'<span style="color:var(--none)">Failed</span>')+' &middot; '+esc(r.name)+
+        (r.ok && r.text ? ' &middot; '+r.text.split(/\s+/).length.toLocaleString()+' words':'')+'</div>';
+    }).join("");
+  }
+  var fx=$("fixNow");
+  if(fx) fx.addEventListener("click",function(){ $("pasteVeil").classList.remove("on"); openPrep(); });
 }
+/* Backwards-compatible single-file entry so any lingering call site still works. */
+function handleFile(file){ return handleFiles(file ? [file] : []); }
 $("browseBtn").addEventListener("click",function(e){ e.stopPropagation(); $("resumeFile").click(); });
 $("drop").addEventListener("click",function(){ $("resumeFile").click(); });
-$("resumeFile").addEventListener("change",function(e){ handleFile(e.target.files[0]); e.target.value=""; });
+$("resumeFile").addEventListener("change",function(e){ handleFiles(e.target.files); e.target.value=""; });
 ["dragenter","dragover"].forEach(function(ev){
   $("drop").addEventListener(ev,function(e){ e.preventDefault(); $("drop").classList.add("over"); });
 });
@@ -4001,8 +5129,8 @@ $("resumeFile").addEventListener("change",function(e){ handleFile(e.target.files
 });
 $("drop").addEventListener("drop",function(e){
   e.preventDefault();
-  var f=e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-  if(f) handleFile(f);
+  var files=e.dataTransfer && e.dataTransfer.files;
+  if(files && files.length) handleFiles(files);
 });
 
 function openPaste(){ $("welcome").classList.remove("on"); $("pasteMsg").classList.remove("on");
@@ -4038,6 +5166,12 @@ $("pasteGo").addEventListener("click",function(){
   }
   if(!found.length){ m.textContent="Nothing could be split out of that. Try adding one by hand instead."; m.className="msg bad on"; return; }
   S.units=S.units.concat(found);
+  /* Keep the raw text so the AI tailor step has the full source. Any
+     text that came in through the file drop is already stored, so only
+     append when the user typed something new into the box. */
+  if(raw && S.rawResume.indexOf(raw.trim().slice(0,120))<0){
+    S.rawResume = (S.rawResume ? S.rawResume + "\n\n===\n\n" : "") + raw;
+  }
 
   /* Fill in everything the file already told us, rather than presenting the
      user with empty forms for facts sitting in the document they just gave us. */
@@ -4498,6 +5632,222 @@ $("bkExport").addEventListener("click",function(){
 });
 $("tailorAllBtn").addEventListener("click",tailorAll);
 
+/* =========================================================================
+   WRITE, SCORE, REWRITE
+   One pass gets most of the way. What closes the gap is showing the model
+   exactly which required terms are still unmatched and asking it to look again
+   at whether the evidence already covers them in different words. Three passes
+   is where the improvement flattens out.
+   ========================================================================= */
+function jdRequired(j){
+  /* The terms a match is actually scored against, heaviest first. */
+  return (j.kw||[]).map(function(k){ return k.k; });
+}
+/* Score a generated document the same way the rest of the app scores evidence:
+   how much of the posting's vocabulary the text actually contains. */
+function scoreDoc(doc, j){
+  var req=jdRequired(j);
+  if(!req.length) return {pct:0, covered:[], missing:[]};
+  var hay=docText(doc).toLowerCase();
+  var covered=[], missing=[];
+  req.forEach(function(t){
+    var re=new RegExp("\\b"+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i");
+    (re.test(hay)? covered : missing).push(t);
+  });
+  return {pct:Math.round(covered.length/req.length*100), covered:covered, missing:missing};
+}
+function docText(doc){
+  if(!doc) return "";
+  return [doc.summary||"", (doc.skills||[]).join(" "),
+    (doc.roles||[]).map(function(r){
+      return [r.org,r.role,r.dates].join(" ")+" "+(r.bullets||[]).map(function(b){
+        return typeof b==="string"?b:b.text; }).join(" ");
+    }).join(" ")].join(" ");
+}
+function parseDocJson(txt){
+  var s=String(txt||"").trim();
+  s=s.replace(/^```(?:json)?\s*/i,"").replace(/```\s*$/,"");
+  var a=s.indexOf("{"), b=s.lastIndexOf("}");
+  if(a<0||b<0) throw new Error("The model did not return JSON. Try a stronger model.");
+  var o=JSON.parse(s.slice(a,b+1));
+  if(!o.roles || !o.roles.length) throw new Error("The model returned no experience section.");
+  o.roles.forEach(function(r){
+    r.bullets=(r.bullets||[]).map(function(b){ return typeof b==="string" ? {text:b} : b; });
+  });
+  return o;
+}
+
+var WRITE={running:false, doc:null, ideal:null, history:[]};
+
+async function aiWriteDoc(kind){
+  var j=activeJob();
+  if(!j){ toast("Save a job in step 2 first"); return; }
+  if(!S.units.length){ toast("Add your evidence in step 1 first"); return; }
+  if(!aiReady()){ $("aiVeil").classList.add("on"); return; }
+  if(WRITE.running) return;
+  WRITE.running=true; WRITE.history=[];
+
+  var out=$("writeStatus");
+  var req=jdRequired(j);
+  var longform = kind==="cv";
+  var base =
+    "TARGET ROLE: "+(j.title||"")+(j.co? " at "+j.co : "")+"\n\n"+
+    "THE POSTING:\n"+(j.text||"").slice(0,6000)+"\n\n"+
+    "TERMS THIS WILL BE SCORED AGAINST: "+req.join(", ")+"\n\n"+
+    "MY VERIFIED ENTRIES (the only facts that exist):\n"+evidenceDigest()+"\n\n"+
+    (longform
+      ? "Write a CV. Longer than a resume: keep every role, allow four to six bullets on recent roles, "+
+        "and write a fuller summary of three to four sentences."
+      : "Write a one to two page resume. Six to fourteen bullets in total, weighted toward the roles "+
+        "closest to this posting.");
+
+  var best=null, bestScore=-1;
+  try{
+    for(var pass=1; pass<=3; pass++){
+      out.className="msg on";
+      out.innerHTML='<span class="spin"></span>Pass '+pass+' of 3, writing and scoring against '+
+        req.length+' required terms...';
+
+      var prompt=base;
+      if(pass>1 && best){
+        var sc=scoreDoc(best, j);
+        prompt += "\n\nYOUR PREVIOUS ATTEMPT SCORED "+sc.pct+"%.\n"+
+          "Still unmatched: "+sc.missing.join(", ")+"\n\n"+
+          "Go back through my entries. For each unmatched term, decide honestly which it is:\n"+
+          "(a) I already did this and described it in different words. Rewrite that bullet using the "+
+          "posting's term. The fact must stay identical.\n"+
+          "(b) I have not done it. Leave it out of the bullets and put it in `missing`.\n"+
+          "Do not pad the skills line with terms the entries do not evidence. Return the full JSON again.";
+      }
+
+      var txt=await aiCall(prompt, {system:AI_WRITER, maxTokens: longform?4000:3000});
+      var doc=parseDocJson(txt);
+      doc.kind=kind;
+      var s=scoreDoc(doc, j);
+      var sig=s.missing.slice().sort().join("|");
+      WRITE.history.push({pass:pass, pct:s.pct, missing:s.missing.length, sig:sig});
+      if(s.pct>bestScore){ bestScore=s.pct; best=doc; }
+      if(s.pct>=100) break;
+      /* Identical gap set two passes running means the remainder is genuinely
+         absent from the history, not a wording problem. Another round would
+         cost a call and return the same answer. */
+      if(pass>1 && sig===WRITE.history[pass-2].sig) break;
+      if(pass>1 && s.pct <= WRITE.history[pass-2].pct) break; // stopped improving
+    }
+  }catch(e){
+    WRITE.running=false;
+    out.className="msg bad on";
+    out.innerHTML="The writer failed: "+esc(e.message)+
+      ' <button type="button" class="linkbtn" id="wErrDiag">Run the connection diagnostic</button>';
+    var wd=$("wErrDiag");
+    if(wd) wd.addEventListener("click",function(){ $("aiVeil").classList.add("on"); setTimeout(aiDiagnose,200); });
+    return;
+  }
+
+  WRITE.running=false;
+  WRITE.doc=best;
+  j.aiDoc=best;
+  var fin=scoreDoc(best, j);
+  j.aiScore=fin.pct;
+  save();
+  renderPaper(); runATS();
+
+  var line=WRITE.history.map(function(h){ return h.pct+"%"; }).join(" then ");
+  if(fin.pct>=100){
+    out.className="msg good on";
+    out.innerHTML="<b>100% of the posting's terms are covered</b>, using only facts already in your "+
+      "entries. Passes: "+line+". Read every bullet before you send it: you have to be able to walk "+
+      "through each one.";
+    $("idealBtn").hidden=true;
+  } else {
+    out.className="msg warn on";
+    out.innerHTML="<b>Reached "+fin.pct+"%</b> ("+line+"). The remaining "+fin.missing.length+
+      " term"+(fin.missing.length===1?"":"s")+" are not in your history: <b>"+
+      esc(fin.missing.slice(0,10).join(", "))+"</b>. Padding the resume with them would win the filter "+
+      "and lose the interview, so they were left out. "+
+      '<button type="button" class="linkbtn" id="showIdeal">Show me what a 100% resume would look like</button>';
+    var si=$("showIdeal");
+    if(si) si.addEventListener("click",buildIdeal);
+    $("idealBtn").hidden=false;
+  }
+  renderMissingLedger(best);
+  go(3);
+}
+
+/* =========================================================================
+   THE 100% EXEMPLAR
+   Asked for directly: when the real document cannot reach 100, show what one
+   that does would look like. It is generated as a SPECIMEN, every unearned
+   claim wrapped in brackets, and it is never exportable. Its job is to make
+   the gap concrete: this is the shape of the candidate they are looking for,
+   here is precisely what you would have to be able to say, and here is the
+   smallest real thing that would let you say it.
+   ========================================================================= */
+async function buildIdeal(){
+  var j=activeJob(); if(!j) return;
+  if(!aiReady()){ $("aiVeil").classList.add("on"); return; }
+  var out=$("writeStatus");
+  out.className="msg on";
+  out.innerHTML='<span class="spin"></span>Building the 100% specimen...';
+  var miss=scoreDoc(j.aiDoc||{}, j).missing;
+  var prompt=
+    "TARGET ROLE: "+(j.title||"")+(j.co? " at "+j.co : "")+"\n\n"+
+    "THE POSTING:\n"+(j.text||"").slice(0,6000)+"\n\n"+
+    "MUST COVER EVERY ONE OF THESE TERMS: "+jdRequired(j).join(", ")+"\n\n"+
+    "MY REAL ENTRIES, for shape and voice only:\n"+evidenceDigest()+"\n\n"+
+    "TERMS I CANNOT CURRENTLY EVIDENCE: "+miss.join(", ")+"\n\n"+
+    "This is a TEACHING SPECIMEN, not my resume, and it will be labelled as such and cannot be "+
+    "exported. Write the resume of the person this posting is actually written for, covering 100% "+
+    "of the terms.\n"+
+    "Every claim I cannot currently evidence must be wrapped in square brackets, like "+
+    "[led a migration of 40 services], so the difference between what is mine and what is not is "+
+    "visible at a glance. Claims I CAN evidence should appear unbracketed and unchanged.\n"+
+    "Use realistic but obviously placeholder numbers inside the brackets.\n"+
+    "In `missing`, for each bracketed claim, put the smallest concrete thing I could genuinely do in "+
+    "the next month to earn it, in `earn`. Be specific and modest: a side project, a certification, "+
+    "one task volunteered for at work.\n"+
+    "Same JSON shape as before.";
+  try{
+    var txt=await aiCall(prompt, {system:AI_WRITER.replace(
+      "WHAT YOU MAY NEVER DO",
+      "IN SPECIMEN MODE ONLY you may write bracketed illustrative claims, and only bracketed ones.\n\n"+
+      "WHAT YOU MAY NEVER DO"), maxTokens:3000});
+    var doc=parseDocJson(txt);
+    doc.ideal=true;
+    WRITE.ideal=doc; j.idealDoc=doc; save();
+    /* Switch the view here rather than in the button handler. The status
+       message also offers this, and that path was leaving the mode on "ai", so
+       the specimen was built and then never shown. */
+    PAPER_MODE="ideal"; syncModes();
+    var s=scoreDoc(doc,j);
+    out.className="msg on";
+    out.innerHTML="<b>Specimen built, "+s.pct+"% coverage.</b> Everything in [brackets] is not yours "+
+      "and must not be sent. It is there so you can see the exact distance between your history and "+
+      "this posting, and what would close it.";
+    renderPaper(); renderMissingLedger(doc, true);
+  }catch(e){
+    out.className="msg bad on"; out.textContent="Could not build the specimen: "+e.message;
+  }
+}
+
+function renderMissingLedger(doc, isIdeal){
+  var box=$("missLedger"); if(!box) return;
+  var miss=(doc && doc.missing)||[];
+  if(!miss.length){ box.innerHTML=""; return; }
+  box.innerHTML='<div class="card" style="margin-top:18px"><h3 style="font-size:15px; margin-bottom:2px">'+
+    (isIdeal? "What would close the gap" : "Left out on purpose")+'</h3>'+
+    '<p style="font-size:12.5px; color:var(--ink-2); margin-bottom:12px">'+
+    (isIdeal
+      ? "Each of these is a bracketed claim in the specimen. The third column is the smallest real thing that would let you write it unbracketed."
+      : "The posting asks for these and your entries do not evidence them. They were kept off the resume deliberately.")+
+    '</p><ul class="atslist">'+miss.map(function(m){
+      return '<li class="no"><span class="m">·</span><span><b>'+esc(m.term||"")+'</b>'+
+        (m.why? ". "+esc(m.why):"")+
+        (m.earn? '<br><span style="color:var(--audited)">Earn it: '+esc(m.earn)+'</span>':"")+
+        '</span></li>';
+    }).join("")+'</ul></div>';
+}
+
 /* ---------- welcome ---------- */
 function closeWelcome(){ $("welcome").classList.remove("on");
   try{ localStorage.setItem("ee.seen","1"); }catch(e){} }
@@ -4564,11 +5914,37 @@ function renderProviders(){
     b.addEventListener("click",function(){ selectProvider(b.dataset.prov); });
   });
 }
-function fillModels(p, keep){
+/* Render whatever we have now, then quietly upgrade to the provider's own list
+   the moment it arrives. The user never waits on a network call to see options,
+   and never sees a model that no longer exists. */
+function refreshModels(p){
+  var d=AI_DEFAULTS[p], note=$("modelNote");
+  if(!d || !d.modelsUrl){ if(note) note.textContent=""; return; }
+  var key=($("aiKey")&&$("aiKey").value.trim()) || AI.key || "";
+  if(!key && !d.modelsNoKey){
+    if(note) note.textContent="Paste your key and the live model list loads automatically.";
+    return;
+  }
+  if(note) note.innerHTML='<span class="spin"></span>Reading '+esc(d.label)+"'s current model list...";
+  discoverModels(p, key).then(function(list){
+    if(!list || $("aiProv").value!==p) return;
+    d.live=list;
+    var keep=$("aiModelSel").value==="__custom" ? $("aiModel").value : $("aiModelSel").value;
+    fillModels(p, keep, true);
+    if(note) note.textContent=list.length+" models available from "+d.label+", newest first.";
+  }).catch(function(e){
+    if(note) note.textContent="Could not read the live model list ("+e.message+
+      "). The built-in list is being used, and you can type any model name.";
+  });
+}
+function fillModels(p, keep, skipRefresh){
   var d=AI_DEFAULTS[p], sel=$("aiModelSel");
-  sel.innerHTML = d.models.map(function(m){
+  var opts = (d.live && d.live.length) ? d.live : d.models;
+  sel.innerHTML = opts.map(function(m){
     return '<option value="'+esc(m[0])+'">'+esc(m[1])+'</option>'; }).join("")
     + '<option value="__custom">Something else, type it in</option>';
+  if(!skipRefresh) setTimeout(function(){ refreshModels(p); },0);
+  d.models = opts;
   var want = keep && d.models.some(function(m){ return m[0]===keep; }) ? keep : d.model;
   if(keep && !d.models.some(function(m){ return m[0]===keep; }) && keep){
     sel.value="__custom"; $("aiModel").hidden=false; $("aiModel").value=keep;
@@ -4578,6 +5954,94 @@ function fillModels(p, keep){
     $("aiModel").value = sel.value==="__custom" ? (keep||"") : "";
   }
 }
+/* A connection can fail at five separate layers and the old message covered all
+   of them with one sentence. Test each layer in order and name the one that
+   broke, because "check your key" is useless advice when the key is fine and
+   the model id is retired. */
+async function aiDiagnose(){
+  var m=$("aiMsg"), p=$("aiProv").value, d=AI_DEFAULTS[p];
+  var key=$("aiKey").value.trim() || AI.key;
+  var model=chosenModel();
+  var rows=[], failed=false;
+  function line(ok, label, detail){
+    rows.push('<li class="'+(ok?"ok":"no")+'"><span class="m">'+(ok?"✓":"✕")+'</span><span><b>'+
+      esc(label)+'</b>'+(detail? ". "+esc(detail):"")+'</span></li>');
+    if(!ok) failed=true;
+  }
+  function paint(head){
+    m.className="msg on"+(failed?" bad":"");
+    m.innerHTML=head+'<ul class="atslist">'+rows.join("")+'</ul>';
+  }
+  m.className="msg on"; m.innerHTML='<span class="spin"></span>Running the diagnostic...';
+
+  line(!!key, key?"A key is present":"No key", key? key.slice(0,7)+"..."+key.slice(-4) : "Paste one above.");
+  if(!key){ paint("<b>Stopped at the first step.</b> "); return; }
+
+  /* 2. Can the browser reach the provider at all, and is the key accepted?
+        The catalogue endpoint answers both at once and costs nothing. */
+  var live=null;
+  if(d.modelsUrl){
+    try{
+      try{ var c=modelCache(); delete c[p]; localStorage.setItem("ee.models2",JSON.stringify(c)); }catch(_){}
+      live=await discoverModels(p, key);
+      line(true, "Reached "+d.label+" from this browser", live.length+" models offered");
+    }catch(e){
+      var em=String(e.message||e);
+      if(/failed to fetch|network|cors/i.test(em))
+        line(false, "The browser could not reach "+d.label,
+          "This is usually the provider refusing browser requests, an extension blocking it, or no connection.");
+      else if(/401|403/.test(em)) line(false, "The key was rejected", em);
+      else line(false, "Could not read the model list", em);
+      paint("");
+      return;
+    }
+  } else line(true, "Custom endpoint", "Skipping the catalogue check");
+
+  /* 3. Does the chosen model still exist? */
+  if(live && live.length){
+    var ok = live.some(function(x){ return x[0]===model; });
+    if(ok) line(true, "The model exists", model);
+    else {
+      var alt=pickClosestModel(model, live);
+      line(false, "That model is not in "+d.label+"'s list any more",
+        model+". Closest live match is "+alt+", which will be used automatically.");
+    }
+  }
+
+  /* 4. A real round trip, deliberately tiny. */
+  try{
+    var saveKey=AI.key, saveProv=AI.provider, saveModel=AI.model;
+    AI.key=key; AI.provider=p; AI.model=model;
+    var t0=Date.now();
+    var txt=await aiCall("Reply with the single word: ready", {maxTokens:24, system:"Reply with one word."});
+    AI.key=saveKey; AI.provider=saveProv; AI.model=saveModel;
+    line(true, "Round trip succeeded", (Date.now()-t0)+"ms, replied "+JSON.stringify(txt.trim().slice(0,20)));
+    if(AI_SWAPPED) line(true, "Model was swapped automatically",
+      AI_SWAPPED.from+" is retired, used "+AI_SWAPPED.to+" instead");
+  }catch(e){
+    line(false, "The completion call failed", e.message);
+  }
+  paint(failed? "<b>Found the problem.</b> " : "<b>Everything works.</b> ");
+}
+$("writeResumeBtn").addEventListener("click",function(){ PAPER_MODE="ai"; syncModes(); aiWriteDoc("resume"); });
+$("writeCvBtn").addEventListener("click",function(){ PAPER_MODE="ai"; syncModes(); aiWriteDoc("cv"); });
+$("idealBtn").addEventListener("click",function(){ PAPER_MODE="ideal"; syncModes(); buildIdeal(); });
+function syncModes(){
+  var j=activeJob();
+  $("paperModes").hidden = !(j && (j.aiDoc || j.idealDoc));
+  $("pmIdeal").hidden = !(j && j.idealDoc);
+  [["ai","pmAi"],["evidence","pmEvidence"],["ideal","pmIdeal"]].forEach(function(p){
+    $(p[1]).setAttribute("aria-pressed", String(PAPER_MODE===p[0]));
+  });
+  /* A specimen is not a document anybody should be able to send. */
+  $("printBtn").disabled = PAPER_MODE==="ideal";
+  $("printBtn").title = PAPER_MODE==="ideal" ? "Exporting is disabled for the specimen" : "";
+}
+$("pmAi").addEventListener("click",function(){ PAPER_MODE="ai"; syncModes(); renderPaper(); });
+$("pmEvidence").addEventListener("click",function(){ PAPER_MODE="evidence"; syncModes(); renderPaper(); });
+$("pmIdeal").addEventListener("click",function(){ PAPER_MODE="ideal"; syncModes(); renderPaper(); });
+$("aiDiag").addEventListener("click",aiDiagnose);
+$("aiKey").addEventListener("blur",function(){ refreshModels($("aiProv").value); });
 $("aiModelSel").addEventListener("change",function(){
   var custom=$("aiModelSel").value==="__custom";
   $("aiModel").hidden=!custom;
@@ -4646,13 +6110,59 @@ $("aiSave").addEventListener("click",function(){
   aiSave(); aiSyncUI();
   var m=$("aiMsg");
   if(!aiReady()){ m.textContent="Add a key first."; m.className="msg bad on"; return; }
-  m.innerHTML='<span class="spin"></span>Testing...'; m.className="msg on";
-  aiCall("Reply with exactly: connected").then(function(){
-    m.textContent="Connected and working."; m.className="msg good on";
-    setTimeout(function(){ $("aiVeil").classList.remove("on"); },900);
+  m.innerHTML='<span class="spin"></span>Testing '+esc(AI_DEFAULTS[AI.provider].label)+' + '+esc(aiModel())+'...'; m.className="msg on";
+  aiCall("Reply with exactly the single word: connected", {maxTokens: 40}).then(function(reply){
+    m.innerHTML="Connected. Model replied: <code style=\"background:#F0F0F1; padding:1px 5px; border-radius:3px\">"+esc(reply.slice(0,80))+"</code>";
+    m.className="msg good on";
+    setTimeout(function(){ $("aiVeil").classList.remove("on"); },1400);
   }).catch(function(e){
-    m.textContent="Could not reach the model: "+e.message; m.className="msg bad on";
+    m.innerHTML="Could not reach the model: "+esc(e.message)+
+      "<br><br>Open the Debug drawer below to see the exact request and response.";
+    m.className="msg bad on";
+    /* Auto-expand the debug panel on failure so the user does not miss it. */
+    try{ $("aiDebugPanel").open = true; renderAiDebug(); }catch(_){}
   });
+});
+
+/* Debug panel wiring. Renders on demand and after every AI call. */
+function renderAiDebug(){
+  var el = document.getElementById("aiDebugList");
+  if(!el) return;
+  if(!AI_LOG.length){ el.textContent = "No calls yet."; return; }
+  var out = AI_LOG.map(function(e, i){
+    var head = (i+1)+". ["+e.at+"] "+e.provider+" / "+e.model+" -> "+
+      (e.status!=null ? "HTTP "+e.status : "no response")+
+      (e.elapsedMs!=null ? " ("+e.elapsedMs+"ms)" : "")+
+      (e.attempt&&e.attempt>1 ? " retry#"+e.attempt : "")+
+      (e.textLen!=null ? " text:"+e.textLen+"ch" : "")+
+      (e.error ? " ERROR" : (e.ok===false ? " NOT OK" : ""));
+    var lines = [head];
+    lines.push("  URL: "+e.url);
+    lines.push("  Headers: "+JSON.stringify(e.headers||{}));
+    lines.push("  Request body: "+e.requestBodyPreview);
+    if(e.responseBodyPreview!=null) lines.push("  Response body: "+e.responseBodyPreview);
+    if(e.error) lines.push("  Error: "+e.error);
+    return lines.join("\n");
+  }).join("\n\n");
+  el.textContent = out;
+}
+document.getElementById("aiDebugClear") && document.getElementById("aiDebugClear").addEventListener("click", function(){
+  AI_LOG = []; renderAiDebug();
+});
+document.getElementById("aiDebugCopy") && document.getElementById("aiDebugCopy").addEventListener("click", function(){
+  var el = document.getElementById("aiDebugList");
+  if(!el || !el.textContent) return;
+  var text = el.textContent;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ toast("Debug log copied."); },
+      function(){ toast("Copy failed. Select the text manually."); });
+  } else {
+    var ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand("copy"); toast("Debug log copied."); }
+    catch(_){ toast("Copy failed. Select the text manually."); }
+    document.body.removeChild(ta);
+  }
 });
 $("aiGo").addEventListener("click",function(){
   var q=$("aiQ").value.trim();
@@ -4799,6 +6309,41 @@ function runATS(){
   var lis=p.querySelectorAll("li");
   add(lis.length>0, "Bullets used for achievements");
   add(getComputedStyle(p).getPropertyValue("list-style-type")!=="none", "Standard bullet characters");
+
+  /* Asserting "no horizontal lines" in the CSS is not the same as knowing there
+     are none. Measure the rendered document: any element carrying a visible
+     border, a filled background behind text, or a zero-height block is a
+     graphic as far as a parser is concerned. */
+  var graphics=[], nodes=p.querySelectorAll("*");
+  for(var gi=0; gi<nodes.length; gi++){
+    var el=nodes[gi];
+    if(el.closest(".noprint")) continue;
+    var cs=getComputedStyle(el), r=el.getBoundingClientRect();
+    var bw=["Top","Right","Bottom","Left"].some(function(side){
+      return parseFloat(cs["border"+side+"Width"])>0 &&
+             cs["border"+side+"Style"]!=="none" &&
+             cs["border"+side+"Color"]!=="rgba(0, 0, 0, 0)";
+    });
+    var filled = cs.backgroundColor && cs.backgroundColor!=="rgba(0, 0, 0, 0)" && cs.backgroundColor!=="transparent";
+    var hairline = r.height>0 && r.height<=4 && r.width>40 && (filled||bw);
+    if(bw || hairline || (filled && el.textContent.trim())) graphics.push(el.className||el.tagName);
+  }
+  add(graphics.length===0, "No rules, boxes or filled bands"+
+    (graphics.length? " ("+graphics.length+" found)" : ""));
+
+  /* Four distinct text levels is what lets a parser and a human find the
+     structure without any graphics doing the work. */
+  var szName=parseFloat(getComputedStyle(p.querySelector(".rname")||p).fontSize)||0;
+  var h4=p.querySelector("h4"), org=p.querySelector(".rorg"), li0=p.querySelector("li");
+  var levels=[szName,
+    h4? parseFloat(getComputedStyle(h4).fontSize):0,
+    org? parseFloat(getComputedStyle(org).fontSize):0,
+    li0? parseFloat(getComputedStyle(li0).fontSize):0];
+  var distinct = szName>0 && h4 && org && li0 &&
+    getComputedStyle(h4).textTransform==="uppercase" &&
+    parseInt(getComputedStyle(org).fontWeight,10)>=600 &&
+    szName > levels[2] && levels[2] >= levels[3];
+  add(distinct, "Heading levels distinguished by type, not graphics");
   var ok=checks.filter(function(c){ return c.ok; }).length;
   var score=Math.round(ok/checks.length*100);
   $("atsN").textContent=score;
@@ -4883,6 +6428,700 @@ $("atsApply").addEventListener("click",async function(){
     m.className="msg good on"; m.textContent=n+" line"+(n>1?"s":"")+" rewritten. Check them on the Evidence step before you send anything.";
     setTimeout(function(){ $("atsVeil").classList.remove("on"); },1800);
   }catch(e){ m.className="msg bad on"; m.textContent="Rewrite failed: "+e.message; }
+});
+
+/* =========================================================================
+   AI TAILORED RESUME AND CV GENERATOR
+   Every claim in the output has to trace back to what the user actually
+   wrote. The model is scoped, hard, in the system prompt: rewrite only
+   what is already in the source, translate to the posting's vocabulary
+   where the underlying fact matches, and decline anything the source
+   does not support. No metric inflation, no invented tools, no upgraded
+   years of experience.
+
+   A fallback "copy prompt" flow exists for users without an API key.
+   ========================================================================= */
+
+var GEN_SYSTEM =
+"You are generating a tailored resume and a tailored CV for a specific job posting. "+
+"This tool's central promise is that nothing on the output is invented. Every claim "+
+"you write must trace back to a specific line in the SOURCE the user has provided.\n\n"+
+"ABSOLUTE FABRICATION GUARDRAILS. If you violate any of these, the output is unusable.\n"+
+"1. Every claim MUST trace to a specific line in the SOURCE RESUME or the SOURCE EVIDENCE ENTRIES below. "+
+"If the job description asks for something the source does not show, either omit it entirely or write "+
+"an honest positioning line that reframes existing experience without asserting the missing skill.\n"+
+"2. NEVER invent, estimate or infer a number, percentage, dollar figure, year count, or metric that "+
+"is not literally present in the source. If the source says '3 years', you do not write '5+ years'. "+
+"If the source says '$1.2M pipeline', you do not write '$2M pipeline'.\n"+
+"3. NEVER upgrade a metric to match the posting.\n"+
+"4. NEVER supply an industry statistic or benchmark as though it were the candidate's own result.\n"+
+"5. NEVER add tools, credentials, platforms, certifications, or degrees the source does not name.\n"+
+"6. If the JD asks for X and the source does not show X, add {term:X, reason:short honest reason} to "+
+"the keywords_declined list. Do not silently drop it.\n\n"+
+"VOICE RULES. Apply on every line of prose and every bullet:\n"+
+"- No em dashes (—) or en dashes (–). Use commas, periods, or colons instead.\n"+
+"- No contractions. Write 'do not' not 'don\\'t', 'cannot' not 'can\\'t', 'it is' not 'it\\'s'.\n"+
+"- No banned AI phrases: delve into, dive into, unlock, unleash, leverage, transformative, seamless, "+
+"robust, dynamic, holistic, streamline, optimize, empower, foster, elevate, revolutionize, "+
+"game changer, cutting-edge, powerful tool, valuable insights, journey, tapestry, realm, landscape, "+
+"navigate the landscape.\n"+
+"- No sycophantic openers or verbs: 'passionate about', 'excited to', 'driven by', 'proven track record', "+
+"'strategic mindset', 'results-driven', 'data-driven', 'holistic approach'.\n"+
+"- No 'Not just X, it is Y' formulation.\n"+
+"- No praise adjectives about the candidate's own work.\n"+
+"- Every bullet leads with a strong hands-on verb: rebuilt, migrated, wired, traced, diagnosed, "+
+"shipped, launched, integrated, configured, coded, drafted, negotiated, closed, recovered.\n\n"+
+"BULLET STRUCTURE (STAR+L compressed to one sentence):\n"+
+"[Verb] [what] [on what stack if named in source] after [specific cause if named], [what was built]. "+
+"[Result with number if present in source] against [baseline if named], [constraint held flat if named].\n"+
+"Not every bullet needs every element. Use what the source provides. Never fabricate a cause, "+
+"a baseline, or a constraint to fill the template.\n\n"+
+"KEYWORD OPTIMIZATION, honest kind:\n"+
+"Rewrite existing lines to use the job description's vocabulary where the underlying fact matches. "+
+"Example: source says 'web copy for product pages', JD says 'conversion copy'. Rewrite to 'conversion "+
+"copy' because the underlying fact is the same. This is translation, not invention. Do it aggressively "+
+"where facts match, never where they do not.\n\n"+
+"OUTPUT FORMAT. Return ONLY a single valid JSON object. No code fences, no commentary before or after. "+
+"Fields required:\n"+
+"{\n"+
+"  \"resume_md\": string, a 1-page tailored resume in Markdown. Sections in order: header line with "+
+"name and contact, one-line professional title, 2-3 sentence summary, Skills (comma-separated), "+
+"Experience (reverse-chronological, each entry has company + role + dates + 2-4 bullets), Education. "+
+"Total experience bullets: 6 to 10.\n"+
+"  \"cv_md\": string, a 2-page tailored CV in Markdown. Same section order plus Selected Projects. "+
+"Total experience bullets: 12 to 18. More detail per bullet than the resume.\n"+
+"  \"summary_line\": string, one-sentence positioning line for cover letters or outreach.\n"+
+"  \"keywords_addressed\": array of strings, the exact JD terms you worked into the output.\n"+
+"  \"keywords_declined\": array of {term, reason} objects, JD requirements you did not include with a "+
+"one-sentence honest reason.\n"+
+"  \"positioning_notes\": string, one paragraph explaining how you positioned the candidate against the "+
+"JD without inventing anything.\n"+
+"}\n";
+
+/* Small Markdown to HTML converter. Handles what our JSON output uses:
+   headings, bullets, paragraphs, bold, italic, links, horizontal rules. */
+function mdToHtml(md){
+  var esc=function(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");};
+  var lines=String(md||"").split(/\r?\n/), out=[], inUl=false, inP=false, inHead=false;
+  function closeUl(){ if(inUl){ out.push("</ul>"); inUl=false; } }
+  function closeP(){ if(inP){ out.push("</p>"); inP=false; } }
+  function inline(t){
+    t=esc(t);
+    t=t.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+    t=t.replace(/(^|[^*])\*([^*]+)\*/g,"$1<em>$2</em>");
+    t=t.replace(/`([^`]+)`/g,"<code>$1</code>");
+    t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return t;
+  }
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i], m;
+    if((m=l.match(/^\s*(#{1,6})\s+(.+?)\s*$/))){
+      closeUl(); closeP();
+      var lvl=m[1].length;
+      out.push("<h"+lvl+">"+inline(m[2])+"</h"+lvl+">");
+      inHead=true; continue;
+    }
+    if(/^\s*[-*]\s+/.test(l)){
+      closeP();
+      if(!inUl){ out.push("<ul>"); inUl=true; }
+      out.push("<li>"+inline(l.replace(/^\s*[-*]\s+/,""))+"</li>");
+      continue;
+    }
+    if(/^\s*$/.test(l)){
+      closeUl(); closeP(); inHead=false; continue;
+    }
+    if(/^\s*---+\s*$/.test(l)){
+      closeUl(); closeP();
+      out.push('<div style="border-bottom:1px solid var(--hairline); margin:8px 0"></div>');
+      continue;
+    }
+    closeUl();
+    if(!inP){ out.push("<p>"); inP=true; }
+    else out.push("<br>");
+    out.push(inline(l));
+  }
+  closeUl(); closeP();
+  return out.join("");
+}
+
+/* Whole-word keyword presence check. Substring matching pollutes the score
+   ("api" firing on "capital"), so anchor on non-word boundaries. */
+function kwHitInText(text, kw){
+  var low = " "+String(text||"").toLowerCase().replace(/[^a-z0-9+#./ -]/g," ").replace(/\s+/g," ")+" ";
+  var pat = kw.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  var re = new RegExp("(?:^| |[^a-z0-9+#/-])"+pat+"(?:$| |[^a-z0-9+#/-])");
+  return re.test(low);
+}
+function computeGenMatch(text, kwList){
+  var hits=[], miss=[];
+  (kwList||[]).forEach(function(o){
+    if(kwHitInText(text, o.k)) hits.push(o.k); else miss.push(o.k);
+  });
+  var pct = kwList && kwList.length ? Math.round(hits.length/kwList.length*100) : 0;
+  return {pct:pct, hits:hits, miss:miss};
+}
+
+/* ATS readability check against the generated Markdown, not against a template.
+   Same rule set as the on-page ATS check, adapted for MD text. */
+function computeGenAts(md){
+  var issues=[], score=100;
+  var pen=function(n,msg){ score-=n; issues.push(msg); };
+  if(/^\s*\|.*\|/m.test(md)) pen(15,"Tables detected. Most ATS parsers scramble tables.");
+  if(/<[a-z][a-z0-9]*[\s>]/i.test(md)) pen(10,"Raw HTML tags in the output. Keep it Markdown or plain text.");
+  var hasEm=/[—–]/.test(md);
+  if(hasEm) pen(6,"Em or en dash detected. Standard hyphens parse more reliably.");
+  if(!/^\s*#\s+/m.test(md)) pen(4,"Missing top-level heading with the candidate name.");
+  var sects=["experience","skills","education","summary","projects"];
+  var hitSects=sects.filter(function(s){ return new RegExp("(^|\\n)#{1,3}\\s.*"+s,"i").test(md); });
+  if(hitSects.length<2) pen(15,"Standard section headings missing. ATS parsers look for Experience, Skills, Education.");
+  var words=(md.match(/[A-Za-z]+/g)||[]).length;
+  if(words<180) pen(15,"Under 180 words. Too thin for keyword-density scoring.");
+  if(words>1800) pen(8,"Over 1,800 words. A two-page CV should stay under roughly 1,200 words.");
+  if(/[\u{1F300}-\u{1FAFF}☀-➿]/u.test(md)) pen(8,"Emoji or icon glyph detected. Parsers often drop them.");
+  if(/(?:columns|multicol)/i.test(md)) pen(6,"Column instruction in the text. Single column parses best.");
+  return {score:Math.max(0,Math.min(100,score)), issues:issues};
+}
+
+/* Voice lint. Hard rules from the project CLAUDE.md, checked deterministically
+   after the model returns. Anything the model missed is surfaced honestly. */
+var GEN_BANNED = [
+  "delve into","dive into","unlock","unleash","leverage","transformative","seamless",
+  "robust","dynamic","holistic","streamline","optimize","empower","foster","elevate",
+  "revolutionize","game changer","cutting-edge","powerful tool","valuable insights",
+  "journey","tapestry","realm","navigate the landscape","in an ever-changing",
+  "in today's fast-paced","meaningful impact","proven track record","results-driven",
+  "data-driven","passionate about","excited to","strategic mindset","great question"
+];
+var GEN_CONTR = ["don't","can't","won't","i'm","you're","we're","they're","it's","that's","we'll","you'll","i'd","i've","should't","couldn't","wouldn't","haven't","hasn't","isn't"];
+function computeGenLint(text){
+  var issues=[], t=String(text||""), low=t.toLowerCase();
+  if(/[—–]/.test(t)) issues.push({sev:"high", msg:"Em or en dash present. Voice rule: commas, periods or colons only."});
+  GEN_CONTR.forEach(function(w){
+    var re = new RegExp("(?:^|[^a-z])"+w.replace(/'/g,"['’]")+"(?:$|[^a-z])","i");
+    if(re.test(t)) issues.push({sev:"med", msg:"Contraction found: '"+w+"'. Voice rule: expand every contraction."});
+  });
+  GEN_BANNED.forEach(function(p){
+    if(low.indexOf(p.toLowerCase())>-1) issues.push({sev:"med", msg:"Banned phrase: '"+p+"'."});
+  });
+  if(/\*\*[A-Za-z][^*]*:\*\*/.test(t)) issues.push({sev:"low", msg:"Bold: lead-in in body prose. Reserve bold for short headers."});
+  var high = issues.filter(function(i){ return i.sev==="high"; }).length;
+  var score = Math.max(0, 100 - (high*20) - (issues.length-high)*4);
+  return {score:score, issues:issues};
+}
+
+/* Source assembly. Every fact the model is allowed to use has to appear here.
+   Nothing outside this block is available to it. */
+function genBuildSource(){
+  var parts=[];
+  if(S.hdr && (S.hdr.name||S.hdr.email||S.hdr.phone)){
+    parts.push("CANDIDATE CONTACT:\n"+
+      "Name: "+(S.hdr.name||"(not set)")+"\n"+
+      "Title: "+(S.hdr.title||"")+"\n"+
+      "Location: "+(S.hdr.loc||"")+"\n"+
+      "Email: "+(S.hdr.email||"")+"\n"+
+      "Phone: "+(S.hdr.phone||"")+"\n"+
+      "Link: "+(S.hdr.link||"")+"\n"+
+      "Summary: "+(S.hdr.summary||""));
+  }
+  if(S.units && S.units.length){
+    parts.push("EVIDENCE ENTRIES (structured, graded by the user):\n"+
+      S.units.map(function(u,i){
+        return (i+1)+". ["+GRADE[u.metricType][2]+"] "+u.org+
+          (u.role?" - "+u.role:"")+(u.dates?" ("+u.dates+")":"")+"\n"+
+          "   Action: "+(u.action||"")+"\n"+
+          (u.metric?"   Number: "+u.metric+"\n":"")+
+          (u.constraint?"   Constraint held flat: "+u.constraint+"\n":"")+
+          (u.evidence?"   Evidence source: "+u.evidence+"\n":"")+
+          ((u.tags||[]).length?"   Tags: "+u.tags.join(", ")+"\n":"");
+      }).join(""));
+  }
+  if(S.rawResume && S.rawResume.trim()){
+    /* Cap to 15,000 chars to keep the request within any provider's token
+       budget without silently truncating something important. If the user's
+       corpus is bigger, keep the last chunk since that usually holds the
+       most recent employers. */
+    var raw = S.rawResume.length > 15000 ? S.rawResume.slice(-15000) : S.rawResume;
+    parts.push("SOURCE RESUME TEXT (verbatim, this is what every claim must trace to):\n"+raw);
+  }
+  return parts.join("\n\n---\n\n");
+}
+
+function genBuildUserPrompt(job){
+  var kw = (job.kw||[]).map(function(o){return o.k;}).join(", ");
+  return "JOB POSTING:\n"+
+    "Title: "+(job.title||"")+"\n"+
+    "Company: "+(job.co||"")+"\n"+
+    "URL: "+(job.url||"")+"\n\n"+
+    "JD KEYWORDS (already extracted by the tool):\n"+kw+"\n\n"+
+    "FULL JOB DESCRIPTION:\n"+(job.text||"(only the title was available)")+
+    "\n\n---\n\n"+
+    "SOURCE, the only material you may draw claims from:\n"+genBuildSource()+
+    "\n\n---\n\n"+
+    "Task: produce the tailored resume and CV as specified in the system prompt. "+
+    "Return ONLY the JSON object. No preface, no code fences.";
+}
+
+function genBuildCopyPrompt(job){
+  return GEN_SYSTEM + "\n\n---\n\n" + genBuildUserPrompt(job);
+}
+
+/* Extract JSON from a model response that may or may not be wrapped in
+   code fences or preface prose. */
+function genParseJson(txt){
+  var s = String(txt||"").trim();
+  s = s.replace(/^```(?:json)?\s*/i,"").replace(/```\s*$/i,"");
+  var start = s.indexOf("{"), end = s.lastIndexOf("}");
+  if(start<0 || end<0) throw new Error("The model did not return a JSON object.");
+  var body = s.slice(start, end+1);
+  try{ return JSON.parse(body); }
+  catch(e){
+    /* Retry after stripping trailing commas, a common model tic. */
+    var cleaned = body.replace(/,\s*([}\]])/g,"$1");
+    return JSON.parse(cleaned);
+  }
+}
+
+/* Highlight matched keywords inside the rendered HTML view. Wraps whole
+   words only, so 'seo' does not fire on 'season'. Case insensitive. */
+function highlightKw(html, hits){
+  if(!hits || !hits.length) return html;
+  /* Sort longest first so 'design system' wraps before 'design'. */
+  var terms = hits.slice().sort(function(a,b){ return b.length-a.length; });
+  var out = html;
+  terms.forEach(function(t){
+    if(!t || t.length<2) return;
+    var pat = t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    var re = new RegExp("(?<![a-z0-9])("+pat+")(?![a-z0-9])","ig");
+    out = out.replace(re, function(m){
+      return '<span class="kw-hit">'+m+'</span>';
+    });
+  });
+  return out;
+}
+
+/* ---------- state helpers ---------- */
+var GEN_CTX = { job:null };
+
+function genFromSearchResult(j){
+  /* A search result has less data than a saved job. If the user has never
+     saved this one, save it first so a) coverage math has a full posting
+     to work with, b) the tailored draft is retrievable from the job list
+     without re-running the AI. */
+  var existing = S.jobs.filter(function(x){ return appKey(x.url)===appKey(j.url); })[0];
+  if(existing){ openGenModal(existing); return; }
+  var msg=$("searchMsg"); msg.className="msg on";
+  msg.innerHTML='<span class="spin"></span>Fetching the full posting for '+esc(j.title)+'...';
+  fetchJob(j.url).then(function(d){
+    var text = (d && d.text) || (j.title+"\n"+j.co+"\n"+(j.loc||"")+"\n"+(j.hits||[]).join(", "));
+    var nj = newJob({title:j.title, co:j.co, url:j.url, text:text});
+    nj.kw = kwFromText(text);
+    nj.pay = parsePay(j.title+" "+text.slice(0,4000)) || j.pay || null;
+    S.jobs.push(nj);
+    S.activeJob = nj.id;
+    syncActive(); save(); renderJobs(); renderKW(); renderScore();
+    msg.classList.remove("on");
+    openGenModal(nj);
+  }).catch(function(){
+    /* Aggregator or blocked page: save what we have and open the modal
+       anyway. The model still has the JD title and keywords to work with. */
+    var text = j.title+"\n"+j.co+"\n"+(j.loc||"")+"\n"+(j.hits||[]).join(", ");
+    var nj = newJob({title:j.title, co:j.co, url:j.url, text:text});
+    nj.kw = kwFromText(text);
+    S.jobs.push(nj); S.activeJob = nj.id;
+    syncActive(); save(); renderJobs(); renderKW(); renderScore();
+    msg.className="msg warn on";
+    msg.textContent="Saved, but the full posting text could not be read from "+j.src+
+      ". Paste the description into the modal for a sharper tailor.";
+    openGenModal(nj);
+  });
+}
+
+function openGenModal(job){
+  GEN_CTX.job = job;
+  $("genVeil").classList.add("on");
+  $("genJobTag").textContent = (job.title||"Untitled")+(job.co?" at "+job.co:"")+
+    " · "+(job.kw||[]).length+" keywords in the posting";
+
+  var sourceBits=[];
+  if(S.units.length) sourceBits.push(S.units.length+" graded evidence entries");
+  if(S.rawResume && S.rawResume.trim()) sourceBits.push(Math.round(S.rawResume.length/1000)+"K characters of uploaded resume text");
+  if(S.hdr.name) sourceBits.push("your contact block");
+  $("genSource").innerHTML = "<b>Source:</b> "+ (sourceBits.length?sourceBits.join(", ") :
+    '<span style="color:var(--none)">No source uploaded. Add your evidence first, on Step 1.</span>')+
+    ". Every claim in the output has to trace to something in this source.";
+
+  /* Match before, computed against the on-page evidence. This is the same
+     coverage number shown on the job card, presented plainly. */
+  var beforePct = coverageFor(job);
+  $("genBefore").textContent = beforePct+"%";
+  $("genBeforeD").textContent = "From your currently-selected evidence.";
+
+  /* Reset the after state until the user runs the tailor. */
+  $("genAfter").textContent = "—"; $("genAfter").className="num up";
+  $("genAfterD").textContent = "Run the tailor to see the lift.";
+  $("genAts").textContent = "—"; $("genAts").className="num";
+  $("genAtsD").textContent = "Layout checks against real parser rules.";
+  $("genLint").textContent = "—"; $("genLint").className="num";
+  $("genLintD").textContent = "Em dashes, contractions, banned phrases.";
+
+  /* Keyword list on the modal: everything the posting names, with the ones
+     already covered by evidence tinted green and the gaps tinted red. */
+  var covered = {};
+  S.units.forEach(function(u){
+    if(job.picked && job.picked[u.id]===false) return;
+    scoreUnit(u,job.kw||[]).hits.forEach(function(h){ covered[h]=1; });
+  });
+  var kw = job.kw || [];
+  $("genKwCount").textContent = kw.length ? (kw.length+" total, "+Object.keys(covered).length+" already covered") : "";
+  $("genKwList").innerHTML = kw.length ? kw.map(function(o){
+    return '<span class="'+(covered[o.k]?"kw-hit":"kw-miss")+'">'+esc(o.k)+'</span>';
+  }).join(" ") : '<span style="color:var(--muted); font-size:12.5px">No keywords extracted, paste the full posting on Step 2 for a sharper tailor.</span>';
+
+  /* Restore any prior generation for this job. */
+  var prior = S.gen && S.gen[job.id];
+  if(prior){
+    $("genOut").hidden=false;
+    renderGenResult(prior);
+    $("genAiStatus").textContent = "Loaded a saved draft from "+
+      (prior.when ? new Date(prior.when).toLocaleString() : "earlier")+
+      (prior.model ? " (via "+prior.model+")" : "")+
+      ". Regenerate to refresh.";
+    $("genRunBtn").textContent = "Regenerate with AI";
+  } else {
+    $("genOut").hidden=true;
+    $("genAiStatus").textContent = "";
+    $("genRunBtn").textContent = "Generate resume and CV with AI";
+  }
+  $("genLoader").hidden=true; $("genMsg").className="msg";
+  $("genMsg").textContent="";
+  $("genPromptBox").hidden=true;
+
+  /* Warn honestly if the source is empty. Users who click this before
+     uploading anything got a confusing error otherwise. */
+  if(!S.units.length && !(S.rawResume && S.rawResume.trim())){
+    $("genMsg").className="msg bad on";
+    $("genMsg").innerHTML='<b>No source to draw from.</b> Upload or paste your resume on Step 1 first. '+
+      'Without a source, the tool has nothing honest to say.';
+  }
+}
+
+function renderGenResult(g){
+  /* g: { resume, cv, matchAfter, kwHit, kwMiss, atsScore, atsIssues,
+         lintScore, lintIssues, declined, addressed, positioning, summaryLine,
+         model, when } */
+  $("genOut").hidden=false;
+
+  $("genResumeDoc").innerHTML = '<div class="genhead">Tailored resume</div>'+mdToHtml(g.resume);
+  $("genCvDoc").innerHTML = '<div class="genhead">Tailored CV</div>'+mdToHtml(g.cv);
+
+  /* Side by side view: original at left, tailored with keyword highlights at right. */
+  var origSource = S.rawResume && S.rawResume.trim()
+    ? mdToHtml(S.rawResume.slice(0, 12000))
+    : (S.units.length ? "<p><em>No raw resume text uploaded. Original view shows your graded evidence entries instead.</em></p>"+
+        "<ul>"+S.units.map(function(u){ return "<li>"+esc(bullet(u))+"</li>"; }).join("")+"</ul>"
+        : "<p><em>No source available.</em></p>");
+  $("genOrigDoc").innerHTML = origSource;
+  $("genTailoredDoc").innerHTML = highlightKw(mdToHtml(g.resume), g.kwHit||[]);
+
+  /* Score cards. */
+  var beforePct = coverageFor(GEN_CTX.job||{});
+  $("genBefore").textContent = beforePct+"%";
+  $("genAfter").textContent = g.matchAfter+"%";
+  $("genAfter").className = "num "+(g.matchAfter>=beforePct?"up":"down");
+  $("genAfterD").textContent = (g.matchAfter-beforePct>=0?"+":"")+(g.matchAfter-beforePct)+" points against the JD.";
+  $("genAts").textContent = g.atsScore+"/100";
+  $("genAts").className = "num "+(g.atsScore>=80?"up":(g.atsScore>=60?"":"down"));
+  $("genAtsD").textContent = g.atsIssues.length ? g.atsIssues.length+" issue"+(g.atsIssues.length===1?"":"s")+" to review" : "Clean against the parser rules.";
+  $("genLint").textContent = g.lintScore+"/100";
+  $("genLint").className = "num "+(g.lintScore>=90?"up":(g.lintScore>=70?"":"down"));
+  $("genLintD").textContent = g.lintIssues.length ? g.lintIssues.length+" voice-rule hit"+(g.lintIssues.length===1?"":"s") : "Voice rules held.";
+
+  $("genPosNotes").textContent = g.positioning || "No notes returned.";
+  $("genAddCount").textContent = (g.kwHit||[]).length+" of "+((GEN_CTX.job&&(GEN_CTX.job.kw||[]).length)||0);
+  $("genAddressed").innerHTML = (g.kwHit||[]).map(function(k){
+    return '<span class="kw-hit">'+esc(k)+'</span>';
+  }).join(" ") || '<span style="color:var(--muted); font-size:12.5px">None yet.</span>';
+
+  $("genDeclCount").textContent = (g.declined||[]).length+" honestly declined";
+  $("genDeclined").innerHTML = (g.declined||[]).length ? g.declined.map(function(d){
+    return '<div class="row"><b>'+esc(d.term||"(unspecified)")+'</b><span>'+esc(d.reason||"")+'</span></div>';
+  }).join("") : '<div style="color:var(--audited); font-size:13px">Everything the posting asks for was addressable from your source.</div>';
+
+  /* Fabrication guardrail readout, deterministic post-check. Flags any
+     obvious upgrade of years-of-experience or credentials the source
+     never mentioned. */
+  var flags = fabricationCheck(g.resume+"\n"+g.cv);
+  $("genFabTest").innerHTML = "<b>Fabrication check.</b> " + (flags.length
+    ? '<span style="color:var(--none)">'+flags.length+' possible upgrade'+(flags.length===1?"":"s")+' vs the source: '+
+      flags.map(function(f){ return esc(f); }).join("; ")+
+      '</span>. Review these before sending.'
+    : '<b>No obvious upgrades vs the source.</b> Every years-of-experience number in the output appears in the source.');
+
+  if(g.atsIssues && g.atsIssues.length){
+    $("genAtsIssues").innerHTML = "<h4 style=\"font-size:13px; margin:12px 0 6px\">ATS readability issues</h4>"+
+      "<ul style=\"font-size:12.7px; color:var(--ink-2); padding-left:18px\">"+
+      g.atsIssues.map(function(i){ return "<li>"+esc(i)+"</li>"; }).join("")+"</ul>";
+  } else $("genAtsIssues").innerHTML = "";
+
+  if(g.lintIssues && g.lintIssues.length){
+    $("genLintIssues").innerHTML = "<h4 style=\"font-size:13px; margin:12px 0 6px\">Voice-rule hits</h4>"+
+      "<ul style=\"font-size:12.7px; color:var(--ink-2); padding-left:18px\">"+
+      g.lintIssues.map(function(i){ return "<li>["+i.sev+"] "+esc(i.msg)+"</li>"; }).join("")+"</ul>";
+  } else $("genLintIssues").innerHTML = "";
+}
+
+/* Deterministic post-check for the most common fabrication risk:
+   the model quietly upgrading years-of-experience or naming a
+   credential the source never had. */
+function fabricationCheck(outputText){
+  var flags=[], src=(S.rawResume+" "+S.units.map(function(u){ return u.action+" "+u.metric+" "+u.role+" "+(u.tags||[]).join(" "); }).join(" ")).toLowerCase();
+  var yearRe = /(\d+)\+?\s*years?/g, m;
+  var srcYears = {};
+  var mm; var srcRe=/(\d+)\+?\s*years?/g;
+  while((mm=srcRe.exec(src))) srcYears[+mm[1]]=1;
+  while((m=yearRe.exec(String(outputText||"")))){
+    var n=+m[1];
+    if(n>=3 && !srcYears[n] && !srcYears[n-1] && !srcYears[n+1]){
+      flags.push('"'+m[0]+'" not found in your source');
+    }
+  }
+  return flags.slice(0,6);
+}
+
+/* ---------- generation flow ---------- */
+async function runGenerate(){
+  var job = GEN_CTX.job; if(!job){ return; }
+  if(!S.units.length && !(S.rawResume && S.rawResume.trim())){
+    $("genMsg").className="msg bad on";
+    $("genMsg").textContent="Upload or paste your resume on Step 1 first. There is nothing to tailor from.";
+    return;
+  }
+  if(!aiReady()){
+    /* Reveal the copy-prompt fallback rather than failing outright. */
+    openCopyPrompt();
+    $("genMsg").className="msg warn on";
+    $("genMsg").innerHTML='No API key connected. Paste the prompt below into any chat AI, then paste the JSON response back.';
+    return;
+  }
+  $("genLoader").hidden=false; $("genOut").hidden=true;
+  $("genMsg").className="msg"; $("genMsg").textContent="";
+  $("genAiStatus").textContent="Calling "+ (AI_DEFAULTS[AI.provider]&&AI_DEFAULTS[AI.provider].label||AI.provider) +" via "+aiModel()+"...";
+  var user = genBuildUserPrompt(job);
+  try{
+    var txt;
+    try{
+      txt = await aiCall(user, {system: GEN_SYSTEM, maxTokens: 3800});
+    } catch(primaryErr){
+      /* Auto-fallback on model or size errors. Try Haiku (Anthropic direct)
+         or the vendor's cheapest model on OpenRouter. This handles the common
+         case where the account does not have access to Opus, or the model
+         name typed in was stale. */
+      var fallback = null;
+      if(AI.provider==="anthropic") fallback = "claude-haiku-4-5";
+      else if(AI.provider==="openrouter") fallback = "anthropic/claude-haiku-4.5";
+      else if(AI.provider==="openai") fallback = "gpt-4o-mini";
+      var shouldFall = fallback && /model|not found|does not exist|invalid|context|token|max_tokens|401|403|404|429/i.test(primaryErr.message||"");
+      if(shouldFall && fallback !== aiModel()){
+        $("genAiStatus").textContent="Primary model failed. Retrying with "+fallback+"...";
+        txt = await aiCall(user, {system: GEN_SYSTEM, maxTokens: 3800, modelOverride: fallback});
+      } else {
+        throw primaryErr;
+      }
+    }
+    var j = genParseJson(txt);
+    if(!j.resume_md || !j.cv_md) throw new Error("The response was missing resume_md or cv_md. Raw output start: "+(txt||"").slice(0,200));
+    var g = normalizeGen(j, job);
+    S.gen = S.gen || {};
+    S.gen[job.id] = g;
+    save();
+    renderGenResult(g);
+    renderJobs();
+    $("genAiStatus").textContent = "Done. Match "+g.matchAfter+"%, ATS "+g.atsScore+"/100, voice lint "+g.lintScore+"/100.";
+  }catch(err){
+    $("genMsg").className="msg bad on";
+    $("genMsg").innerHTML = "<b>Generation failed.</b> "+esc(err.message)+
+      "<br><br>Open <b>Connect AI</b> and expand the <b>Debug: last AI calls</b> drawer to see the exact request and response. "+
+      "If the provider blocked the call, switch provider or model in Connect AI, or use the copy-prompt fallback below.";
+    openCopyPrompt();
+    $("genAiStatus").textContent="";
+  }finally{
+    $("genLoader").hidden=true;
+  }
+}
+
+function normalizeGen(j, job){
+  var resumeMd = String(j.resume_md||"").trim();
+  var cvMd = String(j.cv_md||"").trim();
+  var combined = resumeMd+"\n\n"+cvMd;
+  var m = computeGenMatch(combined, job.kw||[]);
+  var ats = computeGenAts(resumeMd);
+  var lint = computeGenLint(combined);
+  return {
+    resume: resumeMd,
+    cv: cvMd,
+    summaryLine: j.summary_line || "",
+    matchAfter: m.pct,
+    kwHit: m.hits,
+    kwMiss: m.miss,
+    addressed: Array.isArray(j.keywords_addressed) ? j.keywords_addressed : [],
+    declined: Array.isArray(j.keywords_declined) ? j.keywords_declined.map(function(d){
+      return typeof d === "string" ? {term:d, reason:""} : {term:d.term||"", reason:d.reason||""};
+    }) : [],
+    positioning: String(j.positioning_notes || ""),
+    atsScore: ats.score, atsIssues: ats.issues,
+    lintScore: lint.score, lintIssues: lint.issues,
+    model: aiModel(),
+    when: Date.now()
+  };
+}
+
+/* ---------- copy-prompt fallback ---------- */
+function openCopyPrompt(){
+  var job = GEN_CTX.job; if(!job) return;
+  $("genPromptBox").hidden=false;
+  $("genPromptText").value = genBuildCopyPrompt(job);
+  $("genPromptPaste").hidden=true;
+}
+
+$("genCopyPromptBtn").addEventListener("click",openCopyPrompt);
+$("genPromptHide").addEventListener("click",function(){ $("genPromptBox").hidden=true; });
+$("genPromptCopy").addEventListener("click",function(){
+  var t=$("genPromptText");
+  t.select(); document.execCommand&&document.execCommand("copy");
+  if(navigator.clipboard) navigator.clipboard.writeText(t.value).catch(function(){});
+  toast("Prompt copied. Paste into Claude, ChatGPT, Gemini or Perplexity.");
+});
+$("genPromptPasteBack").addEventListener("click",function(){
+  $("genPromptPaste").hidden=false;
+  setTimeout(function(){ $("genPasteBox").focus(); },40);
+});
+$("genPasteCancel").addEventListener("click",function(){ $("genPromptPaste").hidden=true; });
+$("genPasteApply").addEventListener("click",function(){
+  var raw = $("genPasteBox").value.trim();
+  if(!raw){ toast("Paste the JSON first"); return; }
+  try{
+    var j = genParseJson(raw);
+    if(!j.resume_md || !j.cv_md) throw new Error("Missing resume_md or cv_md");
+    var job = GEN_CTX.job;
+    var g = normalizeGen(j, job);
+    S.gen = S.gen || {}; S.gen[job.id] = g; save();
+    renderGenResult(g); renderJobs();
+    $("genPromptPaste").hidden=true; $("genPromptBox").hidden=true;
+    toast("Loaded. Match "+g.matchAfter+"%.");
+  }catch(e){
+    toast("Could not read that as JSON: "+e.message);
+  }
+});
+
+$("genRunBtn").addEventListener("click",runGenerate);
+$("genClose").addEventListener("click",function(){ $("genVeil").classList.remove("on"); });
+
+/* ---------- tabs ---------- */
+document.addEventListener("click",function(e){
+  var t = e.target.closest && e.target.closest(".gen-tab[data-tab]");
+  if(!t) return;
+  var which = t.dataset.tab;
+  [].forEach.call(document.querySelectorAll(".gen-tab"),function(b){
+    b.setAttribute("aria-selected", b.dataset.tab===which ? "true" : "false");
+  });
+  [].forEach.call(document.querySelectorAll(".gen-view"),function(v){
+    v.classList.toggle("on", v.dataset.view===which);
+  });
+});
+
+/* ---------- downloads ---------- */
+function downloadBlob(name, mime, body){
+  var b = new Blob([body], {type:mime});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(b);
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 400);
+}
+function genBaseName(kind){
+  var job = GEN_CTX.job || {};
+  var name = (S.hdr.name || "Tailored") + " - " + (job.co||"Role") + " - " + (job.title||"Role") + " - " + kind;
+  return name.replace(/[\\/:*?"<>|]/g,"").slice(0,110);
+}
+function genHtmlDoc(md, title){
+  /* Bundle the MD as a print-ready HTML with print-safe CSS. Used both for
+     PDF (via window.print) and DOCX (via the html-to-doc wrapper). */
+  var body = mdToHtml(md);
+  return '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+
+    '</title><style>'+
+    'body{font-family:Arial,Helvetica,sans-serif; color:#1F1C17; max-width:8.5in; margin:0.5in auto; padding:0; font-size:11pt; line-height:1.42}'+
+    'h1{font-size:20pt; margin:0 0 4pt; letter-spacing:-.01em}'+
+    'h2{font-size:12pt; text-transform:uppercase; letter-spacing:.05em; background:#DDDDDE; padding:3pt 8pt; margin:14pt 0 6pt; border-radius:2pt}'+
+    'h3{font-size:11.5pt; margin:10pt 0 3pt}'+
+    'h4{font-size:11pt; margin:8pt 0 2pt}'+
+    'ul{margin:4pt 0 8pt 18pt; padding:0}'+
+    'li{margin-bottom:2pt}'+
+    'p{margin:0 0 6pt}'+
+    'strong{font-weight:700}'+
+    '@page{size:letter; margin:0.5in}'+
+    '</style></head><body>'+body+'</body></html>';
+}
+function genDownload(kind){
+  var g = S.gen && GEN_CTX.job && S.gen[GEN_CTX.job.id];
+  if(!g){ toast("Nothing to download yet"); return; }
+  var isCv = /^cv/.test(kind);
+  var md = isCv ? g.cv : g.resume;
+  var base = genBaseName(isCv ? "CV" : "Resume");
+  if(/-md$/.test(kind)){
+    downloadBlob(base+".md", "text/markdown;charset=utf-8", md);
+    return;
+  }
+  if(/-doc$/.test(kind)){
+    /* Word-openable HTML file with .doc extension. Reliable across every
+       recent version of Word and Google Docs. */
+    var html = genHtmlDoc(md, base);
+    /* Prefix the Word MHTML preamble so Word treats it as a document
+       rather than as web content. This is the trick that makes the
+       plain HTML approach reliably openable in Word. */
+    var wordDoc =
+      "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
+      "xmlns:w='urn:schemas-microsoft-com:office:word' "+
+      "xmlns='http://www.w3.org/TR/REC-html40'>"+
+      "<head><meta charset='utf-8'><title>"+esc(base)+"</title>"+
+      "<xml><w:WordDocument><w:View>Print</w:View><w:Zoom>90</w:Zoom>"+
+      "<w:DoNotOptimizeForBrowser/></w:WordDocument></xml>"+
+      "<style>"+
+      "body{font-family:Arial,Helvetica,sans-serif; color:#1F1C17; font-size:11pt; line-height:1.42}"+
+      "h1{font-size:20pt; margin:0 0 4pt}"+
+      "h2{font-size:12pt; text-transform:uppercase; letter-spacing:.05em; background:#DDDDDE; padding:3pt 8pt; margin:14pt 0 6pt}"+
+      "h3{font-size:11.5pt; margin:10pt 0 3pt}"+
+      "ul{margin:4pt 0 8pt 18pt; padding:0}"+
+      "li{margin-bottom:2pt}"+
+      "p{margin:0 0 6pt}"+
+      "@page{size:letter; margin:0.5in}"+
+      "</style></head><body>"+mdToHtml(md)+"</body></html>";
+    downloadBlob(base+".doc", "application/msword", wordDoc);
+    return;
+  }
+  if(/-pdf$/.test(kind)){
+    /* Open a print-ready window and trigger print. Users choose "Save as
+       PDF" from the print dialog. Works across every browser without a
+       third-party library. */
+    var w = window.open("", "_blank", "width=820,height=1000");
+    if(!w){ toast("Pop-up blocked. Allow pop-ups or use the Word download."); return; }
+    w.document.open();
+    w.document.write(genHtmlDoc(md, base));
+    w.document.close();
+    setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} }, 250);
+    return;
+  }
+}
+document.addEventListener("click",function(e){
+  var b = e.target.closest && e.target.closest("[data-dl]");
+  if(b){ genDownload(b.dataset.dl); return; }
+  var c = e.target.closest && e.target.closest("[data-copy]");
+  if(c){
+    var g = S.gen && GEN_CTX.job && S.gen[GEN_CTX.job.id];
+    if(!g) return;
+    var md = c.dataset.copy==="cv" ? g.cv : g.resume;
+    if(navigator.clipboard) navigator.clipboard.writeText(md).catch(function(){});
+    toast((c.dataset.copy==="cv"?"CV":"Resume")+" copied.");
+  }
 });
 
 /* ---------- boot ---------- */

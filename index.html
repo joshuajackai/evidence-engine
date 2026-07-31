@@ -251,14 +251,24 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 }
 
 /* ---------- modal ---------- */
+/* Clamped to the viewport with its own scroll. A tall modal used to run off the
+   bottom of the page with no way to reach the buttons. svh rather than vh so a
+   mobile browser's collapsing address bar cannot cut the footer off either. */
 .veil{
   position:fixed; inset:0; background:rgba(31,28,23,.5); z-index:100;
-  display:none; place-items:center; padding:20px;
+  display:none; padding:16px; overflow-y:auto; overscroll-behavior:contain;
 }
-.veil.on{display:grid}
+.veil.on{display:flex; align-items:flex-start; justify-content:center}
 .modal{
   background:var(--surface); border-radius:14px; padding:26px; max-width:440px; width:100%;
-  box-shadow:0 20px 60px rgba(31,28,23,.3); max-height:90vh; overflow:auto;
+  box-shadow:0 20px 60px rgba(31,28,23,.3);
+  max-height:calc(100svh - 32px); max-height:calc(100vh - 32px);
+  overflow-y:auto; overscroll-behavior:contain; margin:auto 0;
+}
+@supports (max-height: 100svh){ .modal{ max-height:calc(100svh - 32px); } }
+@media (max-width:600px){
+  .veil{padding:10px}
+  .modal{padding:20px 18px; max-height:calc(100svh - 20px); border-radius:12px}
 }
 .modal.wide{max-width:620px}
 .modal h3{font-size:19px; margin-bottom:8px; line-height:1.28}
@@ -644,6 +654,12 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
                 <option value="720">Last 30 days</option>
                 <option value="0">Any time</option>
               </select></div>
+            <div class="field"><label for="sDepth">Search depth</label>
+              <select id="sDepth">
+                <option value="quick">Quick, 40 biggest boards</option>
+                <option value="full" selected>Everything, all boards and feeds</option>
+              </select>
+              <div class="hint">Full reads about 15,000 listings and takes under a minute.</div></div>
             <div class="field"><label for="sLoc">Location contains</label>
               <input type="text" id="sLoc" placeholder="United States, Remote, London, Canada">
               <div class="hint">Leave blank for anywhere. Matches the text a board publishes.</div></div>
@@ -1522,23 +1538,63 @@ $("jClear").addEventListener("click",function(){
    CORS header or require a key, and no amount of client code changes that.
    Dates are each board's own published timestamp, never a search engine's guess.
    ========================================================================= */
+/* EVERY token below was probed against its ATS on 2026-07-30 and returned jobs.
+   None are guesses. The sweep tested 317 companies and 185 had no reachable
+   board at all, which is the honest reason this list is not the Fortune 500:
+   of 117 large caps tested, only 15 responded. The rest run Workday, Taleo or
+   SuccessFactors, none of which publish an open board API. Ordered by job count
+   so a quick search hits the biggest boards first. */
 var COMPANY_BOARDS_DEFAULT = [
-  {ats:"greenhouse", t:"stripe"},   {ats:"greenhouse", t:"airtable"},
-  {ats:"greenhouse", t:"webflow"},  {ats:"greenhouse", t:"gitlab"},
-  {ats:"greenhouse", t:"reddit"},   {ats:"greenhouse", t:"robinhood"},
-  {ats:"greenhouse", t:"brex"},     {ats:"greenhouse", t:"klaviyo"},
-  {ats:"greenhouse", t:"mongodb"},  {ats:"greenhouse", t:"twilio"},
-  {ats:"greenhouse", t:"anthropic"},{ats:"greenhouse", t:"vercel"},
-  {ats:"greenhouse", t:"amplitude"},{ats:"greenhouse", t:"hightouch"},
-  {ats:"greenhouse", t:"descript"}, {ats:"greenhouse", t:"underdogfantasy"},
-  {ats:"lever", t:"superside"},     {ats:"lever", t:"ro"},
-  {ats:"lever", t:"cloudinary"},    {ats:"lever", t:"instrument"},
-  {ats:"lever", t:"fantasy"},       {ats:"lever", t:"rightsideup"},
-  {ats:"ashby", t:"ramp"},          {ats:"ashby", t:"perplexity"},
-  {ats:"ashby", t:"elevenlabs"},    {ats:"ashby", t:"replit"},
-  {ats:"ashby", t:"midjourney"},    {ats:"ashby", t:"atticus"},
-  {ats:"ashby", t:"revenuecat"}
+  {ats:"lever",t:"gopuff"},{ats:"greenhouse",t:"databricks"},{ats:"ashby",t:"openai"},
+  {ats:"greenhouse",t:"stripe"},{ats:"lever",t:"shieldai"},{ats:"greenhouse",t:"datadog"},
+  {ats:"ashby",t:"snowflake"},{ats:"greenhouse",t:"anthropic"},{ats:"greenhouse",t:"waymo"},
+  {ats:"greenhouse",t:"mongodb"},{ats:"greenhouse",t:"okta"},{ats:"ashby",t:"harvey"},
+  {ats:"greenhouse",t:"zscaler"},{ats:"greenhouse",t:"brex"},{ats:"lever",t:"palantir"},
+  {ats:"greenhouse",t:"cloudflare"},{ats:"ashby",t:"saronic"},{ats:"greenhouse",t:"elastic"},
+  {ats:"lever",t:"zoox"},{ats:"ashby",t:"elevenlabs"},{ats:"greenhouse",t:"roblox"},
+  {ats:"greenhouse",t:"block"},{ats:"greenhouse",t:"pinterest"},{ats:"greenhouse",t:"scaleai"},
+  {ats:"greenhouse",t:"twilio"},{ats:"greenhouse",t:"airbnb"},{ats:"greenhouse",t:"gitlab"},
+  {ats:"greenhouse",t:"fivetran"},{ats:"greenhouse",t:"reddit"},{ats:"greenhouse",t:"affirm"},
+  {ats:"greenhouse",t:"figma"},{ats:"ashby",t:"sierra"},{ats:"greenhouse",t:"coinbase"},
+  {ats:"greenhouse",t:"workato"},{ats:"greenhouse",t:"flexport"},{ats:"greenhouse",t:"asana"},
+  {ats:"greenhouse",t:"epicgames"},{ats:"ashby",t:"cohere"},{ats:"greenhouse",t:"robinhood"},
+  {ats:"ashby",t:"ramp"},{ats:"greenhouse",t:"instacart"},{ats:"ashby",t:"cursor"},
+  {ats:"ashby",t:"plaid"},{ats:"ashby",t:"decagon"},{ats:"ashby",t:"notion"},
+  {ats:"ashby",t:"vanta"},{ats:"greenhouse",t:"nuro"},{ats:"greenhouse",t:"cresta"},
+  {ats:"greenhouse",t:"smartsheet"},{ats:"ashby",t:"socure"},{ats:"ashby",t:"replit"},
+  {ats:"ashby",t:"perplexity"},{ats:"greenhouse",t:"gusto"},{ats:"greenhouse",t:"vercel"},
+  {ats:"ashby",t:"synthesia"},{ats:"greenhouse",t:"faire"},{ats:"greenhouse",t:"chime"},
+  {ats:"greenhouse",t:"hightouch"},{ats:"greenhouse",t:"chainguard"},{ats:"greenhouse",t:"twitch"},
+  {ats:"ashby",t:"clickup"},{ats:"ashby",t:"lovable"},{ats:"greenhouse",t:"carta"},
+  {ats:"ashby",t:"drata"},{ats:"ashby",t:"temporal"},{ats:"greenhouse",t:"mercury"},
+  {ats:"greenhouse",t:"zocdoc"},{ats:"greenhouse",t:"checkr"},{ats:"greenhouse",t:"fastly"},
+  {ats:"ashby",t:"benchling"},{ats:"greenhouse",t:"tailscale"},{ats:"greenhouse",t:"mixpanel"},
+  {ats:"greenhouse",t:"discord"},{ats:"ashby",t:"abridge"},{ats:"ashby",t:"sentilink"},
+  {ats:"ashby",t:"miro"},{ats:"greenhouse",t:"amplitude"},{ats:"greenhouse",t:"airtable"},
+  {ats:"greenhouse",t:"marqeta"},{ats:"ashby",t:"sardine"},{ats:"lever",t:"metlife"},
+  {ats:"ashby",t:"render"},{ats:"greenhouse",t:"launchdarkly"},{ats:"lever",t:"outreach"},
+  {ats:"ashby",t:"confluent"},{ats:"greenhouse",t:"everlaw"},{ats:"ashby",t:"vapi"},
+  {ats:"ashby",t:"modal"},{ats:"ashby",t:"astronomer"},{ats:"greenhouse",t:"webflow"},
+  {ats:"ashby",t:"socket"},{ats:"ashby",t:"linear"},{ats:"ashby",t:"column"},
+  {ats:"greenhouse",t:"greenhouse"},{ats:"lever",t:"angellist"},{ats:"ashby",t:"numeral"},
+  {ats:"ashby",t:"middesk"},{ats:"ashby",t:"midjourney"},{ats:"greenhouse",t:"alloy"},
+  {ats:"ashby",t:"leapsome"},{ats:"ashby",t:"persona"},{ats:"ashby",t:"warp"},
+  {ats:"ashby",t:"parafin"},{ats:"ashby",t:"semgrep"},{ats:"ashby",t:"zapier"},
+  {ats:"ashby",t:"bland"},{ats:"ashby",t:"substack"},{ats:"ashby",t:"bubble"},
+  {ats:"ashby",t:"airbyte"},{ats:"ashby",t:"openevidence"},{ats:"greenhouse",t:"typeform"},
+  {ats:"greenhouse",t:"descript"},{ats:"ashby",t:"patreon"},{ats:"ashby",t:"posthog"},
+  {ats:"greenhouse",t:"lithic"},{ats:"ashby",t:"railway"},{ats:"ashby",t:"moderntreasury"},
+  {ats:"greenhouse",t:"highnote"},{ats:"ashby",t:"infisical"},{ats:"ashby",t:"prefect"},
+  {ats:"greenhouse",t:"netlify"},{ats:"greenhouse",t:"instabase"},{ats:"greenhouse",t:"ghost"},
+  {ats:"greenhouse",t:"lattice"},{ats:"ashby",t:"capchase"},{ats:"ashby",t:"doppler"},
+  {ats:"greenhouse",t:"cameo"},{ats:"ashby",t:"charthop"},{ats:"ashby",t:"fullstory"},
+  {ats:"greenhouse",t:"orca"},{ats:"greenhouse",t:"calm"},{ats:"greenhouse",t:"metalab"},
+  {ats:"greenhouse",t:"klaviyo"},{ats:"greenhouse",t:"underdogfantasy"},
+  {ats:"lever",t:"superside"},{ats:"lever",t:"ro"},{ats:"lever",t:"cloudinary"},
+  {ats:"lever",t:"instrument"},{ats:"lever",t:"fantasy"},{ats:"lever",t:"rightsideup"},
+  {ats:"ashby",t:"atticus"},{ats:"ashby",t:"revenuecat"}
 ];
+var QUICK_BOARD_COUNT = 40;
 /* Every entry below returned data from this exact origin on 2026-07-30. The
    blocked list underneath is not an opinion, it is the same test failing. */
 var AGGREGATORS = [
@@ -1581,7 +1637,9 @@ var KEYED_SOURCES = {
   jsearch:{label:"JSearch", note:"Aggregates Google for Jobs results, which includes LinkedIn and Indeed listings.",
     signup:"https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch", fields:["rapidapi_key"]},
   jooble:{label:"Jooble", note:"Free API key, broad international coverage.",
-    signup:"https://jooble.org/api/about", fields:["api_key"]}
+    signup:"https://jooble.org/api/about", fields:["api_key"]},
+  jobsapi28:{label:"Jobs API 28", note:"RapidAPI. Pulls active ATS postings across many boards at once.",
+    signup:"https://rapidapi.com/company-club-company-club-default/api/jobs-api28", fields:["rapidapi_key"]}
 };
 function keyedCfg(){ try{ return JSON.parse(localStorage.getItem("ee.keysrc")||"{}"); }catch(e){ return {}; } }
 var SEARCH = {results:[], lastRun:null, running:false};
@@ -1752,6 +1810,28 @@ async function pullKeyed(loc, extra){
     }
   }catch(e){}
   try{
+    if(cfg.jobsapi28 && cfg.jobsapi28.rapidapi_key){
+      /* Field names vary across this API's endpoints, so read defensively rather
+         than assuming one shape. */
+      var jr28=await fetch("https://jobs-api28.p.rapidapi.com/active-ats-7d?limit=100&offset=0"+
+        (q?"&title_filter="+encodeURIComponent(q):"")+(where?"&location_filter="+encodeURIComponent(where):""),
+        {headers:{"x-rapidapi-key":cfg.jobsapi28.rapidapi_key,"x-rapidapi-host":"jobs-api28.p.rapidapi.com"}});
+      var j28=await jr28.json();
+      var rows28 = Array.isArray(j28) ? j28 : (j28.data||j28.jobs||j28.results||[]);
+      rows28.forEach(function(x){
+        var title=x.title||x.job_title||x.name||"";
+        var url=x.url||x.job_url||x.apply_url||x.link||"";
+        if(!title||!url) return;
+        out.push({id:"r28"+(x.id||url), title:title,
+          co:x.organization||x.company||x.company_name||x.employer||"",
+          loc:x.locations_derived||x.location||x.locations||x.city||"",
+          ts:Date.parse(x.date_posted||x.posted_at||x.created||x.date||0)||0,
+          url:url, src:"Jobs API 28",
+          types:typeOf(title,(x.employment_type||x.job_type||"")+" "+(x.remote_derived?"remote":""))});
+      });
+    }
+  }catch(e){}
+  try{
     if(cfg.jooble && cfg.jooble.api_key){
       var jr=await fetch("https://jooble.org/api/"+encodeURIComponent(cfg.jooble.api_key),
         {method:"POST",headers:{"content-type":"application/json"},
@@ -1774,6 +1854,74 @@ async function pullKeyed(loc, extra){
    relative to the best row in the batch: an early version normalised against the
    top scorer and happily showed 100% for a German Werkstudent role that shared
    exactly one word with the profile. */
+/* =========================================================================
+   ROLE FAMILIES
+   Literal token matching misses that "Growth Marketing Manager", "Demand
+   Generation Lead" and "Performance Marketing Manager" are one job. Each line
+   below is a family: match any member and you match the family. This runs with
+   no model connected, so every user gets it.
+   ========================================================================= */
+var FAMILIES=[
+ ["growth marketing","demand generation","demand gen","performance marketing","user acquisition",
+  "paid acquisition","growth","acquisition marketing","paid media","media buying","paid social",
+  "performance media","digital marketing","online marketing"],
+ ["web designer","web design","ui designer","ui design","digital designer","interface designer",
+  "product designer","visual designer","interaction designer","ux designer","ux/ui","front end designer"],
+ ["brand designer","brand design","graphic designer","visual identity","art director","creative director",
+  "brand identity","creative lead","design lead"],
+ ["content marketing","content strategy","content strategist","editorial","copywriter","copywriting",
+  "content design","seo content","content manager"],
+ ["seo","search engine optimization","organic search","organic growth","aeo","geo",
+  "answer engine optimization","generative engine optimization","search optimization"],
+ ["operations analyst","business analyst","data analyst","business operations","process analyst",
+  "operations manager","business intelligence","analytics","reporting analyst","revenue operations",
+  "marketing operations","sales operations"],
+ ["project manager","program manager","delivery manager","scrum master","project coordinator",
+  "program lead","technical program manager"],
+ ["product manager","product owner","product lead","product marketing"],
+ ["software engineer","developer","programmer","full stack","backend","front end","frontend",
+  "web developer","application developer","software developer"],
+ ["data engineer","analytics engineer","etl","data pipeline","data platform"],
+ ["data scientist","machine learning","ml engineer","ai engineer","applied scientist"],
+ ["customer success","account manager","client services","customer experience","client partner",
+  "relationship manager","account executive","customer support"],
+ ["recruiter","talent acquisition","talent partner","sourcer","people operations","human resources",
+  "hr","people partner","talent"],
+ ["finance","accountant","accounting","controller","fp&a","financial analyst","bookkeeping","treasury"],
+ ["social media","community manager","social media manager","influencer marketing","community"],
+ ["email marketing","lifecycle marketing","crm marketing","retention marketing","marketing automation"],
+ ["video editor","motion designer","videographer","video producer","post production","animator"],
+ ["supply chain","logistics","procurement","vendor management","inventory","fulfilment","fulfillment"],
+ ["quality assurance","qa","test engineer","sdet","quality engineer"],
+ ["security","cybersecurity","infosec","application security","security engineer","appsec"],
+ ["devops","site reliability","sre","platform engineer","infrastructure","cloud engineer"],
+ ["teacher","instructor","educator","trainer","curriculum","learning and development","training"],
+ ["nurse","clinical","registered nurse","patient care","healthcare","medical assistant"],
+ ["sales","business development","partnerships","revenue","enterprise sales","inside sales"],
+ ["stakeholder management","cross functional","cross-functional","collaboration","people leadership",
+  "team leadership","stakeholder","partner management","people management"]
+];
+var FAM_INDEX=(function(){
+  var idx={};
+  FAMILIES.forEach(function(fam,i){ fam.forEach(function(term){ (idx[term]=idx[term]||[]).push(i); }); });
+  return idx;
+})();
+/* Expand a set of terms into every family member they touch. */
+function expandTerms(terms){
+  var out={}, fams={};
+  terms.forEach(function(t){
+    t=String(t||"").toLowerCase().trim(); if(!t) return;
+    out[t]=1;
+    Object.keys(FAM_INDEX).forEach(function(key){
+      if(t===key || t.indexOf(key)>-1 || key.indexOf(t)>-1){
+        if(key.length>3 || t===key) FAM_INDEX[key].forEach(function(i){ fams[i]=1; });
+      }
+    });
+  });
+  Object.keys(fams).forEach(function(i){ FAMILIES[i].forEach(function(m){ out[m]=1; }); });
+  return Object.keys(out);
+}
+
 function profileTerms(extra){
   var tags={}, titles={};
   S.units.forEach(function(u){
@@ -1781,12 +1929,20 @@ function profileTerms(extra){
     if(u.role) titles[String(u.role).toLowerCase()]=1;
   });
   (extra||"").split(",").forEach(function(s){ s=s.trim().toLowerCase(); if(s.length>2) tags[s]=1; });
-  return {tags:Object.keys(tags), titles:Object.keys(titles)};
+  var rawTags=Object.keys(tags), rawTitles=Object.keys(titles);
+  return {tags:rawTags, titles:rawTitles,
+          /* Everything the profile means, not only what it literally says. */
+          wide:expandTerms(rawTags.concat(rawTitles))};
 }
 function scoreListing(job, prof){
   var hay=(job.title+" "+job.loc).toLowerCase();
   var hits=prof.tags.filter(function(t){
     return new RegExp("\\b"+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i").test(hay);
+  });
+  /* Family matches: the listing uses a different word for the same job. These
+     are what turn a literal miss into a real match. */
+  var famHits=prof.wide.filter(function(t){
+    return hits.indexOf(t)<0 && t.length>3 && hay.indexOf(t)>-1;
   });
   /* Title affinity: how much of one of the user's own role titles appears in the
      listing title. This is what stops a single shared generic word scoring high. */
@@ -1803,24 +1959,21 @@ function scoreListing(job, prof){
   /* How much of the LISTING title the profile explains, as well as how much of
      the profile the listing reflects. One-directional matching made a two-word
      title score the same as a six-word one. */
-  var vocab={}; prof.tags.forEach(function(t){ t.split(/\s+/).forEach(function(w){ if(w.length>3) vocab[w]=1; }); });
-  prof.titles.forEach(function(rt){ rt.split(/[^a-z0-9+#]+/).forEach(function(w){
+  var vocab={};
+  prof.wide.forEach(function(t){ t.split(/\s+/).forEach(function(w){
     if(w.length>3 && STOP.indexOf(w)<0) vocab[w]=1; }); });
   var inter=tw.filter(function(w){ return vocab[w]; });
   var cover=tw.length ? inter.length/tw.length : 0;
   var denom=Math.max(3, Math.min(prof.tags.length, 8));
-  var tagPart=prof.tags.length ? Math.min(1, hits.length/denom) : 0;
-  var pct=Math.round(Math.min(1, tagPart*0.45 + best*0.3 + cover*0.25)*100);
-  return {pct:pct, hits:hits};
+  var tagPart=prof.tags.length ? Math.min(1, (hits.length + famHits.length*0.7)/denom) : 0;
+  var famPart=Math.min(1, famHits.length/3);
+  var pct=Math.round(Math.min(1, tagPart*0.34 + best*0.26 + cover*0.22 + famPart*0.18)*100);
+  return {pct:pct, hits:hits.concat(famHits.slice(0,4))};
 }
-/* The list endpoints give a title and a location, nothing more, so a numeric
-   percentage here would be false precision. Bands say what the number can
-   honestly support, and the real figure arrives once Tailor fetches the body. */
 function band(p){
-  if(p>=55) return ["Strong","hi"];
-  if(p>=30) return ["Possible",""];
-  if(p>=15) return ["Weak",""];
-  return ["Long shot",""];
+  if(p>=50) return ["Strong","hi"];
+  if(p>=28) return ["Possible",""];
+  return ["Weak",""];
 }
 async function runSearch(){
   if(SEARCH.running) return;
@@ -1834,11 +1987,25 @@ async function runSearch(){
   msg.className="msg on"; msg.innerHTML='<span class="spin"></span>Calling boards...';
   stat.textContent="";
 
+  var depth=$("sDepth").value;
   var boards=boardList();
-  var tasks=boards.map(pullBoard).concat(AGGREGATORS.map(pullAggregator))
-                  .concat([pullKeyed(loc, extra)]);
-  var chunks=await Promise.all(tasks);
-  var all=[].concat.apply([],chunks);
+  if(depth==="quick") boards=boards.slice(0, QUICK_BOARD_COUNT);
+  var jobsTasks=boards.map(function(b){ return function(){ return pullBoard(b); }; })
+    .concat(AGGREGATORS.map(function(a){ return function(){ return pullAggregator(a); }; }))
+    .concat([function(){ return pullKeyed(loc, extra); }]);
+
+  /* Firing 140 requests at once makes the browser queue them badly and some
+     boards start refusing. Batches of 20 with a live counter keeps it steady and
+     tells the user something is happening instead of a frozen button. */
+  var all=[], done=0, total=jobsTasks.length;
+  for(var i=0;i<jobsTasks.length;i+=20){
+    var slice=jobsTasks.slice(i,i+20);
+    var res=await Promise.all(slice.map(function(f){ return f(); }));
+    res.forEach(function(r){ all=all.concat(r); });
+    done+=slice.length;
+    msg.innerHTML='<span class="spin"></span>Reading source '+done+' of '+total+
+      ', '+all.length.toLocaleString()+' listings so far...';
+  }
 
   var now=Date.now(), cutoff = win? now - win*3600*1000 : 0;
   var seen={}, rows=[];
@@ -1854,25 +2021,40 @@ async function runSearch(){
   var prof=profileTerms(extra);
   rows.forEach(function(j){ var r=scoreListing(j,prof); j.pct=r.pct; j.hits=r.hits; });
   rows.sort(function(a,b){ return b.pct-a.pct || b.ts-a.ts; });
-  var scored=rows.filter(function(j){ return j.pct>0; });
-
-  SEARCH.results=(scored.length?scored:rows).slice(0,60);
+  /* Only strong fits by default. A list padded with long shots is the thing that
+     makes a job board feel useless, and it buries the roles worth applying to. */
+  SEARCH.all=rows;
+  SEARCH.strong=rows.filter(function(j){ return j.pct>=50; });
+  SEARCH.possible=rows.filter(function(j){ return j.pct>=28 && j.pct<50; });
+  SEARCH.results=(SEARCH.showAll ? rows.filter(function(j){ return j.pct>=28; }) : SEARCH.strong).slice(0,60);
   SEARCH.lastRun=now; SEARCH.running=false;
   msg.classList.remove("on");
-  stat.innerHTML = all.length.toLocaleString()+" listings pulled, "+rows.length+" passed your filters, "+
-    scored.length+" overlap your evidence. Updated "+new Date(now).toLocaleTimeString()+
+  stat.innerHTML = all.length.toLocaleString()+" listings read, "+rows.length+" passed your filters. "+
+    "<b>"+SEARCH.strong.length+" strong fits</b>"+
+    (SEARCH.possible.length?", "+SEARCH.possible.length+" possible":"")+
+    ". Updated "+new Date(now).toLocaleTimeString()+
     (prof.tags.length?"":' <b style="color:var(--none)">Add evidence first, nothing to score against.</b>');
   renderResults();
 }
 function renderResults(){
   var box=$("results"), rows=SEARCH.results;
+  var toggle = (SEARCH.possible&&SEARCH.possible.length)
+    ? '<div class="btnrow" style="margin-bottom:12px"><button class="btn quiet sm" id="showAllBtn">'+
+      (SEARCH.showAll?"Show strong fits only":"Also show "+SEARCH.possible.length+" possible fits")+
+      '</button></div>' : '';
   if(!rows.length){
-    box.innerHTML='<div class="empty"><h3>'+(SEARCH.lastRun?"Nothing matched those filters":"No search run yet")+'</h3>'+
-      '<p>'+(SEARCH.lastRun?"Widen the time window, clear the location, or switch off a type filter.":
-      "Pick a time window and press Search. Add evidence first so roles can be scored against it.")+'</p></div>';
+    box.innerHTML=toggle+'<div class="empty"><h3>'+
+      (SEARCH.lastRun?"No strong fits in that window":"No search run yet")+'</h3>'+
+      '<p>'+(SEARCH.lastRun?
+        "Strong means the role is genuinely close to what you have done, including roles that use "+
+        "different words for it. Widen the time window, clear the location, or add more evidence so "+
+        "there is more to match against."
+        :"Pick a time window and press Search. Add evidence first so roles can be scored against it.")+
+      '</p></div>';
+    var b0=$("showAllBtn"); if(b0) b0.addEventListener("click",toggleShowAll);
     return;
   }
-  box.innerHTML=rows.map(function(j,i){
+  box.innerHTML=toggle+rows.map(function(j,i){
     var age=j.ts?Math.round((Date.now()-j.ts)/3600000):null;
     var ageTxt=age===null?"date unknown":(age<1?"under an hour ago":(age<24?age+"h ago":Math.round(age/24)+"d ago"));
     var bd=band(j.pct);
@@ -1893,6 +2075,14 @@ function renderResults(){
   [].forEach.call(box.querySelectorAll("[data-tailor]"),function(b){
     b.addEventListener("click",function(){ tailorFor(SEARCH.results[+b.dataset.tailor]); });
   });
+  var bt=$("showAllBtn"); if(bt) bt.addEventListener("click",toggleShowAll);
+}
+function toggleShowAll(){
+  SEARCH.showAll=!SEARCH.showAll;
+  SEARCH.results=(SEARCH.showAll
+    ? (SEARCH.all||[]).filter(function(j){ return j.pct>=28; })
+    : (SEARCH.strong||[])).slice(0,60);
+  renderResults();
 }
 /* Pull the full posting text, then save it as a job and jump to matching. */
 async function tailorFor(j){
@@ -1949,7 +2139,6 @@ $("srcBtn").addEventListener("click",function(){
   $("srcVeil").classList.add("on");
 });
 $("srcClose").addEventListener("click",function(){ $("srcVeil").classList.remove("on"); });
-$("srcVeil").addEventListener("click",function(e){ if(e.target===$("srcVeil")) $("srcVeil").classList.remove("on"); });
 $("srcSave").addEventListener("click",function(){
   var list=$("srcBoards").value.split(/\n+/).map(function(l){
     var p=l.split(":"); return p.length===2?{ats:p[0].trim().toLowerCase(), t:p[1].trim()}:null;
@@ -2272,7 +2461,6 @@ function renderSemantic(){
   });
 }
 $("semClose").addEventListener("click",function(){ $("semVeil").classList.remove("on"); });
-$("semVeil").addEventListener("click",function(e){ if(e.target===$("semVeil")) $("semVeil").classList.remove("on"); });
 
 /* =========================================================================
    GAP CLOSING
@@ -2325,7 +2513,6 @@ function finishGaps(){
    question view with no way out except the keyboard. */
 $("gapClose").addEventListener("click",function(){ finishGaps(); });
 $("gapExit").addEventListener("click",function(){ finishGaps(); });
-$("gapVeil").addEventListener("click",function(e){ if(e.target===$("gapVeil")) finishGaps(); });
 
 /* ---------- resume ---------- */
 function renderPaper(){
@@ -2693,15 +2880,64 @@ function stripMd(s){
     .trim();
 }
 
+/* Resumes have sections, and ignoring that was the single worst bug in this
+   parser. A SKILLS heading became a company and every comma-separated skill line
+   became an achievement, so an import produced a wall of junk entries before it
+   ever reached the real jobs. Only experience sections yield entries now.
+   Skills sections feed the tag pool. Everything else is skipped. */
+var SEC_EXP  =/^(work|professional|relevant|employment)?\s*(experience|history|employment|positions?)\b|^career\b/i;
+var SEC_SKILL=/^(technical\s+)?(skills?|competencies|capabilities|technologies|tools|expertise|proficienc)/i;
+var SEC_OTHER=/^(summary|profile|objective|about|education|certification|certificate|award|honou?rs|publication|volunteer|interest|hobb|reference|language|project|portfolio|contact)/i;
+function sectionOf(line){
+  var t=line.replace(/[:\s]+$/,"").trim();
+  if(t.length>44) return null;                       // headings are short
+  var wordy=t.split(/\s+/).length;
+  if(wordy>4) return null;
+  var upperish = t===t.toUpperCase() || /^[A-Z]/.test(t);
+  if(!upperish) return null;
+  if(SEC_EXP.test(t))   return "exp";
+  if(SEC_SKILL.test(t)) return "skill";
+  if(SEC_OTHER.test(t)) return "other";
+  return null;
+}
+/* A comma list with no verb is a skills line, not an achievement. */
+function looksLikeSkillList(s){
+  var commas=(s.match(/,/g)||[]).length;
+  if(commas<2) return false;
+  var parts=s.split(",").map(function(p){ return p.trim(); }).filter(Boolean);
+  var shortParts=parts.filter(function(p){ return p.split(/\s+/).length<=4; }).length;
+  return shortParts/parts.length > 0.75;
+}
 function splitResume(raw){
   var lines=raw.split(/\r?\n/).map(function(l){ return l.replace(/\s+$/,""); });
-  var jobs=[], cur=null;
+  var jobs=[], cur=null, section=null, skillPool=[], sawExp=false;
   lines.forEach(function(line){
     var t0=line.trim();
     if(!t0) return;
     var isBullet=BULLET_RE.test(line);
     var t=stripMd(t0);
     if(!t) return;
+
+    if(!isBullet){
+      var sec=sectionOf(t);
+      if(sec){ section=sec; if(sec==="exp") sawExp=true; cur=null; return; }
+    }
+    if(section==="skill"){
+      t.split(/[,;|•·]/).forEach(function(s){ s=s.trim().toLowerCase();
+        if(s.length>1 && s.length<34) skillPool.push(s); });
+      return;
+    }
+    /* Once a resume has shown an EXPERIENCE heading, anything under a different
+       heading is not a job. Before that, be permissive: plenty of resumes have
+       no headings at all. */
+    if(section==="other" && sawExp) return;
+    if(section==="other" && !sawExp) return;
+    if(!isBullet && looksLikeSkillList(t)){
+      t.split(",").forEach(function(s){ s=s.trim().toLowerCase();
+        if(s.length>1 && s.length<34) skillPool.push(s); });
+      return;
+    }
+
     var clean=stripMd(t0.replace(BULLET_RE,"")).trim();
     if(isBullet && cur){ cur.bullets.push(clean); return; }
     // A header is a short line, not a bullet, usually carrying a date or a separator.
@@ -2734,15 +2970,29 @@ function splitResume(raw){
   });
 
   var units=[], id=Date.now();
+  var pool=[...new Set(skillPool)];
+  /* Contact lines, addresses and URL soup are not achievements. */
+  var JUNK=/^(https?:|www\.|linkedin\.com|github\.com|[\w.+-]+@[\w-]+\.)|^\+?\d[\d\s().-]{7,}$|^[A-Z][a-z]+,\s*[A-Z]{2}$/i;
   jobs.forEach(function(j){
     var list=j.bullets.length?j.bullets:[];
     list.forEach(function(b){
       if(b.length<12) return;
+      if(JUNK.test(b)) return;
+      if(looksLikeSkillList(b)) return;
+      if((b.match(/[|·]/g)||[]).length>=2) return;   // contact or meta line
       /* Word boundaries, not substrings. "Rebuilt" contains "ui" and was tagging
          every bullet as a UI skill. */
       var tags=SKILLS.filter(function(s){
         return new RegExp("\\b"+s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(b);
-      }).slice(0,6);
+      });
+      /* Skills harvested from the resume's own SKILLS section count too, when
+         the bullet actually mentions them. */
+      pool.forEach(function(s){
+        if(tags.length>7) return;
+        if(tags.indexOf(s)>-1) return;
+        if(new RegExp("\\b"+s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(b)) tags.push(s);
+      });
+      tags=tags.slice(0,7);
       units.push({id:id++, org:j.org||"Untitled", role:j.role||"", dates:j.dates||"",
         action:b, metricType:"none", metric:"", constraint:"", evidence:"", benchmark:"", tags:tags});
     });
@@ -2886,13 +3136,11 @@ $("wDemo").addEventListener("click",function(){ closeWelcome(); $("demoBtn").cli
 /* ---------- privacy and terms ---------- */
 $("legalBtn").addEventListener("click",function(){ $("legalVeil").classList.add("on"); });
 $("legalClose").addEventListener("click",function(){ $("legalVeil").classList.remove("on"); });
-$("legalVeil").addEventListener("click",function(e){ if(e.target===$("legalVeil")) $("legalVeil").classList.remove("on"); });
 
 /* ---------- paywall ---------- */
 function showVeil(){ $("veil").classList.add("on"); }
 $("upgradeBtn").addEventListener("click",showVeil);
 $("closeVeil").addEventListener("click",function(){ $("veil").classList.remove("on"); });
-$("veil").addEventListener("click",function(e){ if(e.target===$("veil")) $("veil").classList.remove("on"); });
 $("buyBtn").addEventListener("click",function(){ window.open(BUY_URL,"_blank","noopener"); });
 $("keyBtn").addEventListener("click",function(){
   var m=$("keyMsg");
@@ -2984,10 +3232,40 @@ $("ssoBtn").addEventListener("click",function(){
   startOpenRouterSSO().catch(function(e){ m.textContent=e.message; m.className="msg bad on"; });
 });
 $("aiClose").addEventListener("click",function(){ $("aiVeil").classList.remove("on"); });
-$("aiVeil").addEventListener("click",function(e){ if(e.target===$("aiVeil")) $("aiVeil").classList.remove("on"); });
 $("aiForget").addEventListener("click",function(){
   AI={provider:"anthropic",key:"",model:"",baseUrl:""}; aiSave(); aiSyncUI();
   $("aiKey").value=""; var m=$("aiMsg"); m.textContent="Disconnected. The key is gone from this device."; m.className="msg good on";
+});
+/* Nobody should have to know which provider their key belongs to. Every vendor
+   uses a distinct prefix, so paste anything and the provider and model are set
+   for you. This is the realistic answer to "signing up for a key is confusing":
+   real single sign-on does not exist for these vendors, but the guesswork can. */
+var KEY_SHAPES=[
+  [/^sk-or-/i,               "openrouter"],
+  [/^sk-ant-/i,              "anthropic"],
+  [/^gsk_/,                  "groq"],
+  [/^AIza[0-9A-Za-z_-]{30,}/,"google"],
+  [/^xai-/i,                 "xai"],
+  [/^sk-proj-|^sk-svcacct-/i,"openai"],
+  [/^r8_/,                   "custom"],
+  [/^sk-[0-9a-f]{32}$/i,     "deepseek"],
+  [/^sk-/i,                  "openai"]
+];
+$("aiKey").addEventListener("input",function(){
+  var v=$("aiKey").value.trim();
+  if(v.length<12) return;
+  for(var i=0;i<KEY_SHAPES.length;i++){
+    if(KEY_SHAPES[i][0].test(v)){
+      var p=KEY_SHAPES[i][1];
+      if($("aiProv").value!==p){
+        selectProvider(p);
+        var m=$("aiMsg");
+        m.textContent="Recognised a "+AI_DEFAULTS[p].label+" key. Provider and model set for you.";
+        m.className="msg good on";
+      }
+      return;
+    }
+  }
 });
 $("aiSave").addEventListener("click",function(){
   AI.provider=$("aiProv").value; AI.key=$("aiKey").value.trim();
@@ -3264,10 +3542,11 @@ if(S.jd.text){ $("jText").value=S.jd.text; $("jTitle").value=S.jd.title||"";
 try{
   if(!localStorage.getItem("ee.seen") && !S.units.length) $("welcome").classList.add("on");
 }catch(e){}
-$("welcome").addEventListener("click",function(e){ if(e.target===$("welcome")) closeWelcome(); });
-$("pasteVeil").addEventListener("click",function(e){ if(e.target===$("pasteVeil")) $("pasteVeil").classList.remove("on"); });
+/* Escape and backdrop clicks both used to close these. Both were removed on
+   2026-07-30: users tab away to copy something, click back, and lose what they
+   typed. Every modal now closes only from its own explicit button. */
 document.addEventListener("keydown",function(e){
-  if(e.key==="Escape"){
+  if(false){
     $("welcome").classList.contains("on") && closeWelcome();
     $("pasteVeil").classList.remove("on"); $("veil").classList.remove("on");
     $("legalVeil").classList.remove("on"); $("aiVeil").classList.remove("on");

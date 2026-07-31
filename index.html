@@ -359,6 +359,25 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 .msg.bad{background:var(--none-bg); color:var(--none)}
 .msg.good{background:var(--audited-bg); color:var(--audited)}
 .msg.warn{background:#FDF3DC; color:#7A5200}
+.prepsteps{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px}
+.prepsteps > div{flex:1 1 180px; min-width:0; display:flex; align-items:center; gap:9px;
+  background:var(--card-2,#F1F1EE); border:1px solid var(--line); border-radius:10px;
+  padding:10px 12px; font-size:12.5px; font-weight:600; color:var(--ink-2)}
+.prepsteps span{flex:none; width:22px; height:22px; border-radius:50%; background:var(--accent);
+  color:#FCFCFB; display:grid; place-items:center; font-size:12px; font-weight:700}
+.nudge{display:inline-grid; place-items:center; min-width:17px; height:17px; padding:0 4px;
+  margin-left:6px; border-radius:9px; background:var(--accent); color:#FCFCFB;
+  font-size:10.5px; font-weight:700; line-height:1}
+.ansrow{margin-bottom:11px}
+/* The global label style is uppercase, which suits a two-word field name and
+   is unreadable on a full question. These are sentences, so set them back. */
+.ansrow label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-2);
+  margin-bottom:4px; text-transform:none; letter-spacing:0; line-height:1.4}
+.ansin{display:flex; gap:6px; align-items:center}
+.ansin input, .ansin select{flex:1; min-width:0}
+select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid var(--line);
+  border-radius:8px; background:var(--card); color:var(--ink); flex:none}
+.btn.disabled, a.btn:not([href]){opacity:.45; pointer-events:none}
 
 /* ---------- file drop ---------- */
 .drop{
@@ -497,6 +516,7 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
     <button class="step" data-p="1"><span class="n">2</span>Target role</button>
     <button class="step" data-p="2"><span class="n">3</span>Match</button>
     <button class="step" data-p="3"><span class="n">4</span>Resume</button>
+    <button class="step" data-p="4"><span class="n">5</span>Apply<span class="nudge" id="stepNudge" hidden></span></button>
   </nav>
 </div>
 
@@ -515,6 +535,7 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
       <div class="card" style="margin-bottom:18px">
         <div class="btnrow" style="margin-bottom:14px">
           <button class="btn" id="pasteBtn">Paste my resume</button>
+          <button class="btn ghost" id="prepBtn">Clean up my resume first</button>
           <button class="btn ghost" id="addBtn">Add one by hand</button>
           <button class="btn quiet sm" id="demoBtn">See an example</button>
           <button class="btn quiet sm" id="importBtn">Open saved file</button>
@@ -677,13 +698,28 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
             <div class="hint">Off means no filter on that dimension. Boards label these
               inconsistently, so type is read from the posting's own field and its title.</div>
           </div>
+          <div class="row">
+            <div class="field"><label for="sPay">Pay floor, optional</label>
+              <input type="number" id="sPay" placeholder="120000" min="0" step="5000">
+              <div class="hint">Annual. Hourly and monthly postings are converted before comparing.
+                Roles that publish no pay are always kept.</div></div>
+            <div class="field"><label for="sLevel">Seniority</label>
+              <select id="sLevel">
+                <option value="on" selected>Only my level, give or take one step</option>
+                <option value="off">Show every level</option>
+              </select>
+              <div class="hint">Read from your own titles. Stops interships and VP roles from
+                filling a mid-level search.</div></div>
+          </div>
           <div class="field" style="margin-bottom:10px">
             <label for="sKeywords">Extra keywords, optional</label>
             <input type="text" id="sKeywords" placeholder="designer, marketing, sql">
             <div class="hint">Blank uses the skills already in your evidence.</div>
           </div>
+          <div id="profChip" style="font-size:12.5px; color:var(--ink-2); margin-bottom:12px"></div>
           <div class="btnrow">
             <button class="btn" id="searchBtn">Search live boards</button>
+            <button class="btn ghost" id="tailorAllBtn" hidden>Prepare all strong fits</button>
             <button class="btn quiet sm" id="srcBtn">Sources</button>
             <span id="searchStat" style="font-size:12.5px; color:var(--muted)"></span>
           </div>
@@ -877,6 +913,78 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
   </div>
 </section>
 
+<section class="panel" id="p4">
+  <div class="head">
+    <h2>Send it, and keep track of what you sent</h2>
+    <p>Everything an application form asks for, written once and reused. The tracker is here
+       because the follow-up is where most interviews actually come from, and it is the part
+       everybody drops.</p>
+  </div>
+
+  <div id="followBanner"></div>
+
+  <div class="grid2">
+    <div>
+      <div class="card" style="margin-bottom:18px">
+        <h3 style="font-size:15px; margin-bottom:2px">Ready to send</h3>
+        <p style="font-size:12.5px; color:var(--ink-2); margin-bottom:12px">For the job you have
+           open. Every line is checkable, so nothing here is a guess about whether you are ready.</p>
+        <div id="readyList"></div>
+        <div class="btnrow" style="margin-top:14px">
+          <a class="btn" id="openApplyBtn" target="_blank" rel="noopener">Open the application</a>
+          <button class="btn ghost" id="markAppliedBtn">Mark as applied</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap">
+          <h3 style="font-size:15px">Things you write once</h3>
+          <span style="font-size:12px; color:var(--muted)">Built only from words you already wrote</span>
+        </div>
+        <div class="seg" role="group" aria-label="Which piece" style="margin:12px 0 14px">
+          <button id="wrFit" aria-pressed="true">Why I fit</button>
+          <button id="wrCover" aria-pressed="false">Cover letter</button>
+          <button id="wrReach" aria-pressed="false">Message the team</button>
+        </div>
+        <div class="field">
+          <textarea id="writeBox" style="min-height:230px"></textarea>
+        </div>
+        <div class="btnrow">
+          <button class="btn" id="writeCopy">Copy</button>
+          <button class="btn quiet sm" id="writeRegen">Rebuild from my evidence</button>
+          <span id="writeAiRow" hidden><button class="btn ghost sm" id="writeAi">Tighten with my AI</button></span>
+        </div>
+        <div class="msg" id="writeMsg"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:15px; margin-bottom:2px">Your applications</h3>
+        <p style="font-size:12.5px; color:var(--ink-2); margin-bottom:12px">Status is yours to set.
+           Nothing is sent or checked on your behalf.</p>
+        <div id="trackList"></div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="card" style="margin-bottom:18px">
+        <h3 style="font-size:14px; margin-bottom:2px">Answer bank</h3>
+        <p style="font-size:12.5px; color:var(--ink-2); margin-bottom:12px">The same twelve
+           questions, every form, forever. Fill them in once and copy each one in a click.</p>
+        <div id="answerBank"></div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:14px; margin-bottom:6px">Backups</h3>
+        <p style="font-size:12.5px; color:var(--ink-2)">Snapshots are kept on this device so a
+           mistake is recoverable. Downloading one is the only way to move to another computer.</p>
+        <div id="bkList" style="margin:10px 0"></div>
+        <div class="btnrow">
+          <button class="btn quiet sm" id="bkExport">Download everything</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
 <footer class="foot noprint">
   <span>Evidence Engine</span>
   <span class="sep">·</span>
@@ -904,8 +1012,9 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
        resume handy. You can stop and come back, your work is saved on this device.</p>
     <div class="btnrow" style="margin-top:16px">
       <button class="btn" id="wPaste">Paste my resume to start</button>
-      <button class="btn ghost" id="wBlank">Start from scratch</button>
-      <button class="btn quiet" id="wDemo">Show me an example first</button>
+      <button class="btn ghost" id="wPrep">My resume needs cleaning up first</button>
+      <button class="btn quiet" id="wBlank">Start from scratch</button>
+      <button class="btn quiet" id="wDemo">Show me an example</button>
     </div>
   </div>
 </div>
@@ -939,12 +1048,65 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
     <div class="btnrow">
       <button class="btn" id="pasteGo">Split this into entries</button>
       <span id="aiPasteRow" hidden><button class="btn ghost" id="aiPasteGo">Split it with my AI, more accurate</button></span>
+      <button class="btn ghost" id="prepBtn2">My resume is a mess</button>
       <button class="btn quiet" id="pasteCancel">Cancel</button>
     </div>
     <div class="msg" id="pasteMsg"></div>
     <p style="font-size:12.5px; color:var(--muted); margin-top:14px">
       Nothing is graded automatically. Every entry arrives marked <b>No number yet</b> and you
       decide what it really is. A tool that grades your claims for you would be guessing.</p>
+  </div>
+</div>
+
+<!-- ============ RESUME CLEAN-UP PROMPT ============ -->
+<div class="veil" id="prepVeil">
+  <div class="modal wide">
+    <h3>Get your resume machine readable first</h3>
+    <p>Most resumes are built to look good on a page, not to be read by software. Two columns,
+       text boxes, icons and tables all survive a human eye and get shredded by an applicant
+       tracking system. If yours has any of that, fix it once here and every application after
+       it gets easier.</p>
+
+    <p style="font-size:13px; color:var(--ink-2)">Copy the prompt below into whichever AI you
+       already pay for, attach your current resume and anything else with your history in it,
+       and paste the answer back into this tool. The prompt is written to forbid inventing
+       anything, so what comes back is your own history, reformatted.</p>
+
+    <div class="prepsteps">
+      <div><span>1</span>Copy the prompt</div>
+      <div><span>2</span>Attach your files in ChatGPT, Claude or Gemini</div>
+      <div><span>3</span>Paste the answer back here</div>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label for="prepText">The prompt</label>
+      <textarea id="prepText" style="min-height:260px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px" readonly></textarea>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" id="prepCopy">Copy the prompt</button>
+      <a class="btn quiet sm" href="https://chatgpt.com/" target="_blank" rel="noopener">Open ChatGPT</a>
+      <a class="btn quiet sm" href="https://claude.ai/new" target="_blank" rel="noopener">Open Claude</a>
+      <a class="btn quiet sm" href="https://gemini.google.com/app" target="_blank" rel="noopener">Open Gemini</a>
+      <button class="btn ghost sm" id="prepPasteBack">I have the answer, paste it in</button>
+      <button class="btn quiet" id="prepClose">Close</button>
+    </div>
+    <div class="msg" id="prepMsg"></div>
+
+    <details style="margin-top:16px">
+      <summary style="cursor:pointer; font-size:13px; font-weight:600">What this prompt actually enforces</summary>
+      <ul style="font-size:12.5px; color:var(--ink-2); margin:10px 0 0 18px; line-height:1.75">
+        <li>One column, no tables, no text boxes, no headers or footers, no graphics. These are
+            the four things that break parsing most often.</li>
+        <li>Plain hyphens for bullets and straight quotes throughout, because curly quotes,
+            en dashes and decorative glyphs arrive as junk characters.</li>
+        <li>Every number kept in the same bullet as the work that produced it, so the achievement
+            and its result never get separated.</li>
+        <li>Standard section names an ATS is looking for, spelled the ordinary way.</li>
+        <li>A hard rule against inventing a company, a date, a tool or a number. If your source
+            does not say it, it does not appear.</li>
+      </ul>
+    </details>
   </div>
 </div>
 
@@ -1236,8 +1398,30 @@ var S = {
   jd: {title:"", co:"", text:"", kw:[]}, picked: {},
   hdr: {name:"", title:"", loc:"", email:"", phone:"", link:"", summary:""},
   type: {font:"sans", size:"11", lead:"1.5", accent:"on"},
-  customText: "", pro: false, editing: null
+  customText: "", pro: false, editing: null,
+  /* Everything below exists to stop the user re-entering things they have
+     already told us once, and to stop them losing track of what they sent. */
+  profile: {titles:[], level:"", loc:"", remote:true, minPay:0, ready:false},
+  answers: {},          // screener answers, typed once, copied everywhere
+  apps: {},             // jobId -> {status, applied, followed, note}
+  seen: {},             // listing id -> first time we showed it, powers "new"
+  lastSearch: null      // the search form, restored on return
 };
+/* Screener questions every application asks and nobody enjoys retyping. */
+var ANSWER_FIELDS=[
+  {k:"auth",   q:"Are you legally authorised to work in this country?", type:"select", opts:["Yes","No"]},
+  {k:"spon",   q:"Will you now or in future need visa sponsorship?", type:"select", opts:["No","Yes"]},
+  {k:"pay",    q:"What are your salary expectations?", ph:"e.g. 135,000 to 155,000, open on the mix"},
+  {k:"rate",   q:"Hourly or day rate, if contract", ph:"e.g. 85 to 125 per hour"},
+  {k:"start",  q:"When could you start?", ph:"e.g. Two weeks from an offer"},
+  {k:"where",  q:"Where are you based, and which hours do you cover?", ph:"e.g. Hayward, CA. Pacific, flexible to Eastern."},
+  {k:"remote", q:"Are you comfortable with the stated work arrangement?", type:"select", opts:["Yes","Hybrid only","Remote only"]},
+  {k:"notice", q:"Are you currently under contract or notice?", ph:"e.g. No. Available immediately."},
+  {k:"port",   q:"Portfolio or work samples", ph:"https://"},
+  {k:"linked", q:"LinkedIn", ph:"https://linkedin.com/in/"},
+  {k:"heard",  q:"How did you hear about this role?", ph:"e.g. The company's own careers page"},
+  {k:"why",    q:"Anything else you want us to know?", ph:"Left blank is fine. One or two sentences at most."}
+];
 function activeJob(){
   if(!S.jobs.length) return null;
   var j=S.jobs.filter(function(x){ return x.id===S.activeJob; })[0];
@@ -1253,12 +1437,35 @@ function syncActive(){
 function save(){
   var j=activeJob(); if(j) j.picked=S.picked;
   try{ localStorage.setItem("ee.v1", JSON.stringify(S)); }catch(e){}
+  backup();
 }
+/* A rolling set of snapshots. Everything lives in one browser key, so a stray
+   clear, a bad import or a mistaken bulk delete would otherwise be the end of
+   an hour's work with nothing to fall back on. */
+function backup(){
+  try{
+    if(!S.units.length && !S.jobs.length) return;
+    var now=Date.now();
+    var b=JSON.parse(localStorage.getItem("ee.bk")||"[]");
+    /* Throttled to one every two minutes, but never when there is nothing to
+       fall back on. Without the second test a restore or a cleared store left
+       the user unprotected for the next two minutes. */
+    if(b.length && backup._at && now-backup._at < 120000) return;
+    backup._at=now;
+    b.unshift({t:now, n:S.units.length, j:S.jobs.length, d:JSON.stringify(S)});
+    b=b.slice(0,5);
+    localStorage.setItem("ee.bk", JSON.stringify(b));
+  }catch(e){ /* quota, nothing to do about it and not worth interrupting for */ }
+}
+function backups(){ try{ return JSON.parse(localStorage.getItem("ee.bk")||"[]"); }catch(e){ return []; } }
 function load(){
   try{
     var r = localStorage.getItem("ee.v1"); if(!r) return;
     var d = JSON.parse(r);
     ["units","hdr","type"].forEach(function(k){ if(d[k]) S[k]=d[k]; });
+    ["profile","answers","apps","seen"].forEach(function(k){
+      if(d[k] && typeof d[k]==="object") S[k]=d[k]; });
+    if(d.lastSearch) S.lastSearch=d.lastSearch;
     S.customText = d.customText || "";
     S.pro = !!d.pro;
     if(Array.isArray(d.jobs) && d.jobs.length){
@@ -1321,6 +1528,16 @@ function go(i){
   [].forEach.call(document.querySelectorAll(".step"),function(b,n){ b.setAttribute("aria-current",n===i?"true":"false"); });
   if(i===2) renderMatch();
   if(i===3) renderPaper();
+  if(i===4){
+    /* The ATS number the readiness list reads comes from the rendered page, so
+       the resume has to be laid out before the check means anything. An earlier
+       version guarded on textContent being empty, but it starts as the string
+       "0", which is truthy, so the check never ran and the list always claimed
+       the resume was unchecked. Just render it, the cost is trivial. */
+    renderPaper();
+    renderReady(); renderTrack(); renderFollow(); renderAnswers(); renderBackups();
+    if(!$("writeBox").value) setWriterQuiet(WRITER);
+  }
   window.scrollTo({top:0,behavior:"smooth"});
 }
 [].forEach.call(document.querySelectorAll(".step"),function(b){
@@ -1660,6 +1877,59 @@ function boardList(){
   try{ var c=JSON.parse(localStorage.getItem("ee.boards")||"null"); if(Array.isArray(c)&&c.length) return c; }catch(e){}
   return COMPANY_BOARDS_DEFAULT;
 }
+/* =========================================================================
+   PAY EXTRACTION
+   Boards publish pay in a dozen shapes and most tools throw it away, which
+   leaves the user opening twenty tabs to find out a role pays half what they
+   need. Parsed into a comparable annual number so it can be filtered on.
+   ========================================================================= */
+function parsePay(s){
+  s=String(s||"");
+  var best=null;
+  /* Two passes. The first needs a currency symbol. The second accepts a bare
+     figure but only when a pay word is sitting next to it, which is how most
+     boards write "Salary: 140k" and "Compensation 120,000 to 150,000". */
+  scan(/([$£€])\s?(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*(k\b|,000\b)?(?:\s*(?:-|to|–|—)\s*([$£€])?\s?(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*(k\b|,000\b)?)?/gi, false);
+  if(!best) scan(/()(\d{2,3}(?:,\d{3})*(?:\.\d+)?|\d{2,3})\s*(k\b|,000\b)?(?:\s*(?:-|to|–|—)\s*(\d{2,3}(?:,\d{3})*(?:\.\d+)?|\d{2,3})\s*(k\b|,000\b)?)?/gi, true);
+  return best;
+
+  function scan(re, needWord){
+  var m;
+  while((m=re.exec(s))){
+    var lo, hi;
+    if(needWord){ lo=num(m[2],m[3]); hi=m[4]? num(m[4],m[5]) : lo; }
+    else        { lo=num(m[2],m[3]); hi=m[5]? num(m[5],m[6]) : lo; }
+    if(lo==null) continue;
+    var ctx=s.slice(Math.max(0,m.index-30), m.index+m[0].length+30).toLowerCase();
+    if(needWord && !/\b(salary|salaries|compensation|comp|pay|paying|rate|base|range|earn|usd|cad|gbp|eur|annum|annually|per\s+year|yearly|hourly|per\s+hour)\b/.test(ctx)) continue;
+    var per = /\b(hour|hr|hourly|\/hr|per hour)\b/.test(ctx) ? "hour"
+            : /\b(day|daily|\/day)\b/.test(ctx) ? "day"
+            : /\b(month|monthly|\/mo|per month)\b/.test(ctx) ? "month" : "year";
+    /* Sanity: an "annual" figure under 1,000 is not a salary, it is a discount
+       code or an equity number that happened to sit near a dollar sign. */
+    var annual = per==="hour" ? hi*2080 : per==="day" ? hi*230 : per==="month" ? hi*12 : hi;
+    if(per==="year" && hi<1000) continue;
+    if(per==="hour" && (hi<8 || hi>900)) continue;
+    if(annual<12000 || annual>2000000) continue;
+    var cand={lo:lo, hi:hi, per:per, annual:Math.round(annual), cur:m[1]||"$"};
+    if(!best || cand.annual>best.annual) best=cand;
+  }
+  }
+  function num(v, suf){
+    if(v==null) return null;
+    var n=parseFloat(String(v).replace(/,/g,""));
+    if(isNaN(n)) return null;
+    if(suf && /^k/i.test(suf)) n*=1000;
+    return n;
+  }
+}
+function payLabel(p){
+  if(!p) return "";
+  var f=function(n){ return n>=1000 ? Math.round(n/1000)+"k" : String(Math.round(n)); };
+  var unit = p.per==="hour" ? "/hr" : p.per==="day" ? "/day" : p.per==="month" ? "/mo" : "";
+  var body = p.lo===p.hi ? f(p.lo) : f(p.lo)+"-"+f(p.hi);
+  return p.cur+body+unit;
+}
 function typeOf(title, raw){
   var s=((title||"")+" "+(raw||"")).toLowerCase(), out=[];
   if(/\bintern(ship)?\b/.test(s)) out.push("intern");
@@ -1980,7 +2250,28 @@ function scoreListing(job, prof){
   var tagPart=prof.tags.length ? Math.min(1, (hits.length + famHits.length*0.7)/denom) : 0;
   var famPart=Math.min(1, famHits.length/3);
   var pct=Math.round(Math.min(1, tagPart*0.34 + best*0.26 + cover*0.22 + famPart*0.18)*100);
+
+  /* Two floors, both added after watching real results.
+
+     A listing with no direct skill hit at all is not a strong fit however well
+     its title happens to rhyme with the user's. A German-language marketing
+     post scored Strong purely because the word "marketing" appears twice in it.
+
+     And a posting written in a language the user's resume is not in is noise,
+     not a near miss. EU boards on Greenhouse and Lever carry a lot of these. */
+  if(!hits.length) pct=Math.min(pct, 40);
+  if(foreignLanguage(job.title)) pct=Math.min(pct, 20);
+
   return {pct:pct, hits:hits.concat(famHits.slice(0,4))};
+}
+/* Cheap and deliberately conservative. Only fires on markers that essentially
+   never appear in an English-language job title. */
+var FOREIGN=/\b(m\/w\/d|w\/m\/d|h\/f|mitarbeiter|fachkraft|vertrieb|einkauf|leiter|leitung|kaufmann|kauffrau|praktikum|ausbildung|stellvertretende|betreuung|entwickler|berater|referent|sachbearbeiter|responsable|chargé|chargée|développeur|ingénieur|stagiaire|alternance|responsabile|sviluppatore|desarrollador|ingeniero|comercial|prácticas|medewerker|adviseur|ontwikkelaar|stagiair)\b/i;
+function foreignLanguage(title){
+  var t=String(title||"");
+  if(FOREIGN.test(t)) return true;
+  if(/[äöüßàâçéèêëîïôùûœñãõ]/i.test(t) && !/\b(cafe|resume|role)\b/i.test(t)) return true;
+  return false;
 }
 function band(p){
   if(p>=50) return ["Strong","hi"];
@@ -2020,14 +2311,30 @@ async function runSearch(){
   }
 
   var now=Date.now(), cutoff = win? now - win*3600*1000 : 0;
-  var seen={}, rows=[];
+  var minPay=parseInt(($("sPay")&&$("sPay").value)||"0",10)||0;
+  var guard=$("sLevel") ? $("sLevel").value : "on";
+  var mine=myLevel();
+  var seen={}, rows=[], cutLevel=0, cutPay=0;
+
   all.forEach(function(j){
     if(!j.title || !j.url) return;
-    var key=(j.co+"|"+j.title).toLowerCase().replace(/\s+/g," ");
+    /* Same role, three boards, three cards. Normalising away seniority commas,
+       parenthetical notes and requisition numbers collapses them into one. */
+    var key=dedupeKey(j);
     if(seen[key]) return; seen[key]=1;
     if(win && (!j.ts || j.ts<cutoff)) return;
     if(loc && (j.loc||"").toLowerCase().indexOf(loc)<0) return;
     if(wantTypes.length && !wantTypes.every(function(t){ return j.types.indexOf(t)>=0; })) return;
+
+    j.pay=parsePay(j.title+" "+(j.loc||"")+" "+(j.raw||""));
+    if(minPay && j.pay && j.pay.annual < minPay){ cutPay++; return; }
+
+    /* An intern posting is not a near miss for a director, it is noise, and it
+       is the single biggest source of junk in a keyword-matched job list. */
+    if(guard==="on" && mine>=0){
+      var jl=levelOf(j.title);
+      if(jl && Math.abs(jl.n-mine)>=2){ cutLevel++; return; }
+    }
     rows.push(j);
   });
   var prof=profileTerms(extra);
@@ -2038,21 +2345,122 @@ async function runSearch(){
   SEARCH.all=rows;
   SEARCH.strong=rows.filter(function(j){ return j.pct>=50; });
   SEARCH.possible=rows.filter(function(j){ return j.pct>=28 && j.pct<50; });
-  SEARCH.results=(SEARCH.showAll ? rows.filter(function(j){ return j.pct>=28; }) : SEARCH.strong).slice(0,60);
+  /* Strong-only is right when there are strong fits to show. When there are
+     one or two, hiding forty near misses behind a toggle the user has to find
+     is worse than showing them, so widen automatically and say why. */
+  SEARCH.autoWide = SEARCH.strong.length<3 && SEARCH.possible.length>0;
+  var wide = SEARCH.showAll || SEARCH.autoWide;
+  SEARCH.results=(wide ? rows.filter(function(j){ return j.pct>=28; }) : SEARCH.strong).slice(0,60);
+
+  /* Anything not shown before is flagged. A returning user should be able to
+     scan only what changed rather than re-reading yesterday's list. */
+  var fresh=0;
+  rows.forEach(function(j){
+    if(S.seen[j.id]) { j.isNew=false; }
+    else { j.isNew=true; fresh++; S.seen[j.id]=now; }
+  });
+  SEARCH.freshCount=fresh;
+  pruneSeen();
+
   SEARCH.lastRun=now; SEARCH.running=false;
+  S.lastSearch={win:$("sWindow").value, depth:depth, loc:$("sLoc").value, kw:extra,
+                pay:minPay, guard:guard, types:wantTypes, at:now};
+  save();
+
   msg.classList.remove("on");
-  stat.innerHTML = all.length.toLocaleString()+" listings read, "+rows.length+" passed your filters. "+
-    "<b>"+SEARCH.strong.length+" strong fits</b>"+
+  var filtered=[];
+  if(cutLevel) filtered.push(cutLevel+" at the wrong seniority");
+  if(cutPay) filtered.push(cutPay+" under your pay floor");
+  stat.innerHTML = all.length.toLocaleString()+" listings read"+
+    (filtered.length? ", "+filtered.join(" and ")+" set aside" : "")+". "+
+    "<b>"+SEARCH.strong.length+" strong fit"+(SEARCH.strong.length===1?"":"s")+"</b>"+
     (SEARCH.possible.length?", "+SEARCH.possible.length+" possible":"")+
+    (fresh? ', <b style="color:var(--audited)">'+fresh+" new since you last looked</b>":"")+
     ". Updated "+new Date(now).toLocaleTimeString()+
     (prof.tags.length?"":' <b style="color:var(--none)">Add evidence first, nothing to score against.</b>');
   renderResults();
+  $("tailorAllBtn").hidden = !(SEARCH.strong && SEARCH.strong.length);
+  if(SEARCH.strong && SEARCH.strong.length)
+    $("tailorAllBtn").textContent="Prepare all "+Math.min(SEARCH.strong.length,12)+" strong fits";
+}
+/* Collapse the same job posted under slightly different titles on three boards. */
+function dedupeKey(j){
+  var t=(j.title||"").toLowerCase()
+    .replace(/\(.*?\)|\[.*?\]/g," ")                    // (Remote), [Contract]
+    .replace(/\b(?:req|requisition|job|id)[\s#:-]*\w*\d\w*/g," ")
+    .replace(/\b(i{1,3}|iv|v|1|2|3|4)\b/g," ")          // levels: Engineer II
+    /* Boards append the work mode and the city after a dash or comma. Same
+       role, different suffix, and without this it counts as two. */
+    .replace(/[-–—,|]\s*(remote|hybrid|on ?site|in ?office|us|usa|united states|uk|canada|emea|apac|anywhere|full[\s-]?time|part[\s-]?time|contract|temporary|permanent|w2|1099)\b.*$/g," ")
+    .replace(/\b(remote|hybrid|onsite|on site)\b/g," ")
+    .replace(/[^a-z0-9]+/g," ").trim();
+  return (j.co||"").toLowerCase().replace(/[^a-z0-9]/g,"")+"|"+t;
+}
+/* The seen map is the only thing here that grows without bound. */
+function pruneSeen(){
+  var keys=Object.keys(S.seen);
+  if(keys.length<4000) return;
+  var cut=Date.now()-45*24*3600*1000, out={};
+  keys.forEach(function(k){ if(S.seen[k]>cut) out[k]=S.seen[k]; });
+  S.seen=out;
+}
+/* Push everything we already know into the search form so the first run needs
+   no typing at all. Called after an import and on load. */
+function applyProfileToSearch(){
+  if(!$("sKeywords")) return;
+  var ls=S.lastSearch;
+  if(ls){
+    if($("sWindow")) $("sWindow").value=ls.win||"72";
+    if($("sDepth"))  $("sDepth").value=ls.depth||"full";
+    if($("sLoc"))    $("sLoc").value=ls.loc||"";
+    if($("sKeywords")) $("sKeywords").value=ls.kw||"";
+    if($("sPay"))    $("sPay").value=ls.pay||"";
+    if($("sLevel"))  $("sLevel").value=ls.guard||"on";
+    if(ls.types) [].forEach.call(document.querySelectorAll("#sTypes .chip"),function(c){
+      c.setAttribute("aria-pressed", ls.types.indexOf(c.dataset.type)>=0 ? "true":"false"); });
+  } else {
+    var p=S.profile||{};
+    if(p.titles && p.titles.length && !$("sKeywords").value) $("sKeywords").value=p.titles.slice(0,2).join(", ");
+    if(p.loc && !$("sLoc").value && !/remote/i.test(p.loc)){
+      /* Use the country or state, not the street. Boards publish coarse locations. */
+      var tail=p.loc.split(",").pop().trim();
+      if(tail.length<=24) $("sLoc").value="";
+    }
+  }
+  renderProfileChip();
+}
+function renderProfileChip(){
+  var el=$("profChip"); if(!el) return;
+  var p=S.profile||{};
+  if(!p.titles || !p.titles.length){
+    el.innerHTML='<span class="hint">Add your evidence first and this fills itself in.</span>';
+    return;
+  }
+  var lvl={intern:"Intern",junior:"Junior",mid:"Mid level",senior:"Senior",exec:"Director and above"}[p.level]||"";
+  el.innerHTML='<b>Searching as:</b> '+esc(p.titles.slice(0,3).join(", "))+
+    (lvl? ' <span class="tag">'+esc(lvl)+'</span>':"")+
+    ' <button type="button" class="linkbtn" id="profEdit">change</button>';
+  var pe=$("profEdit");
+  if(pe) pe.addEventListener("click",function(){
+    var v=prompt("Job titles to search for, separated by commas:", p.titles.join(", "));
+    if(v==null) return;
+    S.profile.titles=v.split(",").map(function(s){return s.trim();}).filter(Boolean);
+    $("sKeywords").value=S.profile.titles.slice(0,3).join(", ");
+    save(); renderProfileChip(); toast("Updated. Search again to use it.");
+  });
 }
 function renderResults(){
   var box=$("results"), rows=SEARCH.results;
+  var wide = SEARCH.showAll || SEARCH.autoWide;
+  var note = SEARCH.autoWide && !SEARCH.showAll
+    ? '<div class="msg warn on" style="margin-bottom:12px">Only '+SEARCH.strong.length+
+      ' role'+(SEARCH.strong.length===1?"":"s")+' cleared the strong bar this time, so the '+
+      SEARCH.possible.length+' near misses are shown too. Widen the time window, or add more '+
+      'evidence so there is more to match against.</div>'
+    : '';
   var toggle = (SEARCH.possible&&SEARCH.possible.length)
-    ? '<div class="btnrow" style="margin-bottom:12px"><button class="btn quiet sm" id="showAllBtn">'+
-      (SEARCH.showAll?"Show strong fits only":"Also show "+SEARCH.possible.length+" possible fits")+
+    ? note+'<div class="btnrow" style="margin-bottom:12px"><button class="btn quiet sm" id="showAllBtn">'+
+      (wide?"Show strong fits only":"Also show "+SEARCH.possible.length+" possible fits")+
       '</button></div>' : '';
   if(!rows.length){
     box.innerHTML=toggle+'<div class="empty"><h3>'+
@@ -2070,11 +2478,16 @@ function renderResults(){
     var age=j.ts?Math.round((Date.now()-j.ts)/3600000):null;
     var ageTxt=age===null?"date unknown":(age<1?"under an hour ago":(age<24?age+"h ago":Math.round(age/24)+"d ago"));
     var bd=band(j.pct);
+    var already=appliedTo(j.url);
     return '<div class="job" data-res="'+i+'" style="cursor:default">'+
       '<span class="job-cov'+(bd[1]?" "+bd[1]:"")+'" title="Title-level pre-screen. The precise '+
         'score is calculated once Tailor fetches the full posting.">'+bd[0]+'</span>'+
       '<div class="job-main"><b>'+esc(j.title)+'</b>'+
-      '<span>'+esc(j.co)+(j.loc?" · "+esc(j.loc):"")+' · '+ageTxt+' · '+esc(j.src)+'</span>'+
+      (j.isNew?' <span class="tag hit" style="vertical-align:2px">new</span>':"")+
+      (already?' <span class="tag" style="vertical-align:2px">applied '+esc(already)+'</span>':"")+
+      '<span>'+esc(j.co)+(j.loc?" · "+esc(j.loc):"")+' · '+ageTxt+' · '+esc(j.src)+
+        (j.pay?' · <b style="color:var(--audited)">'+esc(payLabel(j.pay))+'</b>':"")+'</span>'+
+      '<span style="color:var(--ink-2)">'+esc(whyMatched(j))+'</span>'+
       (j.hits.length?'<div class="tags" style="margin-top:5px">'+j.hits.slice(0,7).map(function(h){
         return '<span class="tag hit">'+esc(h)+'</span>'; }).join("")+'</div>'
         :'<div class="tags" style="margin-top:5px"><span class="tag">no overlap with your evidence</span></div>')+
@@ -2089,9 +2502,57 @@ function renderResults(){
   });
   var bt=$("showAllBtn"); if(bt) bt.addEventListener("click",toggleShowAll);
 }
+/* A percentage tells the user nothing they can act on. A sentence naming the
+   overlap does, and it costs one line on the card instead of a click. */
+function whyMatched(j){
+  var n=j.hits.length;
+  if(!n) return "Matched on the role title only.";
+  var lvl=levelOf(j.title), mine=myLevel(), same = lvl && mine>=0 && lvl.n===mine;
+  var head = n>=5 ? "Strong overlap: " : n>=3 ? "Overlaps on " : "Some overlap: ";
+  var list = j.hits.slice(0,3).join(", ") + (n>3? " and "+(n-3)+" more":"");
+  return head + list + (same? ", and it is pitched at your level." : ".");
+}
+function appliedTo(url){
+  var k=appKey(url), a=S.apps[k];
+  if(!a || !a.applied) return "";
+  var d=new Date(a.applied), days=Math.round((Date.now()-a.applied)/86400000);
+  return days<=0 ? "today" : days===1 ? "yesterday" : days+"d ago";
+}
+function appKey(url){ return String(url||"").replace(/[?#].*$/,"").replace(/\/$/,"").toLowerCase(); }
+
+/* Fetching twenty postings one click at a time is the single most tedious part
+   of using this. Do the whole shortlist in one pass instead. */
+async function tailorAll(){
+  var list=(SEARCH.strong||[]).slice(0,12);
+  if(!list.length){ toast("Run a search first"); return; }
+  var msg=$("searchMsg"), added=0, skipped=0;
+  msg.className="msg on";
+  for(var i=0;i<list.length;i++){
+    var j=list[i];
+    msg.innerHTML='<span class="spin"></span>Preparing '+(i+1)+' of '+list.length+': '+esc(j.title)+'...';
+    if(S.jobs.some(function(x){ return appKey(x.url)===appKey(j.url); })){ skipped++; continue; }
+    var text="";
+    try{ var d=await fetchJob(j.url); text=d.text||""; }catch(e){}
+    if(!text) text=j.title+"\n"+j.co+"\n"+(j.loc||"")+"\n"+j.hits.join(", ");
+    var nj=newJob({title:j.title, co:j.co, url:j.url, text:text});
+    nj.kw=kwFromText(text);
+    nj.pay=parsePay(j.title+" "+text.slice(0,4000)) || j.pay || null;
+    S.jobs.push(nj); added++;
+  }
+  S.activeJob=S.jobs.length?S.jobs[S.jobs.length-1].id:null;
+  syncActive(); save(); renderJobs(); renderKW(); renderScore();
+  msg.className="msg good on";
+  msg.textContent=added+" job"+(added===1?"":"s")+" saved and keyworded"+
+    (skipped? ", "+skipped+" already on your list":"")+
+    ". Each one keeps its own tailored resume. Open step 3 to see what matches.";
+}
 function toggleShowAll(){
-  SEARCH.showAll=!SEARCH.showAll;
-  SEARCH.results=(SEARCH.showAll
+  var wide = SEARCH.showAll || SEARCH.autoWide;
+  /* Pressing the button always means "give me the other view", including when
+     the widening happened automatically. */
+  if(wide){ SEARCH.showAll=false; SEARCH.autoWide=false; }
+  else { SEARCH.showAll=true; }
+  SEARCH.results=((SEARCH.showAll||SEARCH.autoWide)
     ? (SEARCH.all||[]).filter(function(j){ return j.pct>=28; })
     : (SEARCH.strong||[])).slice(0,60);
   renderResults();
@@ -2186,7 +2647,8 @@ function renderJobs(){
     var cov=coverageFor(j);
     return '<div class="job'+(j.id===S.activeJob?" active":"")+'" data-job="'+j.id+'">'+
       '<div class="job-main"><b>'+esc(j.title||"Untitled role")+'</b>'+
-      '<span>'+esc(j.co||"")+(j.co&&j.url?" · ":"")+esc(j.url? j.url.replace(/^https?:\/\/(www\.)?/,"").slice(0,46) : "")+'</span></div>'+
+      '<span>'+esc(j.co||"")+(j.co&&j.url?" · ":"")+esc(j.url? j.url.replace(/^https?:\/\/(www\.)?/,"").slice(0,40) : "")+
+      (j.pay?' · <b style="color:var(--audited)">'+esc(payLabel(j.pay))+'</b>':"")+'</span></div>'+
       '<span class="job-cov'+(cov>=60?" hi":"")+'">'+cov+'%</span>'+
       '<button class="iconbtn" data-jrm="'+j.id+'" title="Remove" aria-label="Remove job">✕</button>'+
     '</div>';
@@ -2221,9 +2683,10 @@ function coverageFor(j){
   return Math.round(Object.keys(covered).length/j.kw.length*100);
 }
 
-function parseJD(){
-  var raw=$("jText").value; if(!raw.trim()){ toast("Add the posting text first"); return; }
-  var low=" "+raw.toLowerCase().replace(/[^a-z0-9+#./\- ]/g," ").replace(/\s+/g," ")+" ";
+/* Pulled out of parseJD so the batch path can keyword a posting without a form
+   to read it from. Identical logic, no DOM. */
+function kwFromText(raw){
+  var low=" "+String(raw||"").toLowerCase().replace(/[^a-z0-9+#./\- ]/g," ").replace(/\s+/g," ")+" ";
   var found={}, claimed={};
   /* Phrases first. Their component words are then claimed and excluded from the
      single-word pass, otherwise "stakeholder management" scores three times:
@@ -2243,17 +2706,32 @@ function parseJD(){
     if(/^\d+$/.test(w)) return;
     found[w]=(found[w]||0)+1;
   });
-  var kw=Object.keys(found).map(function(k){ return {k:k,n:found[k]}; })
+  return Object.keys(found).map(function(k){ return {k:k,n:found[k]}; })
     .sort(function(a,b){ return b.n-a.n; }).slice(0,34);
-
+}
+function parseJD(){
+  var raw=$("jText").value; if(!raw.trim()){ toast("Add the posting text first"); return; }
+  var kw=kwFromText(raw);
   var title=$("jTitle").value.trim(), co=$("jCo").value.trim(), url=$("jUrl").value.trim();
+
+  /* Applying twice to the same posting is a real and embarrassing failure, and
+     the tool is the only thing in a position to notice. */
+  var prior=S.apps[appKey(url)];
+  if(url && prior && prior.applied && !(activeJob()&&activeJob().url===url)){
+    if(!confirm("You already applied to this posting on "+
+      new Date(prior.applied).toLocaleDateString()+".\n\nSave it again anyway?")) return;
+  }
+  /* Board APIs only publish a title and a location, so pay almost never shows
+     up at search time. The full posting text is where it actually lives. */
+  var pay=parsePay(title+" "+raw.slice(0,4000));
   var existing=activeJob();
   /* Editing the job that is already open updates it. Anything else is a new
      saved job, so two applications never overwrite each other. */
   if(existing && existing.text===raw){
-    existing.title=title; existing.co=co; existing.url=url; existing.kw=kw;
+    existing.title=title; existing.co=co; existing.url=url; existing.kw=kw; existing.pay=pay;
   } else {
     var j=newJob({title:title, co:co, url:url, text:raw, kw:kw});
+    j.pay=pay;
     S.jobs.push(j); S.activeJob=j.id;
   }
   syncActive(); save(); renderJobs(); renderKW(); renderScore();
@@ -2600,7 +3078,16 @@ $("printBtn").addEventListener("click",function(){
     $("editHdrBtn").click();
     return;
   }
+  /* Browsers name the PDF after document.title, and "Evidence Engine · Build a
+     resume..." is not what anybody wants sitting in a recruiter's inbox. Twenty
+     applications otherwise produce twenty identically named files. */
+  var j=activeJob(), was=document.title;
+  var parts=[S.hdr.name||"Resume"];
+  if(j && j.co) parts.push(j.co);
+  if(j && j.title) parts.push(j.title);
+  document.title=parts.join(" - ").replace(/[\\/:*?"<>|]/g,"").slice(0,110);
   window.print();
+  setTimeout(function(){ document.title=was; }, 1500);
 });
 
 /* ---------- import, export, demo ---------- */
@@ -2988,6 +3475,103 @@ function normalizeResume(raw){
   var suspect = body.length>15 && worstRun>=8;
 
   return {text:s, fixes:fixes, suspectTwoColumn:suspect};
+}
+
+/* =========================================================================
+   CONTACT EXTRACTION
+   The header was a blank form the user had to fill in by hand, and every one of
+   those fields is already sitting in the first six lines of the file they just
+   uploaded. Leaving it blank also meant the export carried "Your Name".
+   ========================================================================= */
+function extractContact(text){
+  var head=String(text||"").split(/\r?\n/).slice(0,14), joined=head.join("\n"), out={};
+  var m;
+  if((m=joined.match(/[\w.+-]+@[\w-]+\.[\w.]{2,}/))) out.email=m[0];
+  if((m=joined.match(/(\+?\d{1,2}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/))) out.phone=m[0].trim();
+
+  /* City, ST or City, Country. Matched per line, because run across the whole
+     block the name on line one gets glued to the city on line two. */
+  for(var li=0; li<head.length && !out.loc; li++){
+    var seg=head[li].split(/\s*[|·•]\s*/);
+    for(var si=0; si<seg.length; si++){
+      m=seg[si].match(/^\s*([A-Z][a-zA-Z.'-]+(?:\s[A-Z][a-zA-Z.'-]+){0,2}),\s*([A-Z]{2}|[A-Z][a-z]{2,})\s*$/);
+      if(m && !/^(university|college|inc|llc|ltd)/i.test(m[1])){ out.loc=m[0].trim(); break; }
+    }
+  }
+
+  var links=joined.match(/\b(?:https?:\/\/)?(?:www\.)?[\w-]+\.(?:com|io|co|dev|design|me|net|org|xyz|app)(?:\/[\w\-./?%&=+#]*)?/gi)||[];
+  /* The domain half of the email address matches this pattern too, so
+     josh@example.com was being offered back as a portfolio link. */
+  var mailDomain = out.email ? out.email.split("@")[1].toLowerCase() : "";
+  links=links.filter(function(l){
+    var d=l.toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"");
+    if(mailDomain && d.indexOf(mailDomain)===0) return false;
+    return !/@/.test(l) && !/^(gmail|yahoo|outlook|hotmail|icloud|proton|aol)\./i.test(d);
+  });
+  /* A LinkedIn URL is worth more to a recruiter than any other link. */
+  links.sort(function(a,b){ return (/linkedin/i.test(b)?1:0)-(/linkedin/i.test(a)?1:0); });
+  if(links.length) out.link=links.slice(0,2).join(" · ");
+
+  /* The name is the first line that is not a heading, not contact data and not
+     a sentence. Almost always literally the first line. */
+  for(var i=0;i<head.length;i++){
+    var t=head[i].trim();
+    if(!t || t.length>44) continue;
+    if(/@|https?:|\d{3}/.test(t)) continue;
+    if(/^(resume|curriculum|cv|profile|summary|objective|experience|contact)\b/i.test(t)) continue;
+    var words=t.replace(/[|·,].*$/,"").trim().split(/\s+/);
+    if(words.length>=2 && words.length<=4 && words.every(function(w){ return /^[A-Z][a-zA-Z.'-]*$/.test(w)||/^[A-Z.]{1,3}$/.test(w); })){
+      out.name=words.join(" "); break;
+    }
+  }
+  return out;
+}
+
+/* =========================================================================
+   PROFILE INFERENCE
+   The search form used to be five empty fields the user had to guess at before
+   anything happened. Everything it needs is derivable from the evidence they
+   just imported: what they have been called, how senior they are, and where
+   they are. Inferred, shown, and editable, rather than demanded up front.
+   ========================================================================= */
+var LEVELS=[
+  {k:"intern",  n:0, re:/\b(intern|internship|trainee|apprentice)\b/i},
+  {k:"junior",  n:1, re:/\b(junior|jr\.?|associate|entry[- ]level|assistant|coordinator|graduate)\b/i},
+  {k:"mid",     n:2, re:/\b(specialist|analyst|designer|engineer|developer|manager|strategist|writer|producer)\b/i},
+  {k:"senior",  n:3, re:/\b(senior|sr\.?|lead|principal|staff|architect|head\s+of)\b/i},
+  {k:"exec",    n:4, re:/\b(director|vp|vice\s+president|chief|cto|cmo|ceo|coo|partner|founder|owner)\b/i}
+];
+function levelOf(title){
+  var best=null;
+  LEVELS.forEach(function(l){ if(l.re.test(title||"") && (!best || l.n>best.n)) best=l; });
+  return best;
+}
+function inferProfile(){
+  var p={titles:[], level:"", loc:"", remote:true, minPay:S.profile.minPay||0, ready:false};
+  if(!S.units.length) return p;
+
+  /* Most recent first. The units arrive in resume order, which is already
+     reverse chronological on essentially every resume ever written. */
+  var titles=[], seen={};
+  S.units.forEach(function(u){
+    var r=(u.role||"").trim();
+    if(r && r.length<52 && !seen[r.toLowerCase()]){ seen[r.toLowerCase()]=1; titles.push(r); }
+  });
+  p.titles=titles.slice(0,4);
+
+  var lv=null;
+  titles.slice(0,2).forEach(function(t){ var l=levelOf(t); if(l && (!lv || l.n>lv.n)) lv=l; });
+  p.level = lv ? lv.k : "";
+
+  if(S.hdr && S.hdr.loc) p.loc=S.hdr.loc;
+  p.ready = !!(p.titles.length);
+  return p;
+}
+/* The user's own level, as a number, for the seniority guard. */
+function myLevel(){
+  var k=(S.profile&&S.profile.level)||"";
+  for(var i=0;i<LEVELS.length;i++) if(LEVELS[i].k===k) return LEVELS[i].n;
+  return -1;
 }
 
 /* =========================================================================
@@ -3385,6 +3969,7 @@ async function handleFile(file){
     var norm = normalizeResume(txt);
     $("pasteBox").value = norm.text;
 
+    PREP_FLAGS.twoCol = norm.suspectTwoColumn;
     var html = "Read "+esc(file.name)+".";
     if(norm.fixes.length){
       html += ' Cleaned it up first: <strong>'+esc(norm.fixes.join(", "))+'</strong>.';
@@ -3393,11 +3978,14 @@ async function handleFile(file){
     if(norm.suspectTwoColumn){
       html += '<br><span style="color:#8A5A00">This looks like it came from a two-column layout, '+
               'so the reading order may be scrambled. Applicant tracking systems hit the same problem, '+
-              'which is worth knowing before you send this file anywhere. Read it through below and fix '+
-              'anything out of order.</span>';
+              'which is worth knowing before you send this file anywhere. '+
+              '<button type="button" class="linkbtn" id="fixNow">Fix the file properly first</button>'+
+              '</span>';
     }
     m.className = norm.suspectTwoColumn ? "msg warn on" : "msg good on";
     m.innerHTML = html;
+    var fx=$("fixNow");
+    if(fx) fx.addEventListener("click",function(){ $("pasteVeil").classList.remove("on"); openPrep(); });
   }catch(err){
     m.className="msg bad on"; m.textContent = err.message;
   }
@@ -3429,19 +4017,492 @@ $("pasteGo").addEventListener("click",function(){
      catches text pasted straight out of a PDF viewer. */
   var norm=normalizeResume(raw);
   var found=splitResume(norm.text);
+  PREP_FLAGS.twoCol = PREP_FLAGS.twoCol || norm.suspectTwoColumn;
+
+  /* A resume this tool cannot read is a resume an applicant tracking system
+     cannot read either, so the useful response is to fix the file rather than
+     to shrug. Offered at exactly the moment the evidence for it is on screen. */
+  var wordy = raw.split(/\s+/).length;
+  if(found.length < 3 && wordy > 150){
+    PREP_FLAGS.thin = found.length;
+    m.className="msg warn on";
+    m.innerHTML = (found.length? "Only "+found.length+" entr"+(found.length===1?"y":"ies")+" came out of "
+      : "Nothing could be split out of ")+
+      "roughly "+wordy.toLocaleString()+" words, which usually means the layout is fighting the parser "+
+      "rather than that your history is short. "+
+      '<button type="button" class="linkbtn" id="thinFix">Reformat it in your own AI first</button>'+
+      (found.length? ", or continue and add the rest by hand." : ".");
+    var tf=$("thinFix");
+    if(tf) tf.addEventListener("click",function(){ $("pasteVeil").classList.remove("on"); openPrep(); });
+    if(!found.length) return;
+  }
   if(!found.length){ m.textContent="Nothing could be split out of that. Try adding one by hand instead."; m.className="msg bad on"; return; }
-  S.units=S.units.concat(found); save(); renderUnits();
+  S.units=S.units.concat(found);
+
+  /* Fill in everything the file already told us, rather than presenting the
+     user with empty forms for facts sitting in the document they just gave us. */
+  var got=extractContact(norm.text), filled=[];
+  ["name","email","phone","loc","link"].forEach(function(k){
+    if(got[k] && !S.hdr[k]){ S.hdr[k]=got[k]; filled.push(k==="loc"?"location":k); }
+  });
+  if(!S.hdr.title && found[0] && found[0].role) S.hdr.title=found[0].role;
+  S.profile=inferProfile(); applyProfileToSearch();
+
+  save(); renderUnits();
   $("pasteVeil").classList.remove("on"); $("pasteBox").value="";
   var q=found.filter(function(u){ return u.metricType!=="none"; }).length;
   toast("Found "+found.length+" entries"+
-    (q? " and pulled a number out of "+q+" of them. Check each number is right, then say where it came from."
-      : ". Now grade them, starting at the top."));
+    (q? ", pulled a number out of "+q : "")+
+    (filled.length? " and filled in your "+filled.join(", ") : "")+
+    ". Check each number, then say where it came from.");
 });
+
+/* =========================================================================
+   RESUME CLEAN-UP PROMPT
+   The parser here is good, but it cannot rescue a two-column PDF with the dates
+   in a sidebar and the job titles in a text box. Neither can the applicant
+   tracking system the user is about to submit to, which is the real point. The
+   cheapest fix is to hand the user a prompt for the AI they already pay for,
+   have it reformat their own history once, and bring the clean version back.
+
+   Two rules make this prompt worth shipping rather than generic advice. It
+   specifies the exact structure this parser and most ATS parsers read best, and
+   it forbids invention in the same terms the rest of this product does. A
+   reformatting prompt that quietly upgrades "helped with" into "led" hands the
+   user a claim they cannot defend in the interview.
+   ========================================================================= */
+function prepPrompt(){
+  var extra="";
+  if(PREP_FLAGS.twoCol) extra += "\n- My current file appears to use a two-column layout, so the "+
+    "reading order may already be scrambled. Rebuild the order from meaning, not from the order "+
+    "the text arrives in.";
+  if(PREP_FLAGS.thin) extra += "\n- An automated parser only found "+PREP_FLAGS.thin+" usable "+
+    "bullet(s) in my current file, so assume the structure is unclear and be explicit about it.";
+
+  return [
+"You are reformatting my existing resume so that applicant tracking systems and AI resume parsers",
+"can read every word of it correctly. You are not writing a new resume, you are not a career coach,",
+"and you are not improving my career story. You are a formatter.",
+"",
+"I am attaching my current resume. I may also attach older resumes, cover letters, a LinkedIn export",
+"or rough notes. Merge them into one document.",
+"",
+"THE RULE THAT MATTERS MOST",
+"Do not invent anything. Every employer, job title, date, tool, certification and number in your",
+"output must already appear somewhere in what I gave you. If a detail is missing, leave it out and",
+"list it at the end under THINGS I COULD NOT FIND. Never estimate a figure, never round one up,",
+"never upgrade my verbs to make a task sound like ownership, and never add an achievement I did not",
+"describe. If two files disagree, use the more recent one and flag the conflict at the end.",
+"",
+"Equally, do not delete a number that IS there. Numbers are the most valuable thing in the document.",
+"Keep each one in the same bullet as the work that produced it, along with any condition I mentioned",
+"such as \"with no increase in budget\" or \"with the same headcount\".",
+"",
+"OUTPUT FORMAT, FOLLOW IT EXACTLY",
+"Plain text only. No markdown, no bold, no tables, no columns, no text boxes, no headers or footers,",
+"no icons, no emoji, no graphics, no page numbers. One column, top to bottom. Return the whole thing",
+"inside a single code block so I can copy it in one go.",
+"",
+"FULL NAME",
+"City, State | email@address.com | phone | portfolio URL | LinkedIn URL",
+"",
+"SUMMARY",
+"Two or three sentences. Only claims that appear in my source material.",
+"",
+"SKILLS",
+"Comma separated on one or more plain lines. No columns, no tables, no proficiency bars, no ratings.",
+"Group related tools together if it helps, but keep it as running text.",
+"",
+"EXPERIENCE",
+"",
+"Job Title | Company Name",
+"Month Year - Month Year",
+"- One achievement per bullet, starting with a plain hyphen and a space.",
+"- Start each bullet with a concrete past-tense verb: rebuilt, migrated, negotiated, wrote, shipped,",
+"  diagnosed, reduced. Avoid responsible for, assisted with, leveraged, spearheaded, utilised.",
+"- Keep each bullet to one sentence. Do not wrap a single achievement across two bullets.",
+"",
+"Repeat that block for every role, most recent first.",
+"",
+"EDUCATION",
+"Degree, Institution, Year",
+"",
+"CERTIFICATIONS",
+"Name, Issuer, Year. Omit this heading entirely if I have none.",
+"",
+"FORMATTING RULES THAT BREAK PARSERS IF IGNORED",
+"- Use the plain ASCII hyphen for bullets. Never use a bullet glyph, an asterisk, an en dash or an",
+"  em dash anywhere in the document.",
+"- Use straight quotes and straight apostrophes only. No curly quotes.",
+"- Spell dates as Month Year, for example March 2024 - Present. Never 3/24 or 03.2024.",
+"- Write the section headings exactly as given above, in capitals, on their own line. An ATS looks",
+"  for these specific words. Do not rename EXPERIENCE to Where I Have Worked.",
+"- Put the company and the job title on the same line separated by a vertical bar, and the dates",
+"  alone on the next line. Never put dates in the same line as the title.",
+"- Spell out an abbreviation the first time it appears, then use the short form: Search Engine",
+"  Optimization (SEO).",
+"- Keep the contact line as plain text. Do not hyperlink it, do not use a mailto, do not split the",
+"  phone number across lines.",
+"- No line should be a fragment of the line above it.",
+"",
+"AFTER THE RESUME",
+"Add these two short sections outside the code block:",
+"1. THINGS I COULD NOT FIND. Anything a hiring manager will expect that was missing, especially",
+"   missing dates, missing employers and achievements with no number attached.",
+"2. NUMBERS WORTH CHASING. For each bullet with no figure, name the specific number I should go and",
+"   look up, and where I would most likely find it. Do not guess the value.",
+extra ? "\nADDITIONAL CONTEXT ABOUT MY FILE"+extra : ""
+  ].join("\n").trim();
+}
+var PREP_FLAGS={twoCol:false, thin:0};
+function openPrep(){
+  $("prepText").value = prepPrompt();
+  $("prepMsg").classList.remove("on");
+  $("welcome").classList.remove("on");
+  $("prepVeil").classList.add("on");
+}
+$("prepBtn").addEventListener("click",openPrep);
+$("prepBtn2").addEventListener("click",function(){ $("pasteVeil").classList.remove("on"); openPrep(); });
+$("prepClose").addEventListener("click",function(){ $("prepVeil").classList.remove("on"); });
+$("prepCopy").addEventListener("click",function(){
+  var t=$("prepText"), m=$("prepMsg");
+  t.removeAttribute("readonly"); t.select(); t.setSelectionRange(0,999999);
+  var ok=false;
+  try{ ok=document.execCommand("copy"); }catch(e){}
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t.value).then(function(){
+      m.className="msg good on";
+      m.textContent="Copied. Open your AI, attach your resume, paste this in, then bring the answer back.";
+    },function(){});
+  }
+  t.setAttribute("readonly","readonly");
+  if(ok){ m.className="msg good on";
+    m.textContent="Copied. Open your AI, attach your resume, paste this in, then bring the answer back."; }
+  window.getSelection().removeAllRanges();
+});
+$("prepPasteBack").addEventListener("click",function(){
+  $("prepVeil").classList.remove("on");
+  openPaste();
+  $("pasteMsg").className="msg on";
+  $("pasteMsg").textContent="Paste the cleaned resume below, then split it into entries.";
+});
+
+/* =========================================================================
+   STEP 5, APPLY
+   Everything here exists because the work does not end when the resume looks
+   right. The form still wants twelve answers, the letter still has to be
+   written, and the follow-up a week later is the part that actually produces
+   replies and the part everybody forgets.
+   ========================================================================= */
+
+/* ---- readiness -------------------------------------------------------- */
+function readyChecks(){
+  var j=activeJob(), out=[];
+  if(!j) return null;
+  var picked=S.units.filter(function(u){ return j.picked[u.id]!==false; });
+  var cov=coverageFor(j);
+  var graded=picked.filter(function(u){ return u.metricType!=="none"; }).length;
+  var hdrOk=!!(S.hdr.name && (S.hdr.email||S.hdr.phone));
+  var atsN=parseInt(($("atsN")&&$("atsN").textContent)||"0",10);
+  var ans=ANSWER_FIELDS.filter(function(f){ return (S.answers[f.k]||"").trim(); }).length;
+
+  out.push({ok:hdrOk, s:"Your name and a way to reach you",
+    f:"The export says Your Name. Step 4, Edit heading.", go:3});
+  out.push({ok:picked.length>=4, s:picked.length+" entries selected for this job",
+    f:"Fewer than four entries selected. Step 3 picks them by relevance.", go:2});
+  out.push({ok:graded>=2, s:graded+" of them carry a number",
+    f:"Almost nothing here is quantified. Step 1, work down the list.", go:0});
+  out.push({ok:cov>=45, s:"Covers "+cov+"% of what the posting asks for",
+    f:"Covers only "+cov+"%. Step 3 shows exactly which words are missing.", go:2});
+  out.push({ok:atsN>=95, s:"ATS structure "+(atsN||"not checked yet")+(atsN?"/100":""),
+    f:"Open step 4 once so the checker can run against the rendered page.", go:3});
+  out.push({ok:ans>=6, s:ans+" of 12 screener answers saved",
+    f:"Fill the answer bank once and every form after this is faster.", go:4});
+  return out;
+}
+function renderReady(){
+  var box=$("readyList"), j=activeJob();
+  if(!j){
+    box.innerHTML='<div class="empty" style="padding:20px"><h3>No job open</h3>'+
+      '<p>Save a posting in step 2 and this fills in.</p></div>';
+    $("openApplyBtn").removeAttribute("href");
+    return;
+  }
+  var checks=readyChecks(), left=checks.filter(function(c){ return !c.ok; }).length;
+  box.innerHTML='<div style="font-size:13px; margin-bottom:10px"><b>'+esc(j.title||"This role")+'</b>'+
+    (j.co? " at "+esc(j.co):"")+
+    (left? ' <span class="tag">'+left+' still to do</span>' : ' <span class="tag hit">ready</span>')+'</div>'+
+    '<ul class="atslist">'+checks.map(function(c){
+      return '<li class="'+(c.ok?"ok":"no")+'"><span class="m">'+(c.ok?"✓":"✕")+'</span>'+
+        '<span>'+esc(c.ok?c.s:c.f)+
+        (c.ok?"":' <button type="button" class="linkbtn" data-goto="'+c.go+'">take me there</button>')+
+        '</span></li>';
+    }).join("")+'</ul>';
+  [].forEach.call(box.querySelectorAll("[data-goto]"),function(b){
+    b.addEventListener("click",function(){ go(+b.dataset.goto); });
+  });
+  var a=$("openApplyBtn");
+  if(j.url){ a.href=j.url; a.classList.remove("disabled"); }
+  else { a.removeAttribute("href"); }
+}
+
+/* ---- tracker and follow-ups ------------------------------------------- */
+var STATUSES=["saved","applied","replied","interview","offer","closed"];
+function appFor(j){
+  var k=appKey(j.url||j.id);
+  if(!S.apps[k]) S.apps[k]={status:"saved", applied:0, followed:0, title:j.title, co:j.co, url:j.url};
+  S.apps[k].title=j.title; S.apps[k].co=j.co; S.apps[k].url=j.url;
+  return S.apps[k];
+}
+function needsFollowUp(){
+  var out=[], now=Date.now();
+  S.jobs.forEach(function(j){
+    var a=S.apps[appKey(j.url||j.id)];
+    if(!a || a.status!=="applied" || !a.applied) return;
+    var days=Math.floor((now-a.applied)/86400000);
+    if(days>=6 && !a.followed) out.push({j:j, a:a, days:days});
+  });
+  return out;
+}
+function renderFollow(){
+  var box=$("followBanner"), due=needsFollowUp(), n=$("stepNudge");
+  if(!due.length){ box.innerHTML=""; if(n) n.hidden=true; return; }
+  if(n){ n.hidden=false; n.textContent=due.length; }
+  box.innerHTML='<div class="card" style="margin-bottom:18px; border-color:var(--accent)">'+
+    '<h3 style="font-size:15px; margin-bottom:4px">'+due.length+
+      ' application'+(due.length===1?"":"s")+' worth a nudge</h3>'+
+    '<p style="font-size:12.5px; color:var(--ink-2); margin-bottom:12px">A short follow-up after '+
+      'a week is the cheapest thing in a job search and almost nobody sends one. Two sentences is '+
+      'enough: you applied, you are still interested, here is the one result most relevant to them.</p>'+
+    due.map(function(d){
+      return '<div class="job"><div class="job-main"><b>'+esc(d.j.title||"Untitled")+'</b>'+
+        '<span>'+esc(d.j.co||"")+' · applied '+d.days+' days ago</span></div>'+
+        '<div style="display:flex; gap:6px; flex:none">'+
+        '<button class="btn sm" data-draft="'+esc(d.j.id)+'">Draft it</button>'+
+        '<button class="btn quiet sm" data-done="'+esc(d.j.id)+'">Sent</button></div></div>';
+    }).join("")+'</div>';
+  [].forEach.call(box.querySelectorAll("[data-draft]"),function(b){
+    b.addEventListener("click",function(){
+      S.activeJob=b.dataset.draft; syncActive(); save();
+      go(4); setWriter("reach"); renderReady();
+      setTimeout(function(){ $("writeBox").scrollIntoView({behavior:"smooth", block:"center"}); },120);
+    });
+  });
+  [].forEach.call(box.querySelectorAll("[data-done]"),function(b){
+    b.addEventListener("click",function(){
+      var j=S.jobs.filter(function(x){return x.id===b.dataset.done;})[0]; if(!j) return;
+      appFor(j).followed=Date.now(); save(); renderFollow(); renderTrack();
+      toast("Logged. It will not ask again.");
+    });
+  });
+}
+function renderTrack(){
+  var box=$("trackList");
+  if(!S.jobs.length){
+    box.innerHTML='<div class="empty" style="padding:20px"><h3>Nothing tracked yet</h3>'+
+      '<p>Every job you save in step 2 appears here.</p></div>';
+    return;
+  }
+  box.innerHTML=S.jobs.map(function(j){
+    var a=appFor(j);
+    var when=a.applied? new Date(a.applied).toLocaleDateString() : "";
+    return '<div class="job'+(j.id===S.activeJob?" active":"")+'">'+
+      '<div class="job-main"><b>'+esc(j.title||"Untitled role")+'</b>'+
+      '<span>'+esc(j.co||"")+(when? " · applied "+when : "")+
+      (a.followed? " · followed up" : "")+
+      (j.pay?' · '+esc(payLabel(j.pay)):"")+'</span></div>'+
+      '<select class="mini" data-st="'+esc(j.id)+'" aria-label="Status">'+
+        STATUSES.map(function(s){
+          return '<option value="'+s+'"'+(a.status===s?" selected":"")+'>'+
+            s.charAt(0).toUpperCase()+s.slice(1)+'</option>'; }).join("")+
+      '</select></div>';
+  }).join("");
+  [].forEach.call(box.querySelectorAll("[data-st]"),function(sel){
+    sel.addEventListener("change",function(){
+      var j=S.jobs.filter(function(x){return x.id===sel.dataset.st;})[0]; if(!j) return;
+      var a=appFor(j); a.status=sel.value;
+      if(sel.value==="applied" && !a.applied) a.applied=Date.now();
+      if(sel.value==="saved") a.applied=0;
+      save(); renderTrack(); renderFollow();
+    });
+  });
+}
+
+/* ---- the three pieces of writing -------------------------------------- */
+/* Assembled from graded evidence and nothing else. No model is asked to invent
+   a reason, because a reason it invents is a reason the user cannot defend. */
+var WRITER="fit";
+function topUnits(n){
+  var j=activeJob(), kw=(j&&j.kw)||[];
+  var list=S.units.filter(function(u){ return !j || j.picked[u.id]!==false; });
+  return list.map(function(u){
+      return {u:u, s:scoreUnit(u,kw).s + ({audited:9,estimated:6,activity:3,none:0}[u.metricType]||0)};
+    }).sort(function(a,b){ return b.s-a.s; }).slice(0,n||3).map(function(x){ return x.u; });
+}
+function fitParagraph(){
+  var j=activeJob(); if(!j) return "Save a job in step 2 first.";
+  var picks=topUnits(3), name=S.hdr.name||"";
+  if(!picks.length) return "Add and select some evidence first, then this writes itself.";
+  var role=j.title||"this role", co=j.co||"your team";
+  var lines=picks.map(function(u){
+    var b=bullet(u).replace(/\.$/,"");
+    return "- "+b+(u.org?" ("+u.org+")":"");
+  });
+  var overlap=(j.kw||[]).slice(0,6).map(function(k){ return k.k; }).join(", ");
+  return "I am applying for "+role+" at "+co+".\n\n"+
+    "The closest three things I have done to what this posting describes:\n"+
+    lines.join("\n")+"\n\n"+
+    (overlap? "That covers "+overlap+", which is most of what the posting leads with. " : "")+
+    "Happy to walk through any of these in detail, including how each number was measured."+
+    (name? "\n\n"+name : "");
+}
+function coverLetter(){
+  var j=activeJob(); if(!j) return "Save a job in step 2 first.";
+  var picks=topUnits(3);
+  if(!picks.length) return "Add and select some evidence first, then this writes itself.";
+  var co=j.co||"your team", role=j.title||"the role";
+  var lead=picks[0], leadTxt=bullet(lead).replace(/\.$/,"");
+  var rest=picks.slice(1).map(function(u){ return "- "+bullet(u).replace(/\.$/,""); });
+  return "Dear hiring team at "+co+",\n\n"+
+    "I am writing about the "+role+" post.\n\n"+
+    leadTxt+". That is the piece of my history closest to what you have described, and it is the "+
+    "one I would expect you to ask about first.\n\n"+
+    (rest.length? "Two others worth knowing about:\n"+rest.join("\n")+"\n\n" : "")+
+    "Every figure above is mine and I can say where each one came from. I have not padded this "+
+    "with anything I could not walk you through.\n\n"+
+    "Thank you for reading.\n\n"+
+    (S.hdr.name||"")+
+    (S.hdr.email? "\n"+S.hdr.email : "")+
+    (S.hdr.phone? "\n"+S.hdr.phone : "")+
+    (S.hdr.link? "\n"+S.hdr.link : "");
+}
+function outreachNote(){
+  var j=activeJob(); if(!j) return "Save a job in step 2 first.";
+  var picks=topUnits(1), co=j.co||"your team", role=j.title||"the role";
+  var a=S.apps[appKey(j.url||j.id)];
+  var applied=a && a.applied;
+  var proof=picks.length? bullet(picks[0]).replace(/\.$/,"") : "";
+  return "Subject: "+(applied?"Following up on ":"")+role+
+    (applied?"":" at "+co)+"\n\n"+
+    "Hello,\n\n"+
+    (applied
+      ? "I applied for "+role+" about a week ago and wanted to put my name in front of a person "+
+        "rather than a queue. I am still very interested.\n\n"
+      : "I am about to apply for "+role+" and wanted to introduce myself first.\n\n")+
+    (proof? "The most relevant thing I have done: "+proof+".\n\n" : "")+
+    "If it is useful I can send the detail behind that, or the two other pieces closest to what "+
+    "the posting describes. Either way, thank you for your time.\n\n"+
+    (S.hdr.name||"")+
+    (S.hdr.email? "\n"+S.hdr.email : "")+
+    (S.hdr.link? "\n"+S.hdr.link : "");
+}
+function setWriter(w){
+  WRITER=w;
+  [["fit","wrFit"],["cover","wrCover"],["reach","wrReach"]].forEach(function(p){
+    $(p[1]).setAttribute("aria-pressed", p[0]===w ? "true":"false");
+  });
+  $("writeBox").value = w==="fit"? fitParagraph() : w==="cover"? coverLetter() : outreachNote();
+  $("writeMsg").classList.remove("on");
+}
+/* go() calls this during panel setup, so it must not call go() back. */
+var setWriterQuiet=setWriter;
+
+/* ---- answer bank ------------------------------------------------------- */
+function renderAnswers(){
+  var box=$("answerBank");
+  box.innerHTML=ANSWER_FIELDS.map(function(f){
+    var v=S.answers[f.k]||"";
+    var input = f.type==="select"
+      ? '<select class="mini" data-ans="'+f.k+'" style="width:100%">'+
+        ['<option value="">Not set</option>'].concat(f.opts.map(function(o){
+          return '<option'+(v===o?" selected":"")+'>'+esc(o)+'</option>'; })).join("")+'</select>'
+      : '<input type="text" data-ans="'+f.k+'" value="'+esc(v)+'" placeholder="'+esc(f.ph||"")+'">';
+    return '<div class="ansrow"><label>'+esc(f.q)+'</label>'+
+      '<div class="ansin">'+input+
+      '<button class="iconbtn" data-cp="'+f.k+'" title="Copy" aria-label="Copy answer">⧉</button></div></div>';
+  }).join("");
+  [].forEach.call(box.querySelectorAll("[data-ans]"),function(el){
+    el.addEventListener("change",function(){ S.answers[el.dataset.ans]=el.value; save(); renderReady(); });
+    el.addEventListener("input",function(){ S.answers[el.dataset.ans]=el.value; });
+  });
+  [].forEach.call(box.querySelectorAll("[data-cp]"),function(b){
+    b.addEventListener("click",function(){
+      var v=S.answers[b.dataset.cp]||"";
+      if(!v){ toast("Nothing saved for that one yet"); return; }
+      copyText(v); toast("Copied");
+    });
+  });
+}
+function copyText(v){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(v).catch(function(){ fallbackCopy(v); });
+  } else fallbackCopy(v);
+}
+function fallbackCopy(v){
+  var t=document.createElement("textarea");
+  t.value=v; t.style.position="fixed"; t.style.opacity="0";
+  document.body.appendChild(t); t.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  document.body.removeChild(t);
+}
+
+/* ---- backups ----------------------------------------------------------- */
+function renderBackups(){
+  var box=$("bkList"), b=backups();
+  if(!b.length){ box.innerHTML='<span class="hint">No snapshots yet. One is kept every couple of minutes as you work.</span>'; return; }
+  box.innerHTML=b.map(function(x,i){
+    return '<div style="display:flex; align-items:center; gap:8px; font-size:12.5px; padding:4px 0">'+
+      '<span style="flex:1; color:var(--ink-2)">'+new Date(x.t).toLocaleString()+
+      ' · '+x.n+' entries, '+x.j+' jobs</span>'+
+      '<button class="btn quiet sm" data-bk="'+i+'">Restore</button></div>';
+  }).join("");
+  [].forEach.call(box.querySelectorAll("[data-bk]"),function(btn){
+    btn.addEventListener("click",function(){
+      var x=backups()[+btn.dataset.bk]; if(!x) return;
+      if(!confirm("Restore the snapshot from "+new Date(x.t).toLocaleString()+"?\n\n"+
+        "This replaces what is on screen with "+x.n+" entries and "+x.j+" jobs.")) return;
+      try{
+        localStorage.setItem("ee.v1", x.d);
+        location.reload();
+      }catch(e){ toast("Could not restore that one"); }
+    });
+  });
+}
+
+/* ---- wiring ------------------------------------------------------------ */
+$("wrFit").addEventListener("click",function(){ setWriter("fit"); });
+$("wrCover").addEventListener("click",function(){ setWriter("cover"); });
+$("wrReach").addEventListener("click",function(){ setWriter("reach"); });
+$("writeCopy").addEventListener("click",function(){
+  copyText($("writeBox").value);
+  $("writeMsg").className="msg good on"; $("writeMsg").textContent="Copied.";
+});
+$("writeRegen").addEventListener("click",function(){ setWriter(WRITER); toast("Rebuilt from your current evidence"); });
+$("markAppliedBtn").addEventListener("click",function(){
+  var j=activeJob(); if(!j){ toast("No job open"); return; }
+  var a=appFor(j); a.status="applied"; a.applied=a.applied||Date.now();
+  save(); renderTrack(); renderFollow(); renderReady();
+  toast("Logged. It will remind you to follow up in six days.");
+});
+$("openApplyBtn").addEventListener("click",function(){
+  var j=activeJob(); if(!j) return;
+  var a=appFor(j); if(a.status==="saved") a.status="applied", a.applied=a.applied||Date.now();
+  save(); setTimeout(function(){ renderTrack(); renderFollow(); renderReady(); },50);
+});
+$("bkExport").addEventListener("click",function(){
+  var blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="evidence-engine-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
+});
+$("tailorAllBtn").addEventListener("click",tailorAll);
 
 /* ---------- welcome ---------- */
 function closeWelcome(){ $("welcome").classList.remove("on");
   try{ localStorage.setItem("ee.seen","1"); }catch(e){} }
 $("wPaste").addEventListener("click",function(){ closeWelcome(); openPaste(); });
+$("wPrep").addEventListener("click",function(){ closeWelcome(); openPrep(); });
 $("wBlank").addEventListener("click",function(){ closeWelcome(); openEditor(null); });
 $("wDemo").addEventListener("click",function(){ closeWelcome(); $("demoBtn").click(); });
 
@@ -3849,6 +4910,14 @@ $("fLead").value=S.type.lead; $("fAccent").value=S.type.accent;
 aiSyncUI();
 if(S.jd.text){ $("jText").value=S.jd.text; $("jTitle").value=S.jd.title||"";
   $("jCo").value=S.jd.co||""; $("jUrl").value=S.jd.url||""; }
+
+/* Restore the search the user last ran and the profile inferred from their
+   evidence, so a returning visit needs no re-typing before pressing Search. */
+if((!S.profile || !S.profile.titles || !S.profile.titles.length) && S.units.length){
+  S.profile=inferProfile();
+}
+applyProfileToSearch();
+renderFollow();
 
 /* Welcome shows once, and only to someone with no work in progress. */
 try{

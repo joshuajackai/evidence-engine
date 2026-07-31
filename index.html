@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evidence Engine · Build a resume that survives the interview</title>
+<meta name="description" content="Grade every claim on your resume before a recruiter does. No AI writes your bullets, so nothing on your resume can be invented.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1F1C17; --ink-2:#3A342C; --ink-3:#4A4238; --muted:#6E6E72;
+  --accent:#C4331A; --rule:#E03A1C; --band:#DDDDDE;
+  --page:#F6F6F4; --surface:#FCFCFB; --hairline:#E4E1DB;
+  --audited:#1E6F4E; --audited-bg:#E8F2ED;
+  --estimated:#A0670F; --estimated-bg:#FBF1DF;
+  --activity:#3D5A80; --activity-bg:#E9EEF5;
+  --none:#B03A22; --none-bg:#FBEAE5;
+  --r:10px; --shadow:0 1px 2px rgba(31,28,23,.06), 0 4px 16px rgba(31,28,23,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--page); color:var(--ink);
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0; line-height:1.2; letter-spacing:-.01em}
+p{margin:0 0 10px}
+button{font-family:inherit; font-size:inherit; cursor:pointer}
+input,textarea,select{font-family:inherit; font-size:inherit; color:var(--ink)}
+a{color:var(--accent)}
+
+/* ---------- shell ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50; background:var(--surface);
+  border-bottom:1px solid var(--hairline);
+}
+.topbar-in{
+  max-width:1180px; margin:0 auto; padding:12px 20px;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.brand{display:flex; align-items:baseline; gap:9px; margin-right:auto}
+.brand b{font-size:16px; font-weight:700; letter-spacing:-.02em}
+.brand span{font-size:11px; color:var(--muted); font-weight:500}
+.plan{
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+  padding:4px 9px; border-radius:999px; background:var(--band); color:var(--ink-2);
+}
+.plan.pro{background:#E8F2ED; color:var(--audited)}
+
+.steps{
+  max-width:1180px; margin:0 auto; padding:0 20px;
+  display:flex; gap:4px; overflow-x:auto; scrollbar-width:none;
+}
+.steps::-webkit-scrollbar{display:none}
+.step{
+  border:0; background:transparent; padding:12px 14px 11px; white-space:nowrap;
+  color:var(--muted); font-weight:600; font-size:13.5px;
+  border-bottom:2.5px solid transparent; display:flex; align-items:center; gap:7px;
+}
+.step:hover{color:var(--ink-2)}
+.step[aria-current="true"]{color:var(--accent); border-bottom-color:var(--rule)}
+.step .n{
+  width:19px; height:19px; border-radius:50%; background:var(--band); color:var(--ink-2);
+  font-size:11px; font-weight:700; display:grid; place-items:center; flex:none;
+}
+.step[aria-current="true"] .n{background:var(--accent); color:var(--surface)}
+.step:disabled{opacity:.42; cursor:not-allowed}
+
+main{max-width:1180px; margin:0 auto; padding:26px 20px 90px}
+.panel{display:none}
+.panel.on{display:block}
+.head{margin-bottom:20px; max-width:660px}
+.head h2{font-size:23px; margin-bottom:7px}
+.head p{color:var(--ink-2); margin:0}
+
+.card{
+  background:var(--surface); border:1px solid var(--hairline);
+  border-radius:var(--r); padding:18px; box-shadow:var(--shadow);
+}
+/* minmax(0,1fr) not 1fr. A plain 1fr resolves to minmax(auto,1fr), so a nowrap
+   line inside a match row forces the column past the viewport and pushes the
+   sidebar off screen. Measured at 884px of horizontal scroll on a 390px phone. */
+.grid2{display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:start}
+
+/* ---------- forms ---------- */
+label{display:block; font-size:12px; font-weight:700; color:var(--ink-2); margin:0 0 5px;
+  text-transform:uppercase; letter-spacing:.05em}
+.hint{font-size:12.5px; color:var(--muted); font-weight:400; text-transform:none; letter-spacing:0; margin-top:3px}
+input[type=text],textarea,select{
+  width:100%; padding:9px 11px; border:1px solid var(--hairline); border-radius:7px;
+  background:var(--page); outline:none;
+}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(196,51,26,.11)}
+textarea{resize:vertical; min-height:76px; line-height:1.5}
+.field{margin-bottom:14px}
+.row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+
+.btn{
+  border:1px solid var(--accent); background:var(--accent); color:var(--surface);
+  padding:9px 15px; border-radius:7px; font-weight:600; font-size:14px;
+}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent; color:var(--accent)}
+.btn.ghost:hover{background:rgba(196,51,26,.06); filter:none}
+.btn.quiet{background:transparent; border-color:var(--hairline); color:var(--ink-2)}
+.btn.quiet:hover{background:var(--page); filter:none}
+.btn.sm{padding:7px 12px; font-size:13px; min-height:34px}
+.btn:disabled{opacity:.45; cursor:not-allowed; filter:none}
+.btnrow{display:flex; gap:9px; flex-wrap:wrap; align-items:center}
+
+/* ---------- grade ---------- */
+.grade{
+  display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.05em; padding:3px 8px; border-radius:5px;
+}
+.g-audited{background:var(--audited-bg); color:var(--audited)}
+.g-estimated{background:var(--estimated-bg); color:var(--estimated)}
+.g-activity{background:var(--activity-bg); color:var(--activity)}
+.g-none{background:var(--none-bg); color:var(--none)}
+.dot{width:7px; height:7px; border-radius:50%; background:currentColor; flex:none}
+
+.ladder{list-style:none; margin:0; padding:0; font-size:13px}
+.ladder li{display:flex; gap:9px; padding:7px 0; border-bottom:1px solid var(--hairline); align-items:flex-start}
+.ladder li:last-child{border-bottom:0}
+.ladder .k{flex:none; width:104px} /* must clear the widest badge without wrapping */
+.ladder .grade{white-space:nowrap}
+
+/* ---------- unit list ---------- */
+.unit{
+  background:var(--surface); border:1px solid var(--hairline); border-left:3px solid var(--band);
+  border-radius:var(--r); padding:14px 16px; margin-bottom:11px;
+}
+.unit.a{border-left-color:var(--audited)}
+.unit.e{border-left-color:var(--estimated)}
+.unit.c{border-left-color:var(--activity)}
+.unit.n{border-left-color:var(--none)}
+.unit-top{display:flex; gap:10px; align-items:flex-start; margin-bottom:6px; flex-wrap:wrap}
+.unit-org{font-weight:700; font-size:14.5px}
+.unit-meta{font-size:12.5px; color:var(--muted)}
+.unit-body{font-size:14px; color:var(--ink-2); margin-bottom:8px}
+.unit-actions{display:flex; gap:7px; margin-left:auto}
+.iconbtn{
+  border:1px solid var(--hairline); background:var(--surface); color:var(--ink-3);
+  width:28px; height:28px; border-radius:6px; display:grid; place-items:center; font-size:13px; padding:0;
+}
+.iconbtn:hover{border-color:var(--accent); color:var(--accent)}
+.tags{display:flex; gap:5px; flex-wrap:wrap}
+.tag{font-size:11px; background:var(--page); border:1px solid var(--hairline); color:var(--ink-3);
+  padding:2px 7px; border-radius:999px}
+.tag.hit{background:var(--audited-bg); border-color:var(--audited); color:var(--audited); font-weight:600}
+
+/* ---------- quarantine ---------- */
+.quarantine{
+  border:1px dashed var(--estimated); background:var(--estimated-bg);
+  border-radius:8px; padding:12px; margin-top:6px;
+}
+.quarantine .qh{
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--estimated); margin-bottom:6px; display:flex; align-items:center; gap:6px;
+}
+.quarantine p{font-size:12.5px; color:var(--ink-2); margin:6px 0 0}
+
+/* ---------- score ---------- */
+.score-n{font-size:42px; font-weight:700; line-height:1; letter-spacing:-.03em}
+.score-l{font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:700; margin-top:4px}
+.bar{height:7px; border-radius:99px; background:var(--band); overflow:hidden; display:flex; margin:14px 0 10px}
+.bar i{display:block; height:100%}
+.legend{font-size:12.5px; color:var(--ink-2)}
+.legend div{display:flex; justify-content:space-between; padding:3px 0}
+
+.callout{
+  border-left:3px solid var(--rule); background:var(--surface);
+  padding:12px 14px; border-radius:0 8px 8px 0; margin:14px 0; font-size:13.5px; color:var(--ink-2);
+}
+.empty{text-align:center; padding:44px 20px; color:var(--muted)}
+.empty h3{font-size:16px; color:var(--ink-2); margin-bottom:6px}
+
+/* ---------- match ---------- */
+.matchrow{
+  display:flex; gap:12px; align-items:center; padding:11px 13px; background:var(--surface);
+  border:1px solid var(--hairline); border-radius:8px; margin-bottom:8px;
+}
+.matchrow.off{opacity:.5}
+.mscore{
+  flex:none; width:42px; height:42px; border-radius:8px; display:grid; place-items:center;
+  font-weight:700; font-size:15px; background:var(--page); border:1px solid var(--hairline);
+}
+.mscore.hi{background:var(--audited-bg); color:var(--audited); border-color:var(--audited)}
+.mtext{flex:1; min-width:0}
+.mtext b{display:block; font-size:13.5px}
+.mtext span{font-size:12.5px; color:var(--muted); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+/* 44px wide hit area, 22px visual track inset inside it. */
+.sw{position:relative; width:44px; height:34px; flex:none}
+.sw input{opacity:0; width:100%; height:100%; margin:0; cursor:pointer}
+.sw i{position:absolute; left:0; right:0; top:6px; bottom:6px; background:var(--band); border-radius:99px; transition:.15s; pointer-events:none}
+.sw i::after{content:""; position:absolute; width:16px; height:16px; border-radius:50%; background:var(--surface); top:3px; left:3px; transition:.15s}
+.sw input:checked + i{background:var(--audited)}
+.sw input:checked + i::after{transform:translateX(22px)}
+.sw input:focus-visible + i{box-shadow:0 0 0 3px rgba(196,51,26,.3)}
+
+/* ---------- resume preview ---------- */
+.paper{
+  background:var(--surface); border:1px solid var(--hairline); border-radius:var(--r);
+  padding:40px 44px; box-shadow:var(--shadow); max-width:760px;
+}
+.paper .rname{font-size:25px; font-weight:700; letter-spacing:-.015em}
+.paper .rtitle{font-size:14px; font-weight:600; color:var(--ink-2); margin-top:2px}
+.paper .rcontact{font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5}
+.paper .rrule{height:2px; background:var(--rule); margin:11px 0 16px}
+.paper h4{
+  font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--accent); background:var(--band); padding:4px 8px; border-radius:3px; margin:18px 0 9px;
+}
+.paper .rentry{margin-bottom:12px}
+.paper .rorg{font-weight:700; font-size:14px; display:flex; justify-content:space-between; gap:12px; align-items:baseline}
+.paper .rorg em{font-style:normal; font-weight:500; font-size:12px; color:var(--muted); white-space:nowrap}
+.paper .rrole{font-size:12.5px; font-weight:700; font-style:italic; color:var(--ink-3); margin:1px 0 4px}
+.paper ul{margin:0 0 0 16px; padding:0}
+.paper li{margin-bottom:4px; font-size:13px; color:var(--ink-2)}
+.wm{
+  text-align:center; font-size:11px; color:var(--muted); border-top:1px dashed var(--hairline);
+  margin-top:20px; padding-top:10px;
+}
+
+/* ---------- modal ---------- */
+.veil{
+  position:fixed; inset:0; background:rgba(31,28,23,.5); z-index:100;
+  display:none; place-items:center; padding:20px;
+}
+.veil.on{display:grid}
+.modal{
+  background:var(--surface); border-radius:14px; padding:26px; max-width:440px; width:100%;
+  box-shadow:0 20px 60px rgba(31,28,23,.3); max-height:90vh; overflow:auto;
+}
+.modal.wide{max-width:620px}
+.modal h3{font-size:19px; margin-bottom:8px; line-height:1.28}
+.modal p{font-size:14px; color:var(--ink-2)}
+.wtag{
+  display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--audited); background:var(--audited-bg);
+  padding:4px 10px; border-radius:999px; margin-bottom:14px;
+}
+.wsteps{display:flex; gap:10px; margin:18px 0 14px; flex-wrap:wrap}
+.wsteps div{
+  flex:1; min-width:150px; background:var(--page); border:1px solid var(--hairline);
+  border-radius:8px; padding:11px 13px; display:flex; align-items:center; gap:9px;
+}
+.wsteps b{
+  width:22px; height:22px; border-radius:50%; background:var(--accent); color:var(--surface);
+  font-size:12px; display:grid; place-items:center; flex:none;
+}
+.wsteps span{font-size:13px; color:var(--ink-2); font-weight:500}
+.nextstep{
+  margin-top:14px; padding-top:12px; border-top:1px solid var(--hairline);
+  font-size:13px; color:var(--ink-2);
+}
+.nextstep b{color:var(--accent)}
+
+/* ---------- AI ---------- */
+.aidot{width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle}
+.aidot.off{background:var(--muted)}
+.aidot.on{background:var(--audited)}
+.ai-panel{
+  background:var(--surface); border:1px solid var(--hairline); border-radius:var(--r);
+  padding:16px; margin-bottom:18px;
+}
+.ai-panel h3{font-size:14px; margin-bottom:3px}
+.ai-panel .sub{font-size:12.5px; color:var(--muted); margin-bottom:11px}
+.chips{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px}
+.chip{
+  border:1px solid var(--hairline); background:var(--page); color:var(--ink-2);
+  font-size:12.5px; padding:5px 10px; border-radius:999px; cursor:pointer;
+}
+.chip:hover{border-color:var(--accent); color:var(--accent)}
+.ai-out{
+  margin-top:12px; padding:13px; background:var(--page); border:1px solid var(--hairline);
+  border-radius:8px; font-size:13.5px; white-space:pre-wrap; line-height:1.55; display:none;
+  max-height:340px; overflow:auto;
+}
+.ai-out.on{display:block}
+.ai-out.err{background:var(--none-bg); border-color:var(--none); color:var(--none)}
+.spin{display:inline-block; width:13px; height:13px; border:2px solid var(--band);
+  border-top-color:var(--accent); border-radius:50%; animation:sp .7s linear infinite; vertical-align:-2px; margin-right:7px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---------- segmented toggle ---------- */
+.seg{display:inline-flex; border:1px solid var(--hairline); border-radius:8px; overflow:hidden; background:var(--page)}
+.seg button{border:0; background:transparent; padding:7px 14px; font-size:13px; font-weight:600; color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface); color:var(--accent); box-shadow:inset 0 -2px 0 var(--rule)}
+#textPane{width:100%; min-height:520px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:13px; line-height:1.6; max-width:760px}
+
+/* ---------- ATS checklist ---------- */
+.atslist{list-style:none; margin:12px 0 0; padding:0; font-size:12.8px}
+.atslist li{display:flex; gap:8px; padding:5px 0; border-bottom:1px solid var(--hairline); align-items:flex-start}
+.atslist li:last-child{border-bottom:0}
+.atslist .m{flex:none; width:15px; font-weight:700; text-align:center}
+.atslist li.ok .m{color:var(--audited)}
+.atslist li.no .m{color:var(--none)}
+.atslist li.no{color:var(--none)}
+
+/* Resume typeface, driven by the controls. Every stack is a real text font. */
+.paper.f-sans{font-family:Inter,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.paper.f-arial{font-family:Arial,Helvetica,"Liberation Sans",sans-serif}
+.paper.f-calibri{font-family:Calibri,Carlito,Candara,"Segoe UI",sans-serif}
+.paper.f-georgia{font-family:Georgia,"Times New Roman",serif}
+.paper.f-times{font-family:"Times New Roman",Times,"Liberation Serif",serif}
+.paper.f-garamond{font-family:Garamond,"EB Garamond","Palatino Linotype",Palatino,serif}
+.paper.mono-accent h4{background:transparent !important; color:var(--ink) !important;
+  border-bottom:1px solid var(--ink-3); border-radius:0; padding-left:0}
+.paper.mono-accent .rrule{background:var(--ink-3) !important}
+.paper .rbody{white-space:pre-wrap}
+.price{display:flex; align-items:baseline; gap:8px; margin:16px 0 4px}
+.price b{font-size:34px; font-weight:700; letter-spacing:-.02em}
+.price span{color:var(--muted); font-size:13.5px}
+.checks{list-style:none; padding:0; margin:14px 0 18px; font-size:13.5px; color:var(--ink-2)}
+.checks li{padding:4px 0 4px 22px; position:relative}
+.checks li::before{content:"✓"; position:absolute; left:0; color:var(--audited); font-weight:700}
+.msg{font-size:13px; margin-top:10px; padding:8px 10px; border-radius:6px; display:none}
+.msg.on{display:block}
+.msg.bad{background:var(--none-bg); color:var(--none)}
+.msg.good{background:var(--audited-bg); color:var(--audited)}
+
+.toast{
+  position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(80px);
+  background:var(--ink); color:var(--page); padding:11px 18px; border-radius:99px;
+  font-size:13.5px; font-weight:500; z-index:200; transition:transform .22s; box-shadow:var(--shadow);
+}
+.toast.on{transform:translateX(-50%) translateY(0)}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  /* minmax(0,1fr) here too. A plain 1fr in this breakpoint silently undid the
+     fix above and left 890px of horizontal scroll on a phone. */
+  .grid2{grid-template-columns:minmax(0,1fr)}
+  .paper{padding:26px 22px}
+}
+@media (max-width:600px){
+  body{font-size:14.5px}
+  main{padding:20px 15px 80px}
+  .topbar-in{padding:11px 15px}
+  .steps{padding:0 15px}
+  .step{padding:11px 10px; font-size:13px}
+  .head h2{font-size:20px}
+  .row{grid-template-columns:1fr}
+  .card{padding:15px}
+  .paper{padding:22px 18px}
+  .paper .rorg{flex-direction:column; gap:0}
+  .unit-actions{margin-left:0; width:100%; justify-content:flex-end}
+}
+
+/* ---------- print ---------- */
+@media print{
+  @page{size:letter; margin:14mm}
+  .topbar,.steps,.noprint,.veil,.toast{display:none !important}
+  /* No background declared rather than #fff. Same printed result, no ink laid
+     down, and it keeps the never-pure-white rule intact across the codebase. */
+  body{background:none}
+  main{padding:0; max-width:none}
+  .paper{border:0; box-shadow:none; padding:0; max-width:none; background:none}
+  .paper h4{background:#DDDDDE !important; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  .paper .rrule{background:#E03A1C !important; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  .rentry{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>Evidence Engine</b><span>Nothing on your resume is invented</span></div>
+    <span class="plan" id="planBadge">Free</span>
+    <button class="btn sm quiet noprint" id="aiBtn"><span id="aiDot" class="aidot off"></span>Connect AI</button>
+    <button class="btn sm ghost noprint" id="upgradeBtn">Unlock full version</button>
+  </div>
+  <nav class="steps" id="steps">
+    <button class="step" data-p="0" aria-current="true"><span class="n">1</span>Evidence</button>
+    <button class="step" data-p="1"><span class="n">2</span>Target role</button>
+    <button class="step" data-p="2"><span class="n">3</span>Match</button>
+    <button class="step" data-p="3"><span class="n">4</span>Resume</button>
+  </nav>
+</div>
+
+<main>
+
+<!-- ============ 1 EVIDENCE ============ -->
+<section class="panel on" id="p0">
+  <div class="head">
+    <h2>Everything you have done, one thing at a time</h2>
+    <p>Add each thing separately. Beside every one you will see the grade a hiring manager is
+       already assigning in their head. Seeing it first is the advantage.</p>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="btnrow" style="margin-bottom:14px">
+          <button class="btn" id="pasteBtn">Paste my resume</button>
+          <button class="btn ghost" id="addBtn">Add one by hand</button>
+          <button class="btn quiet sm" id="demoBtn">See an example</button>
+          <button class="btn quiet sm" id="importBtn">Open saved file</button>
+          <button class="btn quiet sm" id="exportBtn">Save to file</button>
+          <input type="file" id="fileIn" accept=".json" hidden>
+        </div>
+
+        <div id="editor" hidden>
+          <div class="row">
+            <div class="field"><label for="fOrg">Company or client</label>
+              <input type="text" id="fOrg" placeholder="Northwind Logistics"></div>
+            <div class="field"><label for="fRole">Your role</label>
+              <input type="text" id="fRole" placeholder="Operations Analyst"></div>
+          </div>
+          <div class="field"><label for="fDates">Dates</label>
+            <input type="text" id="fDates" placeholder="March 2024 to Present"></div>
+
+          <div class="field"><label for="fAction">What you did
+            <span class="hint">Start with a verb you can defend. Rebuilt, migrated, coded, diagnosed, negotiated. Avoid words that hide your hands, such as optimized or leveraged.</span></label>
+            <textarea id="fAction" placeholder="Rebuilt the returns workflow after tracing 60% of support tickets to one unlabelled form field"></textarea></div>
+
+          <div class="field"><label for="fType">Is there a number attached to this
+            <span class="hint">Be honest. This grade is the whole point, and it is the question an interviewer will ask.</span></label>
+            <select id="fType">
+              <option value="none">Not yet, or there is no number</option>
+              <option value="audited">Yes, and I can show where it came from</option>
+              <option value="estimated">Yes, but it is my own estimate</option>
+              <option value="activity">Only a volume count, such as how many I did</option>
+            </select></div>
+
+          <div id="metricWrap">
+            <div class="row">
+              <div class="field"><label for="fMetric">The number</label>
+                <input type="text" id="fMetric" placeholder="Support tickets down 41%"></div>
+              <div class="field"><label for="fConstraint">What stayed the same
+                <span class="hint">This turns a claim into evidence.</span></label>
+                <input type="text" id="fConstraint" placeholder="Same headcount, same season"></div>
+            </div>
+            <div class="field"><label for="fEvidence">Where the number came from</label>
+              <input type="text" id="fEvidence" placeholder="Zendesk monthly export, Q2 against Q1"></div>
+          </div>
+
+          <div class="field"><label for="fTags">Skills and tools
+            <span class="hint">Comma separated. These are what get matched against a job description.</span></label>
+            <input type="text" id="fTags" placeholder="process design, zendesk, sql, workflow automation"></div>
+
+          <div class="quarantine">
+            <div class="qh"><span class="dot"></span>Quarantine: industry statistics</div>
+            <input type="text" id="fBench" placeholder="Industry average handling time is 6 minutes (Forrester, 2025)">
+            <p>Anything typed here is stored for interview preparation and is <b>locked out of your
+               resume permanently</b>. A statistic sitting next to your name gets read as your result.
+               That is the mistake this tool exists to prevent.</p>
+          </div>
+
+          <div class="btnrow" style="margin-top:14px">
+            <button class="btn" id="saveBtn">Save entry</button>
+            <button class="btn quiet" id="cancelBtn">Cancel</button>
+            <span class="msg bad" id="formMsg"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-panel" id="aiPanel" hidden>
+        <h3>Ask your AI</h3>
+        <div class="sub">Runs on your own key, against your own entries. It can question you,
+          tighten your wording and spot gaps. It is blocked from inventing numbers.</div>
+        <div class="chips" id="aiChips">
+          <button class="chip" data-q="interview">Interview me for missing numbers</button>
+          <button class="chip" data-q="tighten">Tighten my wording</button>
+          <button class="chip" data-q="verbs">Find weak verbs</button>
+          <button class="chip" data-q="gaps">What is a recruiter going to doubt</button>
+        </div>
+        <textarea id="aiQ" placeholder="Or ask anything about your own experience. For example: which of these lines is weakest, and what should I ask my old manager for?"></textarea>
+        <div class="btnrow" style="margin-top:10px">
+          <button class="btn sm" id="aiGo">Send</button>
+          <button class="btn quiet sm" id="aiClear">Clear</button>
+        </div>
+        <div class="ai-out" id="aiOut"></div>
+      </div>
+
+      <div id="unitList"></div>
+    </div>
+
+    <aside>
+      <div class="card" style="margin-bottom:16px">
+        <div class="score-n" id="scoreN">0</div>
+        <div class="score-l">Resume strength</div>
+        <div class="bar" id="bar"></div>
+        <div class="legend" id="legend"></div>
+        <div id="nextStep" class="nextstep"></div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:14px; margin-bottom:9px">How the grades work</h3>
+        <p style="font-size:13px; color:var(--ink-2)">Aim as high as the truth allows, then stop.</p>
+        <ul class="ladder">
+          <li><span class="k"><span class="grade g-audited"><span class="dot"></span>Proven</span></span>
+            <span>Your number, and you can say where it came from.</span></li>
+          <li><span class="k"><span class="grade g-estimated"><span class="dot"></span>Estimate</span></span>
+            <span>Your number, worked out by you. Say so out loud in the interview.</span></li>
+          <li><span class="k"><span class="grade g-activity"><span class="dot"></span>Volume</span></span>
+            <span>How much you did. Weaker than a result, better than nothing.</span></li>
+          <li><span class="k"><span class="grade g-none"><span class="dot"></span>No number</span></span>
+            <span>Perfectly fine. Leave it unquantified rather than inventing something.</span></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ 2 TARGET ============ -->
+<section class="panel" id="p1">
+  <div class="head">
+    <h2>Paste the job description</h2>
+    <p>The posting is read for the skills, tools and platforms it names. Nothing is sent anywhere.
+       This runs entirely inside your browser.</p>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="row">
+        <div class="field"><label for="jTitle">Role title</label>
+          <input type="text" id="jTitle" placeholder="Senior Operations Analyst"></div>
+        <div class="field"><label for="jCo">Company</label>
+          <input type="text" id="jCo" placeholder="Acme"></div>
+      </div>
+      <div class="field"><label for="jText">Full job description</label>
+        <textarea id="jText" style="min-height:260px" placeholder="Paste the whole posting, requirements and responsibilities included."></textarea></div>
+      <button class="btn" id="parseBtn">Read the posting</button>
+    </div>
+    <aside>
+      <div class="card">
+        <h3 style="font-size:14px; margin-bottom:4px">What the posting asks for</h3>
+        <p style="font-size:12.5px; color:var(--muted)" id="kwCount">Nothing read yet.</p>
+        <div class="tags" id="kwList" style="margin-top:10px"></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ 3 MATCH ============ -->
+<section class="panel" id="p2">
+  <div class="head">
+    <h2>What earns a place on the page</h2>
+    <p>Entries are ranked by how much of this posting they answer. Everything below the line stays
+       in your inventory and off this resume.</p>
+  </div>
+  <div class="grid2">
+    <div>
+      <div class="callout" id="matchNote">Read a job description first and the ranking appears here.</div>
+      <div id="matchList"></div>
+    </div>
+    <aside>
+      <div class="card">
+        <h3 style="font-size:14px; margin-bottom:9px">Coverage</h3>
+        <div class="score-n" id="covN">0%</div>
+        <div class="score-l">Of what the posting asks for</div>
+        <div class="legend" style="margin-top:14px" id="gapList"></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ 4 RESUME ============ -->
+<section class="panel" id="p3">
+  <div class="head noprint">
+    <h2>Your resume</h2>
+    <p>Every bullet below was assembled from words you typed. No model wrote a claim on your behalf,
+       which is why there is nothing here you cannot walk through in an interview.</p>
+  </div>
+  <div class="btnrow noprint" style="margin-bottom:18px">
+    <button class="btn" id="printBtn">Save as PDF</button>
+    <button class="btn quiet" id="editHdrBtn">Edit heading</button>
+    <div class="seg" role="group" aria-label="View mode">
+      <button id="viewFmt" aria-pressed="true">Formatted</button>
+      <button id="viewTxt" aria-pressed="false">Edit as text</button>
+    </div>
+    <button class="btn quiet sm" id="revertTxt" hidden>Discard my edits</button>
+  </div>
+  <div class="card noprint" id="textCard" hidden style="margin-bottom:18px; max-width:760px">
+    <div class="sub" style="font-size:12.5px; color:var(--muted); margin-bottom:9px">
+      Edit freely. Blank lines separate blocks, a line starting with <b>#</b> becomes a section
+      heading and a line starting with <b>-</b> becomes a bullet. What you type here is what prints.
+    </div>
+    <textarea id="textPane"></textarea>
+    <div class="btnrow" style="margin-top:11px">
+      <button class="btn sm" id="textSave">Apply to resume</button>
+      <button class="btn quiet sm" id="textAi" hidden>Ask AI to tighten this</button>
+    </div>
+    <div class="ai-out" id="textAiOut"></div>
+  </div>
+  <div class="card noprint" id="hdrCard" hidden style="margin-bottom:18px; max-width:760px">
+    <div class="row">
+      <div class="field"><label for="hName">Full name</label><input type="text" id="hName"></div>
+      <div class="field"><label for="hTitle">Professional title</label><input type="text" id="hTitle"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="hLoc">Location</label><input type="text" id="hLoc"></div>
+      <div class="field"><label for="hEmail">Email</label><input type="text" id="hEmail"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="hPhone">Phone</label><input type="text" id="hPhone"></div>
+      <div class="field"><label for="hLink">Portfolio or LinkedIn</label><input type="text" id="hLink"></div>
+    </div>
+    <div class="field"><label for="hSummary">Summary</label><textarea id="hSummary"></textarea></div>
+    <button class="btn sm" id="hdrDone">Done</button>
+  </div>
+  <div class="grid2">
+    <div>
+      <div class="paper" id="paper"></div>
+    </div>
+    <aside class="noprint">
+      <div class="card" style="margin-bottom:16px">
+        <h3 style="font-size:14px; margin-bottom:3px">ATS check</h3>
+        <div class="sub" style="font-size:12.5px; color:var(--muted); margin-bottom:12px">
+          Run against what is actually on the page, not against a template.</div>
+        <div class="score-n" id="atsN">0</div>
+        <div class="score-l">Machine readability</div>
+        <ul class="atslist" id="atsList"></ul>
+      </div>
+      <div class="card">
+        <h3 style="font-size:14px; margin-bottom:11px">Typeface</h3>
+        <div class="field"><label for="fFont">Font</label>
+          <select id="fFont">
+            <option value="sans">Inter and system sans</option>
+            <option value="arial">Arial and Helvetica</option>
+            <option value="calibri">Calibri and Carlito</option>
+            <option value="georgia">Georgia serif</option>
+            <option value="times">Times New Roman serif</option>
+            <option value="garamond">Garamond serif</option>
+          </select>
+          <div class="hint">Every option is a real text font that parsers read. Decorative and
+            icon fonts are not offered, because they are the most common reason a resume scores
+            badly before a human ever sees it.</div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="fSize">Body size</label>
+            <select id="fSize">
+              <option value="10">10 pt</option><option value="10.5">10.5 pt</option>
+              <option value="11" selected>11 pt</option><option value="11.5">11.5 pt</option>
+              <option value="12">12 pt</option>
+            </select></div>
+          <div class="field"><label for="fLead">Line spacing</label>
+            <select id="fLead">
+              <option value="1.35">Tight</option><option value="1.5" selected>Normal</option>
+              <option value="1.65">Relaxed</option>
+            </select></div>
+        </div>
+        <div class="field" style="margin-bottom:0"><label for="fAccent">Colour</label>
+          <select id="fAccent">
+            <option value="on">Accent headings</option>
+            <option value="off">Monochrome, safest</option>
+          </select></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ WELCOME (first run only) ============ -->
+<div class="veil" id="welcome">
+  <div class="modal wide">
+    <div class="wtag">Free. No account. Nothing leaves your browser.</div>
+    <h3 style="font-size:24px">Every other AI resume tool writes your bullets for you.<br>This one cannot.</h3>
+    <p style="margin-top:10px">There is no model in here. You write the words, and the tool grades how
+       well each claim would hold up if somebody asked you about it in an interview. That is the
+       whole idea, and it is why nothing on your resume can be made up.</p>
+    <div class="wsteps">
+      <div><b>1</b><span>Add what you have done</span></div>
+      <div><b>2</b><span>Paste the job you want</span></div>
+      <div><b>3</b><span>Get a resume aimed at it</span></div>
+    </div>
+    <p style="font-size:13px; color:var(--muted)">Takes about ten minutes if you have your old
+       resume handy. You can stop and come back, your work is saved on this device.</p>
+    <div class="btnrow" style="margin-top:16px">
+      <button class="btn" id="wPaste">Paste my resume to start</button>
+      <button class="btn ghost" id="wBlank">Start from scratch</button>
+      <button class="btn quiet" id="wDemo">Show me an example first</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PASTE RESUME ============ -->
+<div class="veil" id="pasteVeil">
+  <div class="modal wide">
+    <h3>Paste your current resume</h3>
+    <p>Copy everything out of your existing resume and paste it below. Word, Google Docs, a PDF,
+       LinkedIn, it does not matter. The text is split into separate entries for you to check.
+       It stays on this device.</p>
+    <div class="field" style="margin-top:14px">
+      <textarea id="pasteBox" style="min-height:230px"
+        placeholder="Northwind Logistics&#10;Operations Analyst | March 2024 to Present&#10;• Rebuilt the returns workflow and cut support tickets 41%&#10;• Wrote the SQL behind the weekly operations review&#10;&#10;Brightside Retail&#10;Coordinator | 2022 to 2024&#10;• Ran vendor onboarding for 94 suppliers"></textarea>
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="pasteGo">Split this into entries</button>
+      <span id="aiPasteRow" hidden><button class="btn ghost" id="aiPasteGo">Split it with my AI, more accurate</button></span>
+      <button class="btn quiet" id="pasteCancel">Cancel</button>
+    </div>
+    <div class="msg" id="pasteMsg"></div>
+    <p style="font-size:12.5px; color:var(--muted); margin-top:14px">
+      Nothing is graded automatically. Every entry arrives marked <b>No number yet</b> and you
+      decide what it really is. A tool that grades your claims for you would be guessing.</p>
+  </div>
+</div>
+
+<!-- ============ AI SETTINGS ============ -->
+<div class="veil" id="aiVeil">
+  <div class="modal wide">
+    <h3>Connect your own AI model</h3>
+    <p>Optional. The tool works fully without it. If you connect a key, requests go straight from
+       this browser to the provider you choose, and the key is stored on this device only.
+       There is no server in this product for it to travel through.</p>
+    <div class="row" style="margin-top:16px">
+      <div class="field"><label for="aiProv">Provider</label>
+        <select id="aiProv">
+          <option value="anthropic">Anthropic</option>
+          <option value="openai">OpenAI</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="custom">Other, OpenAI compatible</option>
+        </select></div>
+      <div class="field"><label for="aiModel">Model</label>
+        <input type="text" id="aiModel" placeholder="claude-sonnet-5"></div>
+    </div>
+    <div class="field" id="aiUrlField" hidden><label for="aiBase">API endpoint</label>
+      <input type="text" id="aiBase" placeholder="https://your-host/v1/chat/completions"></div>
+    <div class="field"><label for="aiKey">API key</label>
+      <input type="text" id="aiKey" placeholder="sk-..." autocomplete="off" spellcheck="false">
+      <div class="hint">Stored in this browser only. Clearing site data removes it. Use a key with
+        a spending limit set.</div></div>
+    <div class="btnrow">
+      <button class="btn" id="aiSave">Save and test</button>
+      <button class="btn quiet" id="aiForget">Disconnect</button>
+      <button class="btn quiet" id="aiClose">Close</button>
+    </div>
+    <div class="msg" id="aiMsg"></div>
+    <div class="quarantine" style="margin-top:18px">
+      <div class="qh"><span class="dot"></span>What the model is not allowed to do</div>
+      <p>It cannot write a claim for you and it cannot produce a number you did not give it.
+         Those limits are in the instructions the tool sends with every request. It is there to
+         question you, tighten your own words, and tell you what a recruiter would doubt.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PAYWALL ============ -->
+<div class="veil" id="veil">
+  <div class="modal">
+    <h3>Unlock the full version</h3>
+    <p>The free version holds five entries and stamps the export. One payment removes both, forever.
+       There is no subscription and no account.</p>
+    <div class="price"><b>$39</b><span>one time</span></div>
+    <ul class="checks">
+      <li>Unlimited evidence entries</li>
+      <li>Clean PDF export with no stamp</li>
+      <li>Unlimited tailored versions</li>
+      <li>Your data stays in your browser. Nothing is uploaded.</li>
+    </ul>
+    <div class="btnrow">
+      <button class="btn" id="buyBtn">Buy a licence</button>
+      <button class="btn quiet" id="closeVeil">Not now</button>
+    </div>
+    <div class="field" style="margin-top:18px; margin-bottom:0">
+      <label for="keyIn">Already have a key</label>
+      <input type="text" id="keyIn" placeholder="EE-XXXX-XXXX-XXXX" autocomplete="off">
+      <div class="btnrow" style="margin-top:9px"><button class="btn sm quiet" id="keyBtn">Activate</button></div>
+      <div class="msg" id="keyMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* =========================================================================
+   Evidence Engine
+   No backend, no model, no network. Every claim is composed from fields the
+   user typed, which is what makes the anti-fabrication promise literally true
+   rather than a marketing line.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------------------
+   MONETIZATION: one switch, not a code change.
+   false  = everything unlocked. No entry limit, no watermark, no paywall, no
+            upgrade button. This is the launch state.
+   true   = free tier capped at FREE_LIMIT entries, exports watermarked, licence
+            key required to unlock.
+   Flip this to true and set BUY_URL when a processor is connected. Nothing else
+   needs touching. Square Payment Links work here as well as Stripe or Lemon
+   Squeezy: the button only opens a URL.
+--------------------------------------------------------------------------- */
+var MONETIZATION = false;
+
+var BUY_URL = "https://buy.stripe.com/REPLACE_WITH_YOUR_PAYMENT_LINK";
+var FREE_LIMIT = 5;
+var KEY_SALT = "JJEE1";
+
+var S = {
+  units: [], jd: {title:"", co:"", text:"", kw:[]},
+  picked: {}, hdr: {name:"", title:"", loc:"", email:"", phone:"", link:"", summary:""},
+  type: {font:"sans", size:"11", lead:"1.5", accent:"on"},
+  customText: "", pro: false, editing: null
+};
+
+/* ---------- storage ---------- */
+function save(){ try{ localStorage.setItem("ee.v1", JSON.stringify(S)); }catch(e){} }
+function load(){
+  try{
+    var r = localStorage.getItem("ee.v1"); if(!r) return;
+    var d = JSON.parse(r);
+    ["units","jd","picked","hdr","type"].forEach(function(k){ if(d[k]) S[k]=d[k]; });
+    S.customText = d.customText || "";
+    S.pro = !!d.pro;
+  }catch(e){}
+}
+
+/* ---------- licence ----------
+   Deliberately a speed bump, not real DRM. A backend to enforce this properly
+   would cost more than the leakage at a $39 price point. */
+function isPro(){ return !MONETIZATION || S.pro; }
+function hash(s){ var x=5381; for(var i=0;i<s.length;i++){ x=((x*33)^s.charCodeAt(i))>>>0; } return x; }
+function checkKey(k){
+  k=(k||"").toUpperCase().replace(/\s/g,"");
+  var m=k.match(/^EE-([A-Z0-9]{4})-([A-Z0-9]{4})-([A-Z0-9]{4})$/); if(!m) return false;
+  var want=(hash(KEY_SALT+m[1]+m[2])%1679616).toString(36).toUpperCase();
+  while(want.length<4) want="0"+want;
+  return want===m[3];
+}
+
+/* ---------- helpers ---------- */
+var $=function(id){ return document.getElementById(id); };
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function toast(t){ var el=$("toast"); el.textContent=t; el.classList.add("on");
+  clearTimeout(el._t); el._t=setTimeout(function(){ el.classList.remove("on"); },2300); }
+/* Plain labels. The rigour is unchanged, the insider vocabulary is not. A job
+   seeker does not know what "audited" means in this context and will not ask. */
+var GRADE={audited:["a","g-audited","Proven"],estimated:["e","g-estimated","My estimate"],
+           activity:["c","g-activity","Volume"],none:["n","g-none","No number yet"]};
+
+/* Compose a bullet only from user-authored fields. Never generate. */
+function bullet(u){
+  var out=(u.action||"").trim().replace(/\.+$/,"");
+  if(u.metric && u.metricType!=="none") out += ". " + u.metric.trim().replace(/\.+$/,"");
+  if(u.constraint) out += ". " + u.constraint.trim().replace(/\.+$/,"");
+  return out ? out+"." : "";
+}
+
+/* ---------- nav ---------- */
+function go(i){
+  [].forEach.call(document.querySelectorAll(".panel"),function(p,n){ p.classList.toggle("on",n===i); });
+  [].forEach.call(document.querySelectorAll(".step"),function(b,n){ b.setAttribute("aria-current",n===i?"true":"false"); });
+  if(i===2) renderMatch();
+  if(i===3) renderPaper();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+[].forEach.call(document.querySelectorAll(".step"),function(b){
+  b.addEventListener("click",function(){ go(+b.dataset.p); });
+});
+
+/* ---------- editor ---------- */
+function openEditor(id){
+  if(id==null && !isPro() && S.units.length>=FREE_LIMIT){ showVeil(); return; }
+  S.editing=id;
+  var u = id!=null ? S.units.find(function(x){ return x.id===id; }) : null;
+  $("fOrg").value=u?u.org:""; $("fRole").value=u?u.role:""; $("fDates").value=u?u.dates:"";
+  $("fAction").value=u?u.action:""; $("fType").value=u?u.metricType:"audited";
+  $("fMetric").value=u?u.metric:""; $("fConstraint").value=u?u.constraint:"";
+  $("fEvidence").value=u?u.evidence:""; $("fTags").value=u?(u.tags||[]).join(", "):"";
+  $("fBench").value=u?(u.benchmark||""):"";
+  typeToggle(); $("formMsg").classList.remove("on");
+  $("editor").hidden=false; $("fOrg").focus();
+}
+function typeToggle(){ $("metricWrap").style.display = $("fType").value==="none" ? "none" : ""; }
+$("fType").addEventListener("change",typeToggle);
+$("addBtn").addEventListener("click",function(){ openEditor(null); });
+$("cancelBtn").addEventListener("click",function(){ $("editor").hidden=true; S.editing=null; });
+
+$("saveBtn").addEventListener("click",function(){
+  var t=$("fType").value, msg=$("formMsg");
+  var u={
+    id:S.editing!=null?S.editing:Date.now(),
+    org:$("fOrg").value.trim(), role:$("fRole").value.trim(), dates:$("fDates").value.trim(),
+    action:$("fAction").value.trim(), metricType:t,
+    metric:t==="none"?"":$("fMetric").value.trim(),
+    constraint:t==="none"?"":$("fConstraint").value.trim(),
+    evidence:t==="none"?"":$("fEvidence").value.trim(),
+    benchmark:$("fBench").value.trim(),
+    tags:$("fTags").value.split(",").map(function(s){ return s.trim().toLowerCase(); }).filter(Boolean)
+  };
+  function fail(m){ msg.textContent=m; msg.className="msg bad on"; return true; }
+  if(!u.org) return fail("Add the company or client.");
+  if(!u.action) return fail("Describe what you did.");
+  if(t!=="none" && !u.metric) return fail("You chose a graded type, so the number is required. Switch to No number if none exists.");
+  if(t==="audited" && !u.evidence) return fail("Audited means you can name the source. Add it, or downgrade to Estimated.");
+  if(t==="estimated" && !u.evidence) return fail("Estimated needs your reasoning, so you can defend it out loud.");
+
+  if(S.editing!=null){ S.units=S.units.map(function(x){ return x.id===u.id?u:x; }); }
+  else { S.units.push(u); }
+  save(); $("editor").hidden=true; S.editing=null; renderUnits(); toast("Entry saved");
+});
+
+/* ---------- render evidence ---------- */
+function renderUnits(){
+  var box=$("unitList");
+  if(!S.units.length){
+    box.innerHTML='<div class="empty"><h3>No entries yet</h3>'+
+      '<p>Add your first, or load the example to see how grading works.</p></div>';
+  } else {
+    box.innerHTML=S.units.map(function(u){
+      var g=GRADE[u.metricType];
+      return '<div class="unit '+g[0]+'">'+
+        '<div class="unit-top">'+
+          '<div><div class="unit-org">'+esc(u.org)+'</div>'+
+          '<div class="unit-meta">'+esc(u.role||"")+(u.dates?" · "+esc(u.dates):"")+'</div></div>'+
+          '<div class="unit-actions">'+
+            '<span class="grade '+g[1]+'"><span class="dot"></span>'+g[2]+'</span>'+
+            '<button class="iconbtn" data-ed="'+u.id+'" title="Edit" aria-label="Edit entry">✎</button>'+
+            '<button class="iconbtn" data-rm="'+u.id+'" title="Delete" aria-label="Delete entry">✕</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="unit-body">'+esc(bullet(u))+'</div>'+
+        (u.evidence?'<div class="unit-meta" style="margin-bottom:7px">Source: '+esc(u.evidence)+'</div>':'')+
+        (u.benchmark?'<div class="unit-meta" style="margin-bottom:7px; color:var(--estimated)">Quarantined statistic, interview use only</div>':'')+
+        '<div class="tags">'+(u.tags||[]).map(function(t){ return '<span class="tag">'+esc(t)+'</span>'; }).join("")+'</div>'+
+      '</div>';
+    }).join("");
+  }
+  [].forEach.call(box.querySelectorAll("[data-ed]"),function(b){
+    b.addEventListener("click",function(){ openEditor(+b.dataset.ed); }); });
+  [].forEach.call(box.querySelectorAll("[data-rm]"),function(b){
+    b.addEventListener("click",function(){
+      var id=+b.dataset.rm, gone=S.units.find(function(x){ return x.id===id; });
+      if(!confirm("Delete this entry?\n\n"+(gone?gone.org+": "+(gone.action||"").slice(0,80):"")+
+                  "\n\nThis cannot be undone.")) return;
+      S.units=S.units.filter(function(x){ return x.id!==id; });
+      delete S.picked[id]; save(); renderUnits(); toast("Entry deleted"); }); });
+  renderScore();
+}
+
+function renderScore(){
+  var n=S.units.length, c={audited:0,estimated:0,activity:0,none:0};
+  S.units.forEach(function(u){ c[u.metricType]++; });
+  var pts=c.audited*100+c.estimated*70+c.activity*45+c.none*10;
+  var score=n?Math.round(pts/n):0;
+  $("scoreN").textContent=score;
+  var W=[["audited","var(--audited)"],["estimated","var(--estimated)"],["activity","var(--activity)"],["none","var(--none)"]];
+  $("bar").innerHTML = n ? W.map(function(w){
+    return '<i style="width:'+(c[w[0]]/n*100)+'%; background:'+w[1]+'"></i>'; }).join("")
+    : '<i style="width:100%; background:var(--band)"></i>';
+  $("legend").innerHTML = W.map(function(w){
+    return '<div><span class="grade g-'+w[0]+'"><span class="dot"></span>'+GRADE[w[0]][2]+'</span><b>'+c[w[0]]+'</b></div>'; }).join("");
+
+  /* Tell the user what to do next. An empty screen with a score on it is not
+     guidance, and this was the single biggest gap in the first usability pass. */
+  var msg;
+  if(!n) msg="<b>Start here.</b> Paste your existing resume and it will be split into entries you can grade.";
+  else if(c.none===n) msg="<b>Next.</b> Open any entry and answer the number question. Even one <b>Proven</b> line changes how the page reads.";
+  else if(c.none>0) msg="<b>"+c.none+" still ungraded.</b> Work through them, then paste the job you are going for in step 2.";
+  else if(!S.jd.kw || !S.jd.kw.length) msg="<b>All graded.</b> Now paste the job description in step 2 so the right entries get picked.";
+  else msg="<b>Ready.</b> Step 4 has your resume.";
+  $("nextStep").innerHTML=msg;
+}
+
+/* ---------- job description ---------- */
+var STOP=("a about above after again against all am an and any are as at be because been before being below between both but by "+
+"can did do does doing down during each few for from further had has have having he her here hers him his how i if in into is it its "+
+"just me more most my no nor not now of off on once only or other our out over own same she should so some such than that the their "+
+"them then there these they this those through to too under until up very was we were what when where which while who whom why will "+
+"with you your role team work working experience years ability strong excellent including etc must plus using use used "+
+"across within also new well help support ensure drive great good high right able hiring hire looking seeking join joining "+
+"requirements required requirement responsibilities responsibility nice want wants need needs needed reads read write "+
+"writes build builds built lead leads leading own owns owning comfort comfortable similar tooling tools someone person candidate "+
+"candidates apply application applicants company companies will would could may might actually").split(" ");
+var PHRASE=["paid social","paid media","media buying","landing page","conversion rate","design system","design systems",
+"user research","product design","brand design","content strategy","content marketing","email marketing","project management",
+"data analysis","customer success","product marketing","growth marketing","performance marketing","social media","motion design",
+"front end","back end","full stack","machine learning","supply chain","financial modeling","stakeholder management",
+"account management","business development","quality assurance","change management","process improvement","a b testing"];
+
+function parseJD(){
+  var raw=$("jText").value; if(!raw.trim()){ toast("Paste the posting first"); return; }
+  var low=" "+raw.toLowerCase().replace(/[^a-z0-9+#./\- ]/g," ").replace(/\s+/g," ")+" ";
+  var found={}, claimed={};
+  /* Phrases first. Their component words are then claimed and excluded from the
+     single-word pass, otherwise "stakeholder management" scores three times:
+     once as the phrase, once as "stakeholder", once as "management". That
+     inflated every match score in the first build. */
+  PHRASE.forEach(function(p){
+    if(low.indexOf(" "+p+" ")>-1){
+      found[p]=(low.split(" "+p+" ").length-1)*3;
+      p.split(" ").forEach(function(w){ claimed[w]=1; });
+    }
+  });
+  low.split(" ").forEach(function(w){
+    w=w.replace(/^[-.]+|[-.]+$/g,"");
+    if(w.length<3||w.length>22) return;
+    if(STOP.indexOf(w)>-1) return;
+    if(claimed[w]) return;
+    if(/^\d+$/.test(w)) return;
+    found[w]=(found[w]||0)+1;
+  });
+  var kw=Object.keys(found).map(function(k){ return {k:k,n:found[k]}; })
+    .sort(function(a,b){ return b.n-a.n; }).slice(0,34);
+  S.jd={title:$("jTitle").value.trim(), co:$("jCo").value.trim(), text:raw, kw:kw};
+  save(); renderKW(); toast("Read "+kw.length+" terms from the posting"); go(2);
+}
+function renderKW(){
+  var kw=S.jd.kw||[];
+  $("kwCount").textContent = kw.length ? kw.length+" terms, most frequent first." : "Nothing read yet.";
+  $("kwList").innerHTML = kw.map(function(o){ return '<span class="tag">'+esc(o.k)+'</span>'; }).join("");
+}
+$("parseBtn").addEventListener("click",parseJD);
+
+/* ---------- match ---------- */
+function scoreUnit(u,kw){
+  var hay=((u.action||"")+" "+(u.role||"")+" "+(u.tags||[]).join(" ")+" "+(u.metric||"")).toLowerCase();
+  var s=0, hits=[];
+  kw.forEach(function(o){ if(hay.indexOf(o.k)>-1){ s+=o.n*2; hits.push(o.k); } });
+  s += {audited:14,estimated:9,activity:5,none:0}[u.metricType];
+  return {s:s, hits:hits};
+}
+function renderMatch(){
+  var kw=S.jd.kw||[], box=$("matchList");
+  if(!S.units.length){ box.innerHTML='<div class="empty"><h3>No entries to rank</h3><p>Add evidence first.</p></div>';
+    $("covN").textContent="0%"; $("gapList").innerHTML=""; return; }
+  if(!kw.length){ box.innerHTML=""; return; }
+  $("matchNote").textContent="Ranked against "+(S.jd.title||"the posting")+
+    (S.jd.co?" at "+S.jd.co:"")+". Turn anything off that you do not want on the page.";
+
+  var rows=S.units.map(function(u){ var r=scoreUnit(u,kw); return {u:u,s:r.s,hits:r.hits}; })
+    .sort(function(a,b){ return b.s-a.s; });
+  var top=rows.length?rows[0].s:1;
+
+  rows.forEach(function(r){ if(S.picked[r.u.id]===undefined) S.picked[r.u.id]=r.s>0; });
+
+  box.innerHTML=rows.map(function(r){
+    var on=!!S.picked[r.u.id], pct=top?Math.round(r.s/top*100):0;
+    return '<div class="matchrow'+(on?"":" off")+'">'+
+      '<div class="mscore'+(pct>=60?" hi":"")+'">'+pct+'</div>'+
+      '<div class="mtext"><b>'+esc(r.u.org)+'</b><span>'+esc(bullet(r.u)||r.u.action)+'</span>'+
+        (r.hits.length?'<div class="tags" style="margin-top:5px">'+r.hits.slice(0,6).map(function(h){
+          return '<span class="tag hit">'+esc(h)+'</span>'; }).join("")+'</div>':
+          '<div class="tags" style="margin-top:5px"><span class="tag">no overlap with this posting</span></div>')+
+      '</div>'+
+      '<label class="sw"><input type="checkbox" data-pick="'+r.u.id+'"'+(on?" checked":"")+
+        ' aria-label="Include this entry"><i></i></label>'+
+    '</div>';
+  }).join("");
+
+  [].forEach.call(box.querySelectorAll("[data-pick]"),function(c){
+    c.addEventListener("change",function(){ S.picked[+c.dataset.pick]=c.checked; save(); renderMatch(); }); });
+
+  var covered={}, chosen=rows.filter(function(r){ return S.picked[r.u.id]; });
+  chosen.forEach(function(r){ r.hits.forEach(function(h){ covered[h]=1; }); });
+  var pct=kw.length?Math.round(Object.keys(covered).length/kw.length*100):0;
+  $("covN").textContent=pct+"%";
+  var gaps=kw.filter(function(o){ return !covered[o.k]; }).slice(0,10);
+  $("gapList").innerHTML = gaps.length
+    ? '<div style="display:block; margin-bottom:7px; color:var(--muted); font-size:12.5px">Named in the posting, absent from your evidence:</div>'
+      +'<div class="tags">'+gaps.map(function(o){ return '<span class="tag">'+esc(o.k)+'</span>'; }).join("")+'</div>'
+      +'<div style="display:block; margin-top:10px; color:var(--muted); font-size:12.5px">If one of these is a hard requirement you genuinely lack, say so in the interview rather than writing around it.</div>'
+    : '<div style="color:var(--audited)">Everything named in the posting is covered.</div>';
+}
+
+/* ---------- resume ---------- */
+function renderPaper(){
+  var h=S.hdr;
+  /* Hand edits win. Once the user has typed their own version, the generator
+     stops overwriting it until they explicitly discard. */
+  if(S.customText && S.customText.trim()){
+    $("paper").innerHTML = textToPaper(S.customText) +
+      (isPro()?"":'<div class="wm">Built with Evidence Engine · free version</div>');
+    applyType(); return;
+  }
+  var chosen=S.units.filter(function(u){ return S.picked[u.id]!==false; });
+  if(S.jd.kw && S.jd.kw.length){
+    chosen.sort(function(a,b){ return scoreUnit(b,S.jd.kw).s - scoreUnit(a,S.jd.kw).s; });
+  }
+  var byOrg={}, order=[];
+  chosen.forEach(function(u){ var k=u.org+"||"+(u.role||""); if(!byOrg[k]){ byOrg[k]=[]; order.push(k); } byOrg[k].push(u); });
+
+  var contact=[h.loc,h.phone,h.email].filter(Boolean).join(" &nbsp;|&nbsp; ");
+  var contact2=h.link?("Portfolio: "+esc(h.link)):"";
+  var skills={};
+  chosen.forEach(function(u){ (u.tags||[]).forEach(function(t){ skills[t]=1; }); });
+  var skillList=Object.keys(skills);
+
+  $("paper").innerHTML=
+    '<div class="rname">'+esc(h.name||"Your Name")+'</div>'+
+    (h.title?'<div class="rtitle">'+esc(h.title)+'</div>':"")+
+    '<div class="rcontact">'+contact+(contact2?"<br>"+contact2:"")+'</div>'+
+    '<div class="rrule"></div>'+
+    (h.summary?'<h4>Summary</h4><p style="font-size:13px; color:var(--ink-2)">'+esc(h.summary)+'</p>':"")+
+    (skillList.length?'<h4>Skills</h4><p style="font-size:13px; color:var(--ink-2)">'+
+      skillList.map(esc).join(", ")+'</p>':"")+
+    (order.length?'<h4>Experience</h4>'+order.map(function(k){
+      var us=byOrg[k], f=us[0];
+      return '<div class="rentry">'+
+        '<div class="rorg"><span>'+esc(f.org)+'</span>'+(f.dates?'<em>'+esc(f.dates)+'</em>':"")+'</div>'+
+        (f.role?'<div class="rrole">'+esc(f.role)+'</div>':"")+
+        '<ul>'+us.map(function(u){ return '<li>'+esc(bullet(u))+'</li>'; }).join("")+'</ul></div>';
+    }).join(""):'<div class="empty"><h3>Nothing selected</h3><p>Turn entries on in the Match step.</p></div>')+
+    (isPro()?"":'<div class="wm">Built with Evidence Engine · free version</div>');
+  applyType();
+}
+
+$("editHdrBtn").addEventListener("click",function(){
+  var c=$("hdrCard"); c.hidden=!c.hidden;
+  if(!c.hidden){
+    ["name","title","loc","email","phone","link","summary"].forEach(function(k){
+      $("h"+k.charAt(0).toUpperCase()+k.slice(1)).value=S.hdr[k]||""; });
+    $("hName").focus();
+  }
+});
+$("hdrDone").addEventListener("click",function(){
+  ["name","title","loc","email","phone","link","summary"].forEach(function(k){
+    S.hdr[k]=$("h"+k.charAt(0).toUpperCase()+k.slice(1)).value.trim(); });
+  save(); $("hdrCard").hidden=true; renderPaper(); toast("Heading updated");
+});
+$("printBtn").addEventListener("click",function(){
+  if(!isPro()){ showVeil(); return; }
+  window.print();
+});
+
+/* ---------- import, export, demo ---------- */
+$("exportBtn").addEventListener("click",function(){
+  var b=new Blob([JSON.stringify({units:S.units,hdr:S.hdr},null,2)],{type:"application/json"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(b);
+  a.download="evidence-inventory.json"; a.click(); URL.revokeObjectURL(a.href);
+  toast("Inventory exported");
+});
+$("importBtn").addEventListener("click",function(){ $("fileIn").click(); });
+$("fileIn").addEventListener("change",function(e){
+  var f=e.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(Array.isArray(d.units)) S.units=d.units;
+      if(d.hdr) S.hdr=d.hdr;
+      save(); renderUnits(); toast("Imported "+S.units.length+" entries");
+    }catch(err){ toast("That file could not be read"); }
+  };
+  r.readAsText(f); e.target.value="";
+});
+$("demoBtn").addEventListener("click",function(){
+  S.units=[
+    {id:1,org:"Northwind Logistics",role:"Operations Analyst",dates:"March 2024 to Present",
+     action:"Rebuilt the returns workflow after tracing 60% of support tickets to one unlabelled form field",
+     metricType:"audited",metric:"Support tickets down 41%",constraint:"Same headcount, same season",
+     evidence:"Zendesk monthly export, Q2 against Q1",benchmark:"",
+     tags:["process design","zendesk","workflow automation","sql"]},
+    {id:2,org:"Northwind Logistics",role:"Operations Analyst",dates:"March 2024 to Present",
+     action:"Wrote the SQL models behind the weekly operations review, replacing a spreadsheet three people maintained by hand",
+     metricType:"estimated",metric:"Roughly 6 hours a week returned to the team",
+     constraint:"Same reporting cadence",evidence:"Three people at about two hours each, measured against their own time logs",
+     benchmark:"",tags:["sql","data analysis","reporting","automation"]},
+    {id:3,org:"Brightside Retail",role:"Coordinator",dates:"2022 to 2024",
+     action:"Ran the vendor onboarding queue and rewrote the intake checklist after two shipments cleared with missing paperwork",
+     metricType:"activity",metric:"94 vendors onboarded",constraint:"",
+     evidence:"Internal vendor register",benchmark:"Industry onboarding error rates run near 8% (trade body figure, 2024)",
+     tags:["vendor management","process improvement","stakeholder management"]},
+    {id:4,org:"Brightside Retail",role:"Coordinator",dates:"2022 to 2024",
+     action:"Trained six seasonal hires on the intake system each autumn and wrote the handbook they still use",
+     metricType:"none",metric:"",constraint:"",evidence:"",benchmark:"",
+     tags:["training","documentation","onboarding"]}
+  ];
+  S.hdr={name:"Alex Moreno",title:"Operations Analyst",loc:"Denver, CO",
+    email:"alex@example.com",phone:"+1-555-0142",link:"linkedin.com/in/example",
+    summary:"Operations analyst who traces a problem to its cause before proposing a fix. Four years across logistics and retail, with the numbers to walk through."};
+  S.picked={}; save(); renderUnits(); toast("Example loaded. Note entry four: no number, and that is fine.");
+});
+
+/* =========================================================================
+   BRING YOUR OWN MODEL
+   The key lives in this browser and is sent only to the provider the user
+   picked. There is no server in this product to send it to.
+
+   The system prompt is the important part. This product's whole claim is that
+   nothing on the resume is invented, so the model is scoped to work that cannot
+   invent: asking the user questions, tightening words the user already wrote,
+   and pointing at gaps. It is forbidden from producing a metric, and it never
+   sets a grade. Grading stays deterministic.
+   ========================================================================= */
+var AI={provider:"anthropic", key:"", model:"", baseUrl:""};
+var AI_DEFAULTS={
+  anthropic:{model:"claude-sonnet-5", url:"https://api.anthropic.com/v1/messages"},
+  openai:{model:"gpt-4o", url:"https://api.openai.com/v1/chat/completions"},
+  openrouter:{model:"anthropic/claude-sonnet-5", url:"https://openrouter.ai/api/v1/chat/completions"},
+  custom:{model:"", url:""}
+};
+var AI_SYSTEM =
+"You are helping somebody prepare their own resume inside a tool whose central promise is that "+
+"nothing on the resume is invented.\n\nAbsolute rules, no exceptions:\n"+
+"1. NEVER invent, estimate, infer or suggest a specific number, percentage, dollar figure or "+
+"quantity that the user has not already given you. If a line needs a number, ASK the user for it.\n"+
+"2. NEVER supply an industry statistic or benchmark as though it were the user's own result.\n"+
+"3. NEVER write a new achievement. You may only rephrase what the user already wrote.\n"+
+"4. Do not assign or suggest evidence grades. The tool grades deterministically.\n"+
+"5. No em dashes. Use commas, full stops or colons.\n"+
+"6. Be brief and specific. Plain language. No praise, no filler, no preamble.\n\n"+
+"What you are good for: asking sharp questions that help the user remember a real number, "+
+"pointing out vague or passive wording, naming which claims a recruiter would doubt, and "+
+"tightening sentences without changing their meaning.";
+
+function aiLoad(){ try{ var r=localStorage.getItem("ee.ai"); if(r) AI=JSON.parse(r); }catch(e){} }
+function aiSave(){ try{ localStorage.setItem("ee.ai", JSON.stringify(AI)); }catch(e){} }
+function aiReady(){ return !!(AI.key && AI.key.length>10); }
+function aiModel(){ return AI.model || AI_DEFAULTS[AI.provider].model; }
+function aiUrl(){ return AI.provider==="custom" ? AI.baseUrl : AI_DEFAULTS[AI.provider].url; }
+
+async function aiCall(userMsg){
+  if(!aiReady()) throw new Error("No API key connected.");
+  var url=aiUrl(), model=aiModel(), res, body, headers;
+  if(AI.provider==="anthropic"){
+    headers={"content-type":"application/json","x-api-key":AI.key,
+             "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
+    body={model:model, max_tokens:1400, system:AI_SYSTEM, messages:[{role:"user",content:userMsg}]};
+  } else {
+    headers={"content-type":"application/json","authorization":"Bearer "+AI.key};
+    body={model:model, max_tokens:1400,
+          messages:[{role:"system",content:AI_SYSTEM},{role:"user",content:userMsg}]};
+  }
+  res = await fetch(url,{method:"POST",headers:headers,body:JSON.stringify(body)});
+  var j;
+  try{ j = await res.json(); }catch(e){ throw new Error("HTTP "+res.status+". The provider returned something unreadable."); }
+  if(!res.ok){
+    var m=(j && (j.error&&(j.error.message||j.error.type))) || ("HTTP "+res.status);
+    throw new Error(m);
+  }
+  if(AI.provider==="anthropic") return (j.content&&j.content[0]&&j.content[0].text)||"(empty reply)";
+  return (j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"(empty reply)";
+}
+
+function evidenceDigest(){
+  if(!S.units.length) return "(the user has not added any entries yet)";
+  return S.units.map(function(u,i){
+    return (i+1)+". ["+GRADE[u.metricType][2]+"] "+u.org+(u.role?", "+u.role:"")+"\n   "+
+      (u.action||"")+(u.metric?"\n   Number: "+u.metric:"")+(u.constraint?"\n   Held flat: "+u.constraint:"")+
+      (u.evidence?"\n   Source: "+u.evidence:"");
+  }).join("\n");
+}
+var AI_PRESETS={
+  interview:"Interview me. Look at my entries below and ask me up to six specific questions that "+
+    "would help me put a real, defensible number on the lines that have none. Ask about baselines, "+
+    "before and after, time saved, volume, and who would have the data. Do not suggest any numbers.",
+  tighten:"Rewrite each of my lines below to be tighter and more concrete, keeping every fact "+
+    "exactly as I stated it. Start each with a strong specific verb. Do not add any information "+
+    "I did not give you. Show the original and your version.",
+  verbs:"List the lines below that start with a weak, vague or passive verb, such as managed, "+
+    "helped, responsible for, worked on, assisted. For each, suggest two stronger verbs that would "+
+    "still be truthful given what I described. Change nothing else.",
+  gaps:"Read my entries as a sceptical recruiter. Name the specific claims you would doubt or "+
+    "probe in an interview and say exactly what you would ask. Be blunt. Do not rewrite anything."
+};
+
+function aiRun(promptText, outEl){
+  var out=$(outEl);
+  out.className="ai-out on"; out.innerHTML='<span class="spin"></span>Thinking...';
+  var payload = promptText+"\n\n--- MY ENTRIES ---\n"+evidenceDigest();
+  aiCall(payload).then(function(txt){
+    out.className="ai-out on"; out.textContent=txt;
+  }).catch(function(err){
+    out.className="ai-out on err";
+    out.textContent="That did not work: "+err.message+
+      "\n\nCheck the key, the model name, and that your provider allows requests from a browser.";
+  });
+}
+
+/* ---------- resume paste and split ----------
+   Deliberately dumb and deliberately transparent. It splits text into entries and
+   fills in what it can see. It never assigns a grade and never writes a claim,
+   because both of those are the user's job and guessing at them is the exact
+   failure this product exists to avoid. */
+var SKILLS=("sql python javascript excel figma photoshop illustrator indesign canva wordpress shopify webflow "+
+"framer hubspot salesforce klaviyo zendesk jira asana notion tableau powerbi looker ga4 analytics seo sem "+
+"copywriting content social media email marketing paid ads meta tiktok linkedin google branding design ux ui "+
+"research testing onboarding training recruiting payroll budgeting forecasting reporting automation crm erp "+
+"logistics inventory procurement negotiation compliance auditing bookkeeping quickbooks xero photography video "+
+"editing premiere aftereffects illustration animation react node php html css").split(" ");
+
+var DATE_RE=/(19|20)\d{2}|present|current|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
+var BULLET_RE=/^\s*[•·▪◦‣*\-–—]\s+/;
+
+function splitResume(raw){
+  var lines=raw.split(/\r?\n/).map(function(l){ return l.replace(/\s+$/,""); });
+  var jobs=[], cur=null;
+  lines.forEach(function(line){
+    var t=line.trim();
+    if(!t) return;
+    var isBullet=BULLET_RE.test(line);
+    var clean=t.replace(BULLET_RE,"").trim();
+    if(isBullet && cur){ cur.bullets.push(clean); return; }
+    // A header is a short line, not a bullet, usually carrying a date or a separator.
+    var looksHeader = !isBullet && t.length<=90 &&
+      (DATE_RE.test(t) || /[|·]|\s[-–—]\s/.test(t) || /^[A-Z][^.!?]*$/.test(t));
+    if(looksHeader){
+      var dates="", rest=t;
+      /* Cut at an optional month word plus a four digit year, and take everything
+         after it as the date range. The earlier version anchored on the year only,
+         which left "March" behind and it became the job title. */
+      var dm=t.match(/((jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+)?(19|20)\d{2}\b[\s\S]*$/i);
+      if(dm){ dates=dm[0].trim(); rest=t.slice(0,dm.index).replace(/[|·,\-–—\s]+$/,"").trim(); }
+      var parts=rest.split(/\s*[|·]\s*|\s+[-–—]\s+|\s+\bat\b\s+/i).filter(Boolean);
+      if(cur && cur.bullets.length===0 && !cur.role && !cur.dates){
+        /* Previous line was a bare company name and this is its role and date
+           line. Merge rather than opening a second job. */
+        cur.role=parts[0]||""; if(parts[1]) cur.org=cur.org||parts[1];
+        if(dates) cur.dates=dates;
+        if(cur.role||cur.dates) return;
+      }
+      if(!rest && dates && cur){ cur.dates=cur.dates||dates; return; }
+      cur={org:parts[0]||rest, role:parts[1]||"", dates:dates, bullets:[]};
+      jobs.push(cur);
+      return;
+    }
+    if(cur) cur.bullets.push(clean); else { cur={org:clean,role:"",dates:"",bullets:[]}; jobs.push(cur); }
+  });
+
+  var units=[], id=Date.now();
+  jobs.forEach(function(j){
+    var list=j.bullets.length?j.bullets:[];
+    list.forEach(function(b){
+      if(b.length<12) return;
+      /* Word boundaries, not substrings. "Rebuilt" contains "ui" and was tagging
+         every bullet as a UI skill. */
+      var tags=SKILLS.filter(function(s){
+        return new RegExp("\\b"+s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(b);
+      }).slice(0,6);
+      units.push({id:id++, org:j.org||"Untitled", role:j.role||"", dates:j.dates||"",
+        action:b, metricType:"none", metric:"", constraint:"", evidence:"", benchmark:"", tags:tags});
+    });
+  });
+  return units;
+}
+
+function openPaste(){ $("welcome").classList.remove("on"); $("pasteMsg").classList.remove("on");
+  $("pasteVeil").classList.add("on"); setTimeout(function(){ $("pasteBox").focus(); },80); }
+$("pasteBtn").addEventListener("click",openPaste);
+$("pasteCancel").addEventListener("click",function(){ $("pasteVeil").classList.remove("on"); });
+$("pasteGo").addEventListener("click",function(){
+  var raw=$("pasteBox").value, m=$("pasteMsg");
+  if(raw.trim().length<40){ m.textContent="That looks too short. Paste the whole resume."; m.className="msg bad on"; return; }
+  var found=splitResume(raw);
+  if(!found.length){ m.textContent="Nothing could be split out of that. Try adding one by hand instead."; m.className="msg bad on"; return; }
+  S.units=S.units.concat(found); save(); renderUnits();
+  $("pasteVeil").classList.remove("on"); $("pasteBox").value="";
+  toast("Found "+found.length+" entries. Now grade them, starting at the top.");
+});
+
+/* ---------- welcome ---------- */
+function closeWelcome(){ $("welcome").classList.remove("on");
+  try{ localStorage.setItem("ee.seen","1"); }catch(e){} }
+$("wPaste").addEventListener("click",function(){ closeWelcome(); openPaste(); });
+$("wBlank").addEventListener("click",function(){ closeWelcome(); openEditor(null); });
+$("wDemo").addEventListener("click",function(){ closeWelcome(); $("demoBtn").click(); });
+
+/* ---------- paywall ---------- */
+function showVeil(){ $("veil").classList.add("on"); }
+$("upgradeBtn").addEventListener("click",showVeil);
+$("closeVeil").addEventListener("click",function(){ $("veil").classList.remove("on"); });
+$("veil").addEventListener("click",function(e){ if(e.target===$("veil")) $("veil").classList.remove("on"); });
+$("buyBtn").addEventListener("click",function(){ window.open(BUY_URL,"_blank","noopener"); });
+$("keyBtn").addEventListener("click",function(){
+  var m=$("keyMsg");
+  if(checkKey($("keyIn").value)){
+    S.pro=true; save(); applyPlan();
+    m.textContent="Activated. Thank you."; m.className="msg good on";
+    setTimeout(function(){ $("veil").classList.remove("on"); renderPaper(); },900);
+  } else { m.textContent="That key is not valid. Check for typos."; m.className="msg bad on"; }
+});
+function applyPlan(){
+  if(!MONETIZATION){
+    $("planBadge").style.display="none";
+    $("upgradeBtn").style.display="none";
+    return;
+  }
+  $("planBadge").style.display="";
+  $("planBadge").textContent=S.pro?"Full":"Free";
+  $("planBadge").className="plan"+(S.pro?" pro":"");
+  $("upgradeBtn").style.display=S.pro?"none":"";
+}
+
+/* ---------- AI wiring ---------- */
+function aiSyncUI(){
+  var on=aiReady();
+  $("aiDot").className="aidot "+(on?"on":"off");
+  $("aiBtn").innerHTML='<span id="aiDot" class="aidot '+(on?"on":"off")+'"></span>'+(on?"AI connected":"Connect AI");
+  $("aiPanel").hidden=!on;
+  $("textAi").hidden=!on;
+  $("aiPasteRow").hidden=!on;
+}
+$("aiBtn").addEventListener("click",function(){
+  $("aiProv").value=AI.provider; $("aiKey").value=AI.key;
+  $("aiModel").value=AI.model||AI_DEFAULTS[AI.provider].model;
+  $("aiBase").value=AI.baseUrl||"";
+  $("aiUrlField").hidden=AI.provider!=="custom";
+  $("aiMsg").classList.remove("on");
+  $("aiVeil").classList.add("on");
+});
+$("aiProv").addEventListener("change",function(){
+  var p=$("aiProv").value;
+  $("aiModel").value=AI_DEFAULTS[p].model;
+  $("aiUrlField").hidden=p!=="custom";
+});
+$("aiClose").addEventListener("click",function(){ $("aiVeil").classList.remove("on"); });
+$("aiVeil").addEventListener("click",function(e){ if(e.target===$("aiVeil")) $("aiVeil").classList.remove("on"); });
+$("aiForget").addEventListener("click",function(){
+  AI={provider:"anthropic",key:"",model:"",baseUrl:""}; aiSave(); aiSyncUI();
+  $("aiKey").value=""; var m=$("aiMsg"); m.textContent="Disconnected. The key is gone from this device."; m.className="msg good on";
+});
+$("aiSave").addEventListener("click",function(){
+  AI.provider=$("aiProv").value; AI.key=$("aiKey").value.trim();
+  AI.model=$("aiModel").value.trim(); AI.baseUrl=$("aiBase").value.trim();
+  aiSave(); aiSyncUI();
+  var m=$("aiMsg");
+  if(!aiReady()){ m.textContent="Add a key first."; m.className="msg bad on"; return; }
+  m.innerHTML='<span class="spin"></span>Testing...'; m.className="msg on";
+  aiCall("Reply with exactly: connected").then(function(){
+    m.textContent="Connected and working."; m.className="msg good on";
+    setTimeout(function(){ $("aiVeil").classList.remove("on"); },900);
+  }).catch(function(e){
+    m.textContent="Could not reach the model: "+e.message; m.className="msg bad on";
+  });
+});
+$("aiGo").addEventListener("click",function(){
+  var q=$("aiQ").value.trim();
+  if(!q){ q=AI_PRESETS.tighten; }
+  aiRun(q,"aiOut");
+});
+$("aiClear").addEventListener("click",function(){ $("aiQ").value=""; $("aiOut").className="ai-out"; });
+[].forEach.call(document.querySelectorAll("#aiChips .chip"),function(c){
+  c.addEventListener("click",function(){ $("aiQ").value=AI_PRESETS[c.dataset.q]; aiRun(AI_PRESETS[c.dataset.q],"aiOut"); });
+});
+$("aiPasteGo").addEventListener("click",function(){
+  var raw=$("pasteBox").value.trim();
+  if(raw.length<40){ var m=$("pasteMsg"); m.textContent="Paste the resume first."; m.className="msg bad on"; return; }
+  var out=$("pasteMsg"); out.innerHTML='<span class="spin"></span>Reading it...'; out.className="msg on";
+  aiCall("Split the resume below into separate entries. Return ONLY valid JSON, an array of objects "+
+    "with keys org, role, dates, action, tags. One object per bullet or achievement. Copy the wording "+
+    "of each bullet across unchanged into action. tags is an array of up to 6 lowercase skills or tools "+
+    "you can see named in that bullet. Invent nothing. No commentary, no code fences.\n\n"+raw)
+  .then(function(txt){
+    var m=txt.match(/\[[\s\S]*\]/); if(!m) throw new Error("The model did not return a list.");
+    var arr=JSON.parse(m[0]); var id=Date.now(), added=0;
+    arr.forEach(function(o){
+      if(!o || !o.action) return;
+      S.units.push({id:id++, org:o.org||"Untitled", role:o.role||"", dates:o.dates||"",
+        action:String(o.action), metricType:"none", metric:"", constraint:"", evidence:"",
+        benchmark:"", tags:(Array.isArray(o.tags)?o.tags:[]).slice(0,6)});
+      added++;
+    });
+    save(); renderUnits(); $("pasteVeil").classList.remove("on"); $("pasteBox").value="";
+    toast("Found "+added+" entries. Every one is ungraded until you say otherwise.");
+  }).catch(function(e){
+    out.textContent="AI split failed: "+e.message+". Use the plain split instead."; out.className="msg bad on";
+  });
+});
+
+/* ---------- resume text editor ---------- */
+function resumeToText(){
+  var h=S.hdr, L=[];
+  L.push(h.name||"Your Name");
+  if(h.title) L.push(h.title);
+  L.push([h.loc,h.phone,h.email].filter(Boolean).join(" | "));
+  if(h.link) L.push("Portfolio: "+h.link);
+  L.push("");
+  if(h.summary){ L.push("# Summary"); L.push(h.summary); L.push(""); }
+  var chosen=S.units.filter(function(u){ return S.picked[u.id]!==false; });
+  if(S.jd.kw&&S.jd.kw.length) chosen.sort(function(a,b){ return scoreUnit(b,S.jd.kw).s-scoreUnit(a,S.jd.kw).s; });
+  var sk={}; chosen.forEach(function(u){ (u.tags||[]).forEach(function(t){ sk[t]=1; }); });
+  if(Object.keys(sk).length){ L.push("# Skills"); L.push(Object.keys(sk).join(", ")); L.push(""); }
+  var by={}, ord=[];
+  chosen.forEach(function(u){ var k=u.org+"||"+(u.role||""); if(!by[k]){by[k]=[];ord.push(k);} by[k].push(u); });
+  if(ord.length){
+    L.push("# Experience");
+    ord.forEach(function(k){
+      var us=by[k], f=us[0];
+      L.push(f.org+(f.dates?"  ::  "+f.dates:""));
+      if(f.role) L.push(f.role);
+      us.forEach(function(u){ L.push("- "+bullet(u)); });
+      L.push("");
+    });
+  }
+  return L.join("\n").replace(/\n{3,}/g,"\n\n").trim();
+}
+function textToPaper(txt){
+  var lines=txt.split(/\r?\n/), html="", inUl=false, head=[], i=0;
+  while(i<lines.length && lines[i].trim() && lines[i].charAt(0)!=="#"){ head.push(lines[i].trim()); i++; }
+  html+='<div class="rname">'+esc(head[0]||"")+'</div>';
+  if(head[1]) html+='<div class="rtitle">'+esc(head[1])+'</div>';
+  if(head.length>2) html+='<div class="rcontact">'+head.slice(2).map(esc).join("<br>")+'</div>';
+  html+='<div class="rrule"></div>';
+  for(;i<lines.length;i++){
+    var l=lines[i], t=l.trim();
+    if(!t){ if(inUl){html+="</ul>";inUl=false;} continue; }
+    if(t.charAt(0)==="#"){ if(inUl){html+="</ul>";inUl=false;} html+='<h4>'+esc(t.replace(/^#+\s*/,""))+'</h4>'; continue; }
+    if(t.charAt(0)==="-"){ if(!inUl){html+="<ul>";inUl=true;} html+='<li>'+esc(t.replace(/^-\s*/,""))+'</li>'; continue; }
+    if(inUl){html+="</ul>";inUl=false;}
+    if(t.indexOf("::")>-1){
+      var p=t.split("::");
+      html+='<div class="rorg"><span>'+esc(p[0].trim())+'</span><em>'+esc(p[1].trim())+'</em></div>';
+    } else html+='<div class="rbody">'+esc(t)+'</div>';
+  }
+  if(inUl) html+="</ul>";
+  return html;
+}
+function setView(mode){
+  var t=mode==="text";
+  $("viewFmt").setAttribute("aria-pressed",t?"false":"true");
+  $("viewTxt").setAttribute("aria-pressed",t?"true":"false");
+  $("textCard").hidden=!t;
+  if(t && !$("textPane").value) $("textPane").value=S.customText||resumeToText();
+  $("revertTxt").hidden=!S.customText;
+}
+$("viewFmt").addEventListener("click",function(){ setView("fmt"); });
+$("viewTxt").addEventListener("click",function(){ setView("text"); });
+$("textSave").addEventListener("click",function(){
+  S.customText=$("textPane").value; save(); renderPaper(); setView("fmt"); toast("Your edits are now the resume");
+});
+$("revertTxt").addEventListener("click",function(){
+  if(!confirm("Discard your text edits and rebuild the resume from your entries?")) return;
+  S.customText=""; $("textPane").value=""; save(); renderPaper(); setView("fmt"); toast("Rebuilt from your entries");
+});
+$("textAi").addEventListener("click",function(){
+  var cur=$("textPane").value;
+  var out=$("textAiOut"); out.className="ai-out on"; out.innerHTML='<span class="spin"></span>Working...';
+  aiCall("Tighten the resume below. Keep every fact exactly as written, change no numbers, add "+
+    "nothing. Return the full resume in the same plain text format, nothing else.\n\n"+cur)
+  .then(function(txt){ out.className="ai-out on"; out.textContent=txt;
+    out.insertAdjacentHTML("afterbegin","");
+    var b=document.createElement("button"); b.className="btn sm"; b.style.marginTop="10px";
+    b.textContent="Use this version"; b.onclick=function(){ $("textPane").value=txt; toast("Pasted in. Review it, then Apply."); };
+    out.appendChild(document.createElement("br")); out.appendChild(b);
+  }).catch(function(e){ out.className="ai-out on err"; out.textContent="Failed: "+e.message; });
+});
+
+/* ---------- typeface + ATS ---------- */
+function applyType(){
+  var p=$("paper");
+  p.className="paper f-"+(S.type.font||"sans")+((S.type.accent==="off")?" mono-accent":"");
+  p.style.fontSize=(S.type.size||"11")+"pt";
+  p.style.lineHeight=(S.type.lead||"1.5");
+  runATS();
+}
+["fFont","fSize","fLead","fAccent"].forEach(function(id){
+  $(id).addEventListener("change",function(){
+    S.type={font:$("fFont").value, size:$("fSize").value, lead:$("fLead").value, accent:$("fAccent").value};
+    save(); applyType();
+  });
+});
+/* Checks run against the rendered DOM, so the score reflects what will actually
+   be exported rather than what the template promises. */
+function runATS(){
+  var p=$("paper"), txt=p.innerText||"", checks=[];
+  function add(ok,label){ checks.push({ok:!!ok,label:label}); }
+  add(!p.querySelector("table"), "No tables");
+  add(!p.querySelector("img,svg,canvas"), "No images or icons in content");
+  add(getComputedStyle(p).columnCount==="auto" || getComputedStyle(p).columnCount==="1", "Single column");
+  add(parseFloat(S.type.size||"11")>=10, "Body text at least 10 pt");
+  add(!/[—–]/.test(txt), "No dashes that split words in parsing");
+  add(!/[-]/.test(txt), "No private use or icon glyphs");
+  var heads=[].map.call(p.querySelectorAll("h4"),function(h){ return h.textContent.trim().toLowerCase(); });
+  add(heads.length>0, "Section headings present");
+  add(heads.some(function(h){ return /experience|employment|work/.test(h); }), "Experience section named plainly");
+  add(!!p.querySelector(".rname") && p.querySelector(".rname").textContent.trim().length>1, "Name is real text");
+  add(/@|\d{3}/.test((p.querySelector(".rcontact")||{}).textContent||""), "Contact details as text");
+  var lis=p.querySelectorAll("li");
+  add(lis.length>0, "Bullets used for achievements");
+  add(getComputedStyle(p).getPropertyValue("list-style-type")!=="none", "Standard bullet characters");
+  var ok=checks.filter(function(c){ return c.ok; }).length;
+  var score=Math.round(ok/checks.length*100);
+  $("atsN").textContent=score;
+  $("atsN").style.color = score===100 ? "var(--audited)" : (score>=80?"var(--estimated)":"var(--none)");
+  $("atsList").innerHTML=checks.map(function(c){
+    return '<li class="'+(c.ok?"ok":"no")+'"><span class="m">'+(c.ok?"✓":"✕")+'</span><span>'+esc(c.label)+'</span></li>';
+  }).join("");
+}
+
+/* ---------- boot ---------- */
+aiLoad();
+load(); applyPlan(); renderUnits(); renderKW();
+if(!S.type) S.type={font:"sans",size:"11",lead:"1.5",accent:"on"};
+$("fFont").value=S.type.font; $("fSize").value=S.type.size;
+$("fLead").value=S.type.lead; $("fAccent").value=S.type.accent;
+aiSyncUI();
+if(S.jd.text){ $("jText").value=S.jd.text; $("jTitle").value=S.jd.title; $("jCo").value=S.jd.co; }
+
+/* Welcome shows once, and only to someone with no work in progress. */
+try{
+  if(!localStorage.getItem("ee.seen") && !S.units.length) $("welcome").classList.add("on");
+}catch(e){}
+$("welcome").addEventListener("click",function(e){ if(e.target===$("welcome")) closeWelcome(); });
+$("pasteVeil").addEventListener("click",function(e){ if(e.target===$("pasteVeil")) $("pasteVeil").classList.remove("on"); });
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape"){
+    $("welcome").classList.contains("on") && closeWelcome();
+    $("pasteVeil").classList.remove("on"); $("veil").classList.remove("on");
+  }
+});
+</script>
+</body>
+</html>

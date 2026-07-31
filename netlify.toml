@@ -1,0 +1,43 @@
+# Evidence Engine, Netlify configuration.
+# Static single file. There is no build step and nothing to install.
+
+[build]
+  publish = "."
+  command = ""
+
+# The app is one HTML file that must never be served stale after a deploy,
+# because a cached copy would keep shipping old grading rules to returning users.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# The private key generator must never be reachable, even if it is ever copied
+# into the deploy folder by mistake. Belt and braces alongside .gitignore.
+[[redirects]]
+  from = "/keygen.html"
+  to = "/"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/keygen.template.html"
+  to = "/"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/LAUNCH.md"
+  to = "/"
+  status = 404
+  force = true

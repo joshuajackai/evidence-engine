@@ -1,0 +1,21 @@
+# The real key generator holds the salt. It lives on one machine and never here.
+keygen.html
+
+# Private business document. Netlify serves the repo root, so anything committed
+# here is publicly fetchable. Pricing, kill criteria and honest weaknesses stay
+# on the local machine.
+LAUNCH.md
+docs/
+
+# QA and screenshot artefacts
+_qa-*
+_ux-*
+_f-*
+*.png
+*.pdf
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -931,6 +931,52 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
   </div>
 </div>
 
+<!-- ============ SEMANTIC RE-CHECK ============ -->
+<div class="veil" id="semVeil">
+  <div class="modal wide">
+    <h3>What you already said, in other words</h3>
+    <p>Keyword matching is literal, so it reports a gap whenever you described something using
+       different vocabulary from the posting. This reads your actual wording and sorts each gap into
+       what you already covered, what only you can confirm, and what is genuinely absent.</p>
+    <div id="semBody" style="margin-top:16px"></div>
+    <div class="btnrow" style="margin-top:18px">
+      <button class="btn quiet" id="semClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SOURCES ============ -->
+<div class="veil" id="srcVeil">
+  <div class="modal wide">
+    <h3>Where the roles come from</h3>
+    <p>Your browser calls each of these directly. Nothing about you is sent anywhere, which is also
+       the reason some sites cannot be included: a browser can only read what a site permits it to.</p>
+
+    <h4 class="lh">Live now, no setup</h4>
+    <ul class="atslist" id="srcOn"></ul>
+
+    <h4 class="lh">Company boards</h4>
+    <p style="font-size:12.5px; color:var(--muted); margin-bottom:6px">One per line as
+      <code>ats:token</code>. The token is the company name in the board URL, for example
+      <code>greenhouse:webflow</code>. Supported: greenhouse, lever, ashby.</p>
+    <textarea id="srcBoards" style="min-height:110px; font-family:ui-monospace,Menlo,monospace; font-size:12.5px"></textarea>
+
+    <h4 class="lh">Add LinkedIn and Indeed coverage, legitimately</h4>
+    <p style="font-size:12.5px; color:var(--ink-2); margin-bottom:4px">These services license and
+      redistribute the same inventory rather than scraping it. A free key switches them on and the
+      key stays in your browser.</p>
+    <div id="srcKeyed"></div>
+
+    <h4 class="lh">Cannot be included, and why</h4>
+    <ul class="atslist" id="srcOff"></ul>
+
+    <div class="btnrow" style="margin-top:18px">
+      <button class="btn" id="srcSave">Save sources</button>
+      <button class="btn quiet" id="srcClose">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ GAP WIZARD ============ -->
 <div class="veil" id="gapVeil">
   <div class="modal wide">
@@ -1493,11 +1539,51 @@ var COMPANY_BOARDS_DEFAULT = [
   {ats:"ashby", t:"midjourney"},    {ats:"ashby", t:"atticus"},
   {ats:"ashby", t:"revenuecat"}
 ];
+/* Every entry below returned data from this exact origin on 2026-07-30. The
+   blocked list underneath is not an opinion, it is the same test failing. */
 var AGGREGATORS = [
-  {id:"remotive",  url:"https://remotive.com/api/remote-jobs?limit=200"},
-  {id:"arbeitnow", url:"https://www.arbeitnow.com/api/job-board-api"},
-  {id:"jobicy",    url:"https://jobicy.com/api/v2/remote-jobs?count=50"}
+  {id:"remotive",  label:"Remotive",           url:"https://remotive.com/api/remote-jobs?limit=200"},
+  {id:"arbeitnow", label:"Arbeitnow",          url:"https://www.arbeitnow.com/api/job-board-api"},
+  {id:"jobicy",    label:"Jobicy",             url:"https://jobicy.com/api/v2/remote-jobs?count=50"},
+  {id:"wwr",       label:"We Work Remotely",   url:"https://weworkremotely.com/remote-jobs.rss"},
+  {id:"remoteok",  label:"RemoteOK",           url:"https://remoteok.com/api"},
+  {id:"themuse",   label:"The Muse",           url:"https://www.themuse.com/api/public/jobs?page=1"},
+  /* search_by_date, not search. The relevance-ranked endpoint returned a thread
+     from 2020 and every "job" came back six years old. */
+  {id:"hn",        label:"HN Who Is Hiring",   url:"https://hn.algolia.com/api/v1/search_by_date?tags=story,author_whoishiring&hitsPerPage=1"}
 ];
+
+/* Sites that cannot be reached from a browser, with the actual reason, because
+   "add LinkedIn" is a reasonable request and deserves a real answer.
+   cors  = public data, no CORS header. A server-side proxy would fix it.
+   wall  = login, paid, bot defence or no public listing endpoint. A proxy does
+           NOT fix it, and for several of these scraping breaches their terms. */
+var BLOCKED_SOURCES = [
+  {name:"LinkedIn",     kind:"wall", why:"No public jobs API. Requires login and blocks automated reads. Scraping it breaches their terms and they have litigated it."},
+  {name:"Indeed",       kind:"wall", why:"Publisher API closed to new registrations. The site blocks automated reads."},
+  {name:"ZipRecruiter", kind:"wall", why:"Partner API only, requires an approved commercial agreement."},
+  {name:"Wellfound",    kind:"wall", why:"GraphQL endpoint requires authentication and blocks anonymous reads."},
+  {name:"Built In",     kind:"wall", why:"No public API. Server-rendered behind bot protection."},
+  {name:"FlexJobs",     kind:"wall", why:"Paid subscription. Listings sit behind a login you cannot share with users."},
+  {name:"Dribbble",     kind:"wall", why:"Jobs board requires an authenticated OAuth token."},
+  {name:"Google Jobs",  kind:"wall", why:"Not a product you can query. Google for Jobs is a search results feature, not an API. Cloud Talent Solution is for posting your own roles, not reading Google's index."},
+  {name:"Contra",       kind:"wall", why:"Job feed is authenticated GraphQL, tied to a signed-in freelancer account."},
+  {name:"Craigslist",   kind:"cors", why:"RSS feeds are public but send no CORS header. A proxy would work."},
+  {name:"Reddit",       kind:"cors", why:"The .json endpoints are public but send no CORS header. A proxy would work."}
+];
+
+/* Key-based aggregators. These are the legitimate route to the inventory people
+   mean when they say LinkedIn or Indeed: they license and aggregate it rather
+   than scraping it. Off until the user adds their own free key. */
+var KEYED_SOURCES = {
+  adzuna:{label:"Adzuna", note:"Free tier. Aggregates a large share of Indeed-class inventory.",
+    signup:"https://developer.adzuna.com/", fields:["app_id","app_key"]},
+  jsearch:{label:"JSearch", note:"Aggregates Google for Jobs results, which includes LinkedIn and Indeed listings.",
+    signup:"https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch", fields:["rapidapi_key"]},
+  jooble:{label:"Jooble", note:"Free API key, broad international coverage.",
+    signup:"https://jooble.org/api/about", fields:["api_key"]}
+};
+function keyedCfg(){ try{ return JSON.parse(localStorage.getItem("ee.keysrc")||"{}"); }catch(e){ return {}; } }
 var SEARCH = {results:[], lastRun:null, running:false};
 
 function boardList(){
@@ -1546,6 +1632,76 @@ async function pullBoard(b){
 async function pullAggregator(a){
   var out=[];
   try{
+    /* Three of these are not JSON, so they get handled before the shared path. */
+    if(a.id==="wwr"){
+      var xml=await (await fetch(a.url)).text();
+      var doc=new DOMParser().parseFromString(xml,"text/xml");
+      [].forEach.call(doc.querySelectorAll("item"),function(it){
+        function g(t){ var e=it.querySelector(t); return e?e.textContent.trim():""; }
+        var full=g("title"), sp=full.split(/:\s+/);
+        out.push({id:"wwr"+g("link"), title:sp.length>1?sp.slice(1).join(": "):full,
+          co:sp.length>1?sp[0]:"", loc:g("region")||"Remote",
+          ts:Date.parse(g("pubDate"))||0, url:g("link"), src:"We Work Remotely",
+          types:typeOf(full,(g("type")||"")+" "+(g("region")||"")+" remote")});
+      });
+      return out;
+    }
+    if(a.id==="remoteok"){
+      var rk=await jget(a.url);
+      (rk||[]).forEach(function(x){
+        if(!x.position) return;   // first element is a legal notice, not a job
+        out.push({id:"rok"+x.id, title:x.position, co:x.company||"",
+          loc:x.location||"Remote", ts:(x.epoch?x.epoch*1000:Date.parse(x.date))||0,
+          url:x.url||("https://remoteok.com/l/"+x.id), src:"RemoteOK",
+          types:typeOf(x.position,(x.tags||[]).join(" ")+" remote")});
+      });
+      return out;
+    }
+    if(a.id==="themuse"){
+      for(var pg=0; pg<3; pg++){
+        var mu=await jget("https://www.themuse.com/api/public/jobs?page="+pg);
+        (mu.results||[]).forEach(function(x){
+          out.push({id:"muse"+x.id, title:x.name, co:(x.company&&x.company.name)||"",
+            loc:(x.locations||[]).map(function(l){ return l.name; }).join(", "),
+            ts:Date.parse(x.publication_date)||0,
+            url:(x.refs&&x.refs.landing_page)||"", src:"The Muse",
+            types:typeOf(x.name,(x.levels||[]).map(function(l){ return l.name; }).join(" ")+" "+
+              (x.locations||[]).map(function(l){ return l.name; }).join(" "))});
+        });
+      }
+      return out;
+    }
+    if(a.id==="hn"){
+      /* The monthly thread is the story; the jobs are its top-level comments.
+         Convention is "Company | Role | Location | Remote", loosely followed, so
+         this is best-effort and labelled as such in the UI. */
+      var s=await jget(a.url);
+      var story=(s.hits||[])[0]; if(!story) return out;
+      var th=await jget("https://hn.algolia.com/api/v1/items/"+story.objectID);
+      /* Children arrive oldest first, so an unsorted slice returned the start of
+         a month-old thread and every entry looked stale. */
+      (th.children||[]).slice().sort(function(a,b){
+        return (b.created_at_i||0)-(a.created_at_i||0); }).slice(0,120).forEach(function(c){
+        if(!c.text) return;
+        var plain=stripHtml(c.text).replace(/\s+/g," ").trim();
+        if(plain.length<30) return;
+        var head=plain.split(/[.\n]/)[0].slice(0,150);
+        var parts=head.split(/\s*[|·]\s*/).map(function(p){ return p.trim(); }).filter(Boolean);
+        /* Convention is Company | Role | Location, loosely followed. Anything
+           that looks like a place is pushed out of the role slot. */
+        var LOOKSPLACE=/remote|onsite|hybrid|,\s*[A-Z]{2}\b|United States|USA|UK|Europe|Canada|Germany|India/i;
+        var co=parts[0]||"HN", role="", locs=[];
+        parts.slice(1).forEach(function(p){
+          if(!role && !LOOKSPLACE.test(p)) role=p; else locs.push(p);
+        });
+        out.push({id:"hn"+c.id, title:(role||parts[1]||co).slice(0,90),
+          co:co.slice(0,50), loc:(locs.join(", ")||"See post").slice(0,60),
+          ts:(c.created_at_i||0)*1000,
+          url:"https://news.ycombinator.com/item?id="+c.id, src:"HN Who Is Hiring",
+          types:typeOf(head,plain.slice(0,300))});
+      });
+      return out;
+    }
     var j=await jget(a.url);
     if(a.id==="remotive") (j.jobs||[]).forEach(function(x){ out.push({
       id:"rm"+x.id, title:x.title, co:x.company_name, loc:x.candidate_required_location||"Remote",
@@ -1562,6 +1718,54 @@ async function pullAggregator(a){
   }catch(e){}
   return out;
 }
+/* Licensed aggregators, only when the user has supplied their own key. This is
+   the honest route to the inventory people mean when they say LinkedIn or
+   Indeed: these services license and redistribute it rather than scraping it. */
+async function pullKeyed(loc, extra){
+  var cfg=keyedCfg(), out=[];
+  var q=(extra||"").split(",")[0].trim() ||
+        (S.units[0] && (S.units[0].role||(S.units[0].tags||[])[0])) || "remote";
+  var where=loc||"";
+  try{
+    if(cfg.adzuna && cfg.adzuna.app_id && cfg.adzuna.app_key){
+      var cc=/united kingdom|london|uk/i.test(where)?"gb":(/canada/i.test(where)?"ca":"us");
+      var az=await jget("https://api.adzuna.com/v1/api/jobs/"+cc+"/search/1?app_id="+
+        encodeURIComponent(cfg.adzuna.app_id)+"&app_key="+encodeURIComponent(cfg.adzuna.app_key)+
+        "&results_per_page=50&what="+encodeURIComponent(q)+(where?"&where="+encodeURIComponent(where):""));
+      (az.results||[]).forEach(function(x){ out.push({
+        id:"az"+x.id, title:x.title, co:(x.company&&x.company.display_name)||"",
+        loc:(x.location&&x.location.display_name)||"", ts:Date.parse(x.created)||0,
+        url:x.redirect_url, src:"Adzuna", types:typeOf(x.title,(x.contract_time||"")+" "+(x.contract_type||""))});});
+    }
+  }catch(e){}
+  try{
+    if(cfg.jsearch && cfg.jsearch.rapidapi_key){
+      var r=await fetch("https://jsearch.p.rapidapi.com/search?query="+
+        encodeURIComponent(q+(where?" in "+where:""))+"&num_pages=1",
+        {headers:{"x-rapidapi-key":cfg.jsearch.rapidapi_key,"x-rapidapi-host":"jsearch.p.rapidapi.com"}});
+      var js=await r.json();
+      (js.data||[]).forEach(function(x){ out.push({
+        id:"js"+x.job_id, title:x.job_title, co:x.employer_name||"",
+        loc:[x.job_city,x.job_country].filter(Boolean).join(", ")||(x.job_is_remote?"Remote":""),
+        ts:(x.job_posted_at_timestamp||0)*1000, url:x.job_apply_link, src:"JSearch",
+        types:typeOf(x.job_title,(x.job_employment_type||"")+(x.job_is_remote?" remote":""))});});
+    }
+  }catch(e){}
+  try{
+    if(cfg.jooble && cfg.jooble.api_key){
+      var jr=await fetch("https://jooble.org/api/"+encodeURIComponent(cfg.jooble.api_key),
+        {method:"POST",headers:{"content-type":"application/json"},
+         body:JSON.stringify({keywords:q, location:where})});
+      var jj=await jr.json();
+      (jj.jobs||[]).forEach(function(x){ out.push({
+        id:"jb"+(x.id||x.link), title:x.title, co:x.company||"", loc:x.location||"",
+        ts:Date.parse(x.updated)||0, url:x.link, src:"Jooble",
+        types:typeOf(x.title,(x.type||"")+" "+(x.location||""))});});
+    }
+  }catch(e){}
+  return out;
+}
+
 /* Score a listing against the user's own graded evidence. Same scoring shape as
    the JD matcher so the numbers mean the same thing everywhere. */
 /* Scoring a LISTING is not the same problem as scoring a full job description.
@@ -1631,7 +1835,8 @@ async function runSearch(){
   stat.textContent="";
 
   var boards=boardList();
-  var tasks=boards.map(pullBoard).concat(AGGREGATORS.map(pullAggregator));
+  var tasks=boards.map(pullBoard).concat(AGGREGATORS.map(pullAggregator))
+                  .concat([pullKeyed(loc, extra)]);
   var chunks=await Promise.all(tasks);
   var all=[].concat.apply([],chunks);
 
@@ -1713,17 +1918,51 @@ $("searchBtn").addEventListener("click",runSearch);
     c.setAttribute("aria-pressed", c.getAttribute("aria-pressed")==="true"?"false":"true");
   });
 });
+function renderSources(){
+  var cfg=keyedCfg();
+  $("srcOn").innerHTML = AGGREGATORS.map(function(a){
+    return '<li class="ok"><span class="m">✓</span><span>'+esc(a.label)+'</span></li>'; }).join("")
+    + '<li class="ok"><span class="m">✓</span><span>'+boardList().length+
+      ' company boards on Greenhouse, Lever and Ashby</span></li>';
+  $("srcKeyed").innerHTML = Object.keys(KEYED_SOURCES).map(function(k){
+    var d=KEYED_SOURCES[k], on=cfg[k]&&Object.keys(cfg[k]).length;
+    return '<div style="padding:11px 0; border-bottom:1px solid var(--hairline)">'+
+      '<div style="display:flex; gap:8px; align-items:center">'+
+        '<b style="font-size:13.5px">'+esc(d.label)+'</b>'+
+        '<span class="grade '+(on?"g-audited":"g-none")+'"><span class="dot"></span>'+(on?"Connected":"Off")+'</span></div>'+
+      '<div style="font-size:12.5px; color:var(--ink-2); margin:3px 0 6px">'+esc(d.note)+'</div>'+
+      d.fields.map(function(f){
+        return '<input type="text" data-ks="'+k+'" data-kf="'+f+'" placeholder="'+esc(f)+'" '+
+          'value="'+esc((cfg[k]&&cfg[k][f])||"")+'" style="margin-bottom:5px">'; }).join("")+
+      '<div style="font-size:12px"><a href="'+d.signup+'" target="_blank" rel="noopener">Get a free key</a></div>'+
+    '</div>';
+  }).join("");
+  $("srcOff").innerHTML = BLOCKED_SOURCES.map(function(b){
+    return '<li class="no"><span class="m">✕</span><span><b>'+esc(b.name)+'</b>'+
+      (b.kind==="cors"?' <span class="tag" style="border-color:var(--estimated); color:var(--estimated)">a proxy would fix this</span>':'')+
+      '<span style="display:block; color:var(--muted); font-size:12.2px; margin-top:2px">'+esc(b.why)+'</span></span></li>';
+  }).join("");
+}
 $("srcBtn").addEventListener("click",function(){
-  var cur=boardList().map(function(b){ return b.ats+":"+b.t; }).join("\n");
-  var v=prompt("Company boards to search, one per line as ats:token.\n\n"+
-    "Supported: greenhouse, lever, ashby. The token is the company name in the board URL, "+
-    "for example job-boards.greenhouse.io/WEBFLOW/jobs/123.\n\n"+
-    "Remote aggregators (Remotive, Arbeitnow, Jobicy) are always included.", cur);
-  if(v===null) return;
-  var list=v.split(/\n+/).map(function(l){ var p=l.split(":");
-    return p.length===2?{ats:p[0].trim().toLowerCase(), t:p[1].trim()}:null; }).filter(Boolean);
+  renderSources();
+  $("srcBoards").value=boardList().map(function(b){ return b.ats+":"+b.t; }).join("\n");
+  $("srcVeil").classList.add("on");
+});
+$("srcClose").addEventListener("click",function(){ $("srcVeil").classList.remove("on"); });
+$("srcVeil").addEventListener("click",function(e){ if(e.target===$("srcVeil")) $("srcVeil").classList.remove("on"); });
+$("srcSave").addEventListener("click",function(){
+  var list=$("srcBoards").value.split(/\n+/).map(function(l){
+    var p=l.split(":"); return p.length===2?{ats:p[0].trim().toLowerCase(), t:p[1].trim()}:null;
+  }).filter(function(b){ return b && ["greenhouse","lever","ashby"].indexOf(b.ats)>=0; });
   try{ localStorage.setItem("ee.boards", JSON.stringify(list)); }catch(e){}
-  toast(list.length+" boards saved");
+  var cfg={};
+  [].forEach.call(document.querySelectorAll("[data-ks]"),function(i){
+    var v=i.value.trim(); if(!v) return;
+    cfg[i.dataset.ks]=cfg[i.dataset.ks]||{}; cfg[i.dataset.ks][i.dataset.kf]=v;
+  });
+  try{ localStorage.setItem("ee.keysrc", JSON.stringify(cfg)); }catch(e){}
+  renderSources();
+  toast(list.length+" boards and "+Object.keys(cfg).length+" keyed sources saved");
 });
 function showTab(which){
   var f=which==="find";
@@ -1887,12 +2126,153 @@ function renderMatch(){
   $("gapList").innerHTML = gaps.length
     ? '<div style="display:block; margin-bottom:7px; color:var(--muted); font-size:12.5px">Named in the posting, absent from your evidence:</div>'
       +'<div class="tags">'+gaps.map(function(o){ return '<span class="tag" style="border-color:var(--none); color:var(--none)">'+esc(o.k)+'</span>'; }).join("")+'</div>'
-      +'<div class="btnrow" style="margin-top:12px"><button class="btn sm" id="closeGapBtn">Close these gaps</button></div>'
+      +'<div class="btnrow" style="margin-top:12px"><button class="btn sm" id="semBtn">Re-check with AI</button>'
+      +'<button class="btn quiet sm" id="closeGapBtn">Answer them myself</button></div>'
+      +'<div style="display:block; margin-top:7px; color:var(--muted); font-size:12.2px">Keyword matching is literal. It will call something missing when you described it in different words. The AI re-check reads what you actually wrote.</div>'
       +'<div style="display:block; margin-top:9px; color:var(--muted); font-size:12.2px">Some of these you may genuinely have and simply never wrote down. The rest are real, and knowing which is which before an interview is the point.</div>'
     : '<div style="color:var(--audited)">Everything named in the posting is covered.</div>';
   var cg=$("closeGapBtn");
   if(cg) cg.addEventListener("click",function(){ openGapWizard(gaps.map(function(o){ return o.k; })); });
+  var sb=$("semBtn");
+  if(sb) sb.addEventListener("click",function(){
+    if(!aiReady()){
+      $("semVeil").classList.add("on");
+      $("semBody").innerHTML='<div class="ai-out on err">This needs a connected model, because it is '+
+        'reading your wording rather than matching strings.</div>'+
+        '<p style="margin-top:12px">Use <b>Connect AI</b> in the top bar. One click through OpenRouter, '+
+        'or paste a key from any provider. Or answer the gaps yourself with the other button.</p>';
+      return;
+    }
+    runSemantic(gaps.map(function(o){ return o.k; }));
+  });
 }
+
+/* =========================================================================
+   SEMANTIC GAP RE-CHECK
+   Keyword matching is literal, and that produces false negatives constantly. A
+   posting asks for "people leadership"; the resume says "cross-collaborated
+   across departments". Same thing, zero keyword overlap, and the tool calls it
+   a gap.
+
+   The model sorts each gap into three buckets and the buckets have different
+   permissions, which is the whole design:
+     covered  -> the user already said this in other words. Offer a reword of
+                 THEIR line into the posting's vocabulary. Translation, not
+                 invention, and it still needs a click.
+     implied  -> the work probably required it but they never said so. ASK.
+                 Never assert. This is where fabrication would creep in.
+     missing  -> no evidence. Stays a gap and is reported as one.
+   ========================================================================= */
+var SEM={items:[]};
+function semSystem(){
+  return AI_SYSTEM+"\n\nFor this task specifically: you are checking whether a "+
+  "requirement is already demonstrated in the user's own words. You may propose "+
+  "rewording THEIR existing line to use the posting's vocabulary. You may NEVER "+
+  "add experience, tools or numbers they did not state. If a requirement is only "+
+  "plausible rather than stated, mark it implied so the user is asked, never "+
+  "covered.";
+}
+async function runSemantic(gaps){
+  var v=$("semVeil"), body=$("semBody");
+  v.classList.add("on");
+  body.innerHTML='<div class="ai-out on"><span class="spin"></span>Reading what you actually wrote...</div>';
+  var evidence=S.units.map(function(u,i){
+    return "["+u.id+"] "+(u.role?u.role+" at ":"")+u.org+": "+bullet(u)+
+      ((u.tags||[]).length?" (tags: "+u.tags.join(", ")+")":"");
+  }).join("\n");
+  var prompt="A job posting asks for these terms and a literal keyword match found none of them "+
+    "in the candidate's resume:\n"+gaps.join(", ")+
+    "\n\nHere is everything the candidate actually wrote:\n"+evidence+
+    "\n\nFor EACH term return an object with:\n"+
+    "  term\n"+
+    "  verdict: \"covered\" if an existing line already describes this in different words, "+
+    "\"implied\" if the work they described would very likely have involved it but they never said so, "+
+    "\"missing\" if there is no basis at all\n"+
+    "  entry_id: the [id] of the line it relates to, or null\n"+
+    "  reason: one short sentence\n"+
+    "  rewrite: for covered only, that same line rewritten to use the posting's term naturally. "+
+    "Keep every fact and number identical. Null otherwise.\n"+
+    "  question: for implied only, the yes or no question to ask the candidate. Null otherwise.\n\n"+
+    "Return ONLY a JSON array. No commentary, no code fences.";
+  try{
+    var txt=await aiCall(prompt);
+    var m=txt.match(/\[[\s\S]*\]/); if(!m) throw new Error("The model did not return a list.");
+    SEM.items=JSON.parse(m[0]);
+    renderSemantic();
+  }catch(e){
+    body.innerHTML='<div class="ai-out on err">Could not run the re-check: '+esc(e.message)+
+      '</div><p style="margin-top:12px">You can still answer the gaps yourself.</p>';
+  }
+}
+function renderSemantic(){
+  var groups={covered:[], implied:[], missing:[]};
+  SEM.items.forEach(function(x,i){ x.__i=i; (groups[x.verdict]||groups.missing).push(x); });
+  var html="";
+  if(groups.covered.length){
+    html+='<h4 class="lh">You already said this, in other words</h4>'+
+      '<p style="font-size:12.5px; color:var(--ink-2)">Nothing new is being claimed. This is your own line, worded the way the posting words it.</p>';
+    html+=groups.covered.map(function(x){
+      var u=S.units.filter(function(z){ return String(z.id)===String(x.entry_id); })[0];
+      return '<div style="padding:11px 0; border-bottom:1px solid var(--hairline)">'+
+        '<div style="display:flex; gap:8px; align-items:center; margin-bottom:4px">'+
+        '<span class="grade g-audited"><span class="dot"></span>'+esc(x.term)+'</span></div>'+
+        '<div style="font-size:12.5px; color:var(--muted)">'+esc(x.reason||"")+'</div>'+
+        (u?'<div style="font-size:12.5px; margin-top:6px"><b>Now:</b> '+esc(bullet(u).slice(0,150))+'</div>':'')+
+        (x.rewrite?'<div style="font-size:12.5px; margin-top:4px; color:var(--audited)"><b>Becomes:</b> '+esc(x.rewrite)+'</div>'+
+          '<button class="btn sm" data-sem-apply="'+x.__i+'" style="margin-top:7px">Use this wording</button>':'')+
+      '</div>';
+    }).join("");
+  }
+  if(groups.implied.length){
+    html+='<h4 class="lh">Possibly true, only you know</h4>'+
+      '<p style="font-size:12.5px; color:var(--ink-2)">The work you described often involves these. Nothing is added unless you say yes.</p>';
+    html+=groups.implied.map(function(x){
+      return '<div style="padding:11px 0; border-bottom:1px solid var(--hairline)">'+
+        '<div style="display:flex; gap:8px; align-items:center; margin-bottom:4px">'+
+        '<span class="grade g-estimated"><span class="dot"></span>'+esc(x.term)+'</span></div>'+
+        '<div style="font-size:13px">'+esc(x.question||("Did you use "+x.term+"?"))+'</div>'+
+        '<div class="btnrow" style="margin-top:7px">'+
+          '<button class="btn sm" data-sem-yes="'+x.__i+'">Yes, add it</button>'+
+          '<button class="btn quiet sm" data-sem-no="'+x.__i+'">No</button></div>'+
+      '</div>';
+    }).join("");
+  }
+  if(groups.missing.length){
+    html+='<h4 class="lh">Genuinely missing</h4>'+
+      '<p style="font-size:12.5px; color:var(--ink-2)">No basis in anything you wrote. Leave these off and prepare an answer instead.</p>'+
+      '<div class="tags">'+groups.missing.map(function(x){
+        return '<span class="tag" style="border-color:var(--none); color:var(--none)">'+esc(x.term)+'</span>'; }).join("")+'</div>';
+  }
+  $("semBody").innerHTML=html||'<p>Nothing to report.</p>';
+  [].forEach.call($("semBody").querySelectorAll("[data-sem-apply]"),function(b){
+    b.addEventListener("click",function(){
+      var x=SEM.items[+b.dataset.semApply];
+      var u=S.units.filter(function(z){ return String(z.id)===String(x.entry_id); })[0];
+      if(!u){ toast("Could not find that entry"); return; }
+      u.action=String(x.rewrite).replace(/\.$/,"");
+      if(u.tags.indexOf(x.term)<0) u.tags.push(x.term);
+      save(); renderUnits(); renderMatch(); renderJobs();
+      b.outerHTML='<span class="grade g-audited"><span class="dot"></span>Applied</span>';
+      toast("Reworded. Check it on the Evidence step.");
+    });
+  });
+  [].forEach.call($("semBody").querySelectorAll("[data-sem-yes]"),function(b){
+    b.addEventListener("click",function(){
+      var x=SEM.items[+b.dataset.semYes];
+      var u=S.units.filter(function(z){ return String(z.id)===String(x.entry_id); })[0] || S.units[0];
+      if(u && u.tags.indexOf(x.term)<0){ u.tags.push(x.term); }
+      save(); renderUnits(); renderMatch(); renderJobs();
+      b.parentNode.outerHTML='<span class="grade g-audited"><span class="dot"></span>Added to '+
+        esc((u&&u.org)||"your evidence")+'</span>';
+    });
+  });
+  [].forEach.call($("semBody").querySelectorAll("[data-sem-no]"),function(b){
+    b.addEventListener("click",function(){ b.parentNode.outerHTML=
+      '<span class="grade g-none"><span class="dot"></span>Left as a gap</span>'; });
+  });
+}
+$("semClose").addEventListener("click",function(){ $("semVeil").classList.remove("on"); });
+$("semVeil").addEventListener("click",function(e){ if(e.target===$("semVeil")) $("semVeil").classList.remove("on"); });
 
 /* =========================================================================
    GAP CLOSING
@@ -1971,6 +2351,10 @@ function renderPaper(){
   var skillList=Object.keys(skills);
 
   $("paper").innerHTML=
+    (h.name?"":'<div class="noprint" style="background:var(--none-bg); border:1px solid var(--none); '+
+      'color:var(--none); border-radius:8px; padding:10px 13px; margin-bottom:14px; font-size:13px">'+
+      '<b>Your contact details are not filled in yet.</b> Press <b>Edit heading</b> above, or this '+
+      'exports with a placeholder name and no way to reach you.</div>')+
     '<div class="rname">'+esc(h.name||"Your Name")+'</div>'+
     (h.title?'<div class="rtitle">'+esc(h.title)+'</div>':"")+
     '<div class="rcontact">'+contact+(contact2?"<br>"+contact2:"")+'</div>'+
@@ -2007,6 +2391,16 @@ $("hdrDone").addEventListener("click",function(){
 });
 $("printBtn").addEventListener("click",function(){
   if(!isPro()){ showVeil(); return; }
+  /* Last line of defence. Exporting a resume with no name or no way to contact
+     you is the single most costly mistake this tool could let through. */
+  var miss=[];
+  if(!S.hdr.name) miss.push("your name");
+  if(!S.hdr.email && !S.hdr.phone) miss.push("an email or phone number");
+  if(!document.querySelectorAll(".paper li").length) miss.push("any experience bullets");
+  if(miss.length && !confirm("This resume is missing "+miss.join(" and ")+".\n\nExport anyway?")){
+    $("editHdrBtn").click();
+    return;
+  }
   window.print();
 });
 
@@ -2877,7 +3271,8 @@ document.addEventListener("keydown",function(e){
     $("welcome").classList.contains("on") && closeWelcome();
     $("pasteVeil").classList.remove("on"); $("veil").classList.remove("on");
     $("legalVeil").classList.remove("on"); $("aiVeil").classList.remove("on");
-    $("atsVeil").classList.remove("on");
+    $("atsVeil").classList.remove("on"); $("srcVeil").classList.remove("on");
+    $("semVeil").classList.remove("on");
     if($("gapVeil").classList.contains("on")) finishGaps();
   }
 });

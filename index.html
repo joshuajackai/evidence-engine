@@ -617,9 +617,84 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
 <section class="panel" id="p1">
   <div class="head">
     <h2>The jobs you are going for</h2>
-    <p>Paste a link to the posting and it will be fetched, or paste the text. Keep as many as you
-       like: each one remembers its own tailored resume.</p>
+    <p>Search live boards for roles that match your evidence, or add a posting yourself. Each job
+       keeps its own tailored resume.</p>
   </div>
+
+  <div class="seg" role="group" aria-label="Job source" style="margin-bottom:16px">
+    <button id="tabFind" aria-pressed="true">Find roles for me</button>
+    <button id="tabAdd" aria-pressed="false">Add one myself</button>
+  </div>
+
+  <!-- ===== FIND ROLES ===== -->
+  <div id="findPane">
+    <div class="grid2">
+      <div>
+        <div class="card" style="margin-bottom:18px">
+          <div class="row">
+            <div class="field"><label for="sWindow">Posted within</label>
+              <select id="sWindow">
+                <option value="1">Last hour</option>
+                <option value="6">Last 6 hours</option>
+                <option value="12">Last 12 hours</option>
+                <option value="24">Last 24 hours</option>
+                <option value="72" selected>Last 3 days</option>
+                <option value="168">Last 7 days</option>
+                <option value="336">Last 14 days</option>
+                <option value="720">Last 30 days</option>
+                <option value="0">Any time</option>
+              </select></div>
+            <div class="field"><label for="sLoc">Location contains</label>
+              <input type="text" id="sLoc" placeholder="United States, Remote, London, Canada">
+              <div class="hint">Leave blank for anywhere. Matches the text a board publishes.</div></div>
+          </div>
+          <div class="field">
+            <label>Employment type</label>
+            <div class="chips" id="sTypes">
+              <button class="chip" data-type="remote" aria-pressed="true">Remote</button>
+              <button class="chip" data-type="fulltime" aria-pressed="false">Full time</button>
+              <button class="chip" data-type="parttime" aria-pressed="false">Part time</button>
+              <button class="chip" data-type="contract" aria-pressed="false">Contract or freelance</button>
+              <button class="chip" data-type="intern" aria-pressed="false">Internship</button>
+            </div>
+            <div class="hint">Off means no filter on that dimension. Boards label these
+              inconsistently, so type is read from the posting's own field and its title.</div>
+          </div>
+          <div class="field" style="margin-bottom:10px">
+            <label for="sKeywords">Extra keywords, optional</label>
+            <input type="text" id="sKeywords" placeholder="designer, marketing, sql">
+            <div class="hint">Blank uses the skills already in your evidence.</div>
+          </div>
+          <div class="btnrow">
+            <button class="btn" id="searchBtn">Search live boards</button>
+            <button class="btn quiet sm" id="srcBtn">Sources</button>
+            <span id="searchStat" style="font-size:12.5px; color:var(--muted)"></span>
+          </div>
+          <div class="msg" id="searchMsg"></div>
+        </div>
+        <div id="results"></div>
+      </div>
+      <aside>
+        <div class="card">
+          <h3 style="font-size:14px; margin-bottom:4px">How the search works</h3>
+          <p style="font-size:12.5px; color:var(--ink-2)">Your browser calls the public job APIs
+            directly. Nothing about you is sent to any server, including your evidence, which is
+            why matching happens on this device after the listings arrive.</p>
+          <p style="font-size:12.5px; color:var(--muted); margin-bottom:0">Dates are the board's own
+            published timestamps, not a search engine's guess at freshness.</p>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3 style="font-size:14px; margin-bottom:9px">Match score</h3>
+          <p style="font-size:12.5px; color:var(--ink-2); margin-bottom:0">How much of what the
+            posting asks for already appears in your graded evidence. Open any role to see exactly
+            which terms hit and which are missing.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ===== ADD MANUALLY ===== -->
+  <div id="addPane" hidden>
   <div class="grid2">
     <div>
       <div class="card" style="margin-bottom:18px">
@@ -651,8 +726,6 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
         </div>
       </div>
 
-      <h3 style="font-size:14px; margin:0 0 10px">Saved jobs</h3>
-      <div id="jobList"></div>
     </div>
     <aside>
       <div class="card">
@@ -662,6 +735,10 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
       </div>
     </aside>
   </div>
+  </div>
+
+  <h3 style="font-size:14px; margin:24px 0 10px">Saved jobs</h3>
+  <div id="jobList"></div>
 </section>
 
 <!-- ============ 3 MATCH ============ -->
@@ -743,6 +820,7 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
         <div class="score-n" id="atsN">0</div>
         <div class="score-l">Machine readability</div>
         <ul class="atslist" id="atsList"></ul>
+        <div id="improveBox" style="margin-top:14px; padding-top:12px; border-top:1px solid var(--hairline)"></div>
       </div>
       <div class="card">
         <h3 style="font-size:14px; margin-bottom:11px">Typeface</h3>
@@ -853,6 +931,62 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
   </div>
 </div>
 
+<!-- ============ GAP WIZARD ============ -->
+<div class="veil" id="gapVeil">
+  <div class="modal wide">
+    <div style="font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+      color:var(--muted); margin-bottom:8px" id="gapProg"></div>
+    <h3>Do you have experience with <span style="color:var(--accent)" id="gapTerm"></span>?</h3>
+
+    <div id="gapAsk">
+      <p>This posting asks for it and nothing in your evidence mentions it. If you have done it and
+         simply never wrote it down, say so and it becomes a real entry. If you have not, that is a
+         genuine gap and worth knowing before an interview rather than during one.</p>
+      <div class="btnrow" style="margin-top:16px">
+        <button class="btn" id="gapYes">Yes, I have done this</button>
+        <button class="btn quiet" id="gapNo">No, not really</button>
+        <button class="btn quiet" id="gapSkip">Skip</button>
+      </div>
+    </div>
+
+    <div style="margin-top:18px; padding-top:12px; border-top:1px solid var(--hairline)">
+      <button class="linkbtn" id="gapExit">Stop and go back</button>
+    </div>
+
+    <div id="gapAnswer" hidden>
+      <div class="field" style="margin-top:14px">
+        <label for="gapWhere">What did you actually do with it</label>
+        <textarea id="gapWhere" placeholder="Built the weekly reporting in SQL for the operations review"></textarea>
+        <div class="hint">Your words. Nothing is generated for you here.</div>
+      </div>
+      <div class="field">
+        <label for="gapMetric">A number, if one exists</label>
+        <input type="text" id="gapMetric" placeholder="Leave blank if there is not one">
+        <div class="hint">Blank is fine and common. An invented number is worse than none.</div>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="gapSave">Add this and continue</button>
+        <button class="btn quiet" id="gapClose">Stop here</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ATS SUGGESTIONS ============ -->
+<div class="veil" id="atsVeil">
+  <div class="modal wide">
+    <h3>Suggested improvements</h3>
+    <p>Nothing below is applied until you say so. Anything that would change a fact or add a claim
+       is refused outright rather than offered.</p>
+    <div id="atsSuggestions" style="margin-top:16px"></div>
+    <div class="btnrow" style="margin-top:16px">
+      <button class="btn" id="atsApply">Apply the ones I ticked</button>
+      <button class="btn quiet" id="atsCancel">Close</button>
+    </div>
+    <div class="msg" id="atsMsg"></div>
+  </div>
+</div>
+
 <!-- ============ PRIVACY AND TERMS ============ -->
 <div class="veil" id="legalVeil">
   <div class="modal wide">
@@ -945,8 +1079,9 @@ textarea{resize:vertical; min-height:76px; line-height:1.5}
           <option value="together">Together AI</option>
           <option value="custom">Other, OpenAI compatible</option>
         </select></div>
-      <div class="field"><label for="aiModel">Model</label>
-        <input type="text" id="aiModel" placeholder="claude-sonnet-5"></div>
+      <div class="field"><label for="aiModelSel">Model</label>
+        <select id="aiModelSel"></select>
+        <input type="text" id="aiModel" placeholder="exact model id" hidden></div>
     </div>
     <p id="keyHelp" style="font-size:12.5px; color:var(--muted); margin:-6px 0 12px"></p>
     <div class="field" id="aiUrlField" hidden><label for="aiBase">API endpoint</label>
@@ -1124,7 +1259,9 @@ function openEditor(id){
   S.editing=id;
   var u = id!=null ? S.units.find(function(x){ return x.id===id; }) : null;
   $("fOrg").value=u?u.org:""; $("fRole").value=u?u.role:""; $("fDates").value=u?u.dates:"";
-  $("fAction").value=u?u.action:""; $("fType").value=u?u.metricType:"audited";
+  /* New entries start ungraded. Defaulting to the strictest grade meant a first
+     save was rejected by validation before the user knew a grade existed. */
+  $("fAction").value=u?u.action:""; $("fType").value=u?u.metricType:"none";
   $("fMetric").value=u?u.metric:""; $("fConstraint").value=u?u.constraint:"";
   $("fEvidence").value=u?u.evidence:""; $("fTags").value=u?(u.tags||[]).join(", "):"";
   $("fBench").value=u?(u.benchmark||""):"";
@@ -1229,7 +1366,7 @@ var STOP=("a about above after again against all am an and any are as at be beca
 "them then there these they this those through to too under until up very was we were what when where which while who whom why will "+
 "with you your role team work working experience years ability strong excellent including etc must plus using use used "+
 "across within also new well help support ensure drive great good high right able hiring hire looking seeking join joining "+
-"requirements required requirement responsibilities responsibility nice want wants need needs needed reads read write "+
+"requirements required requirement requires require requiring responsibilities responsibility nice want wants need needs needed reads read write "+
 "writes build builds built lead leads leading own owns owning comfort comfortable similar tooling tools someone person candidate "+
 "candidates apply application applicants company companies will would could may might actually").split(" ");
 var PHRASE=["paid social","paid media","media buying","landing page","conversion rate","design system","design systems",
@@ -1329,6 +1466,273 @@ $("jClear").addEventListener("click",function(){
   $("jUrl").value=""; $("jTitle").value=""; $("jCo").value=""; $("jText").value="";
   $("urlMsg").classList.remove("on");
 });
+
+/* =========================================================================
+   LIVE JOB SEARCH
+   Every source below was CORS-tested from this deployed origin. A browser can
+   call the public JSON APIs that applicant tracking systems publish for their
+   own embedded boards, and a few remote-job aggregators that allow it too.
+   It cannot call LinkedIn, Indeed, Glassdoor or Himalayas: those either send no
+   CORS header or require a key, and no amount of client code changes that.
+   Dates are each board's own published timestamp, never a search engine's guess.
+   ========================================================================= */
+var COMPANY_BOARDS_DEFAULT = [
+  {ats:"greenhouse", t:"stripe"},   {ats:"greenhouse", t:"airtable"},
+  {ats:"greenhouse", t:"webflow"},  {ats:"greenhouse", t:"gitlab"},
+  {ats:"greenhouse", t:"reddit"},   {ats:"greenhouse", t:"robinhood"},
+  {ats:"greenhouse", t:"brex"},     {ats:"greenhouse", t:"klaviyo"},
+  {ats:"greenhouse", t:"mongodb"},  {ats:"greenhouse", t:"twilio"},
+  {ats:"greenhouse", t:"anthropic"},{ats:"greenhouse", t:"vercel"},
+  {ats:"greenhouse", t:"amplitude"},{ats:"greenhouse", t:"hightouch"},
+  {ats:"greenhouse", t:"descript"}, {ats:"greenhouse", t:"underdogfantasy"},
+  {ats:"lever", t:"superside"},     {ats:"lever", t:"ro"},
+  {ats:"lever", t:"cloudinary"},    {ats:"lever", t:"instrument"},
+  {ats:"lever", t:"fantasy"},       {ats:"lever", t:"rightsideup"},
+  {ats:"ashby", t:"ramp"},          {ats:"ashby", t:"perplexity"},
+  {ats:"ashby", t:"elevenlabs"},    {ats:"ashby", t:"replit"},
+  {ats:"ashby", t:"midjourney"},    {ats:"ashby", t:"atticus"},
+  {ats:"ashby", t:"revenuecat"}
+];
+var AGGREGATORS = [
+  {id:"remotive",  url:"https://remotive.com/api/remote-jobs?limit=200"},
+  {id:"arbeitnow", url:"https://www.arbeitnow.com/api/job-board-api"},
+  {id:"jobicy",    url:"https://jobicy.com/api/v2/remote-jobs?count=50"}
+];
+var SEARCH = {results:[], lastRun:null, running:false};
+
+function boardList(){
+  try{ var c=JSON.parse(localStorage.getItem("ee.boards")||"null"); if(Array.isArray(c)&&c.length) return c; }catch(e){}
+  return COMPANY_BOARDS_DEFAULT;
+}
+function typeOf(title, raw){
+  var s=((title||"")+" "+(raw||"")).toLowerCase(), out=[];
+  if(/\bintern(ship)?\b/.test(s)) out.push("intern");
+  if(/contract|freelance|1099|temporary|fractional|consultant/.test(s)) out.push("contract");
+  if(/part[\s-]?time/.test(s)) out.push("parttime");
+  if(/full[\s-]?time/.test(s)) out.push("fulltime");
+  if(/remote|anywhere|distributed/.test(s)) out.push("remote");
+  return out;
+}
+async function jget(u){
+  var r=await fetch(u,{headers:{accept:"application/json"}});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return await r.json();
+}
+async function pullBoard(b){
+  var out=[];
+  try{
+    if(b.ats==="greenhouse"){
+      var j=await jget("https://boards-api.greenhouse.io/v1/boards/"+b.t+"/jobs?content=false");
+      (j.jobs||[]).forEach(function(x){ out.push({
+        id:"gh"+x.id, title:x.title, co:b.t, loc:(x.location&&x.location.name)||"",
+        ts:Date.parse(x.first_published||x.updated_at||0)||0, url:x.absolute_url, src:"Greenhouse",
+        types:typeOf(x.title,(x.location&&x.location.name)||"")});});
+    } else if(b.ats==="lever"){
+      var l=await jget("https://api.lever.co/v0/postings/"+b.t+"?mode=json");
+      (l||[]).forEach(function(x){ var c=x.categories||{}; out.push({
+        id:"lv"+x.id, title:x.text, co:b.t, loc:c.location||"",
+        ts:x.createdAt||0, url:x.hostedUrl, src:"Lever",
+        types:typeOf(x.text,(c.commitment||"")+" "+(c.location||"")+" "+(x.workplaceType||""))});});
+    } else if(b.ats==="ashby"){
+      var a=await jget("https://api.ashbyhq.com/posting-api/job-board/"+b.t);
+      (a.jobs||[]).forEach(function(x){ out.push({
+        id:"ab"+(x.id||x.jobUrl), title:x.title, co:b.t, loc:x.location||"",
+        ts:Date.parse(x.publishedAt||0)||0, url:x.jobUrl, src:"Ashby",
+        types:typeOf(x.title,(x.employmentType||"")+" "+(x.location||"")+(x.isRemote?" remote":""))});});
+    }
+  }catch(e){ /* one dead board must never sink the whole search */ }
+  return out;
+}
+async function pullAggregator(a){
+  var out=[];
+  try{
+    var j=await jget(a.url);
+    if(a.id==="remotive") (j.jobs||[]).forEach(function(x){ out.push({
+      id:"rm"+x.id, title:x.title, co:x.company_name, loc:x.candidate_required_location||"Remote",
+      ts:Date.parse(x.publication_date||0)||0, url:x.url, src:"Remotive",
+      types:typeOf(x.title,(x.job_type||"")+" remote")});});
+    if(a.id==="arbeitnow") (j.data||[]).forEach(function(x){ out.push({
+      id:"an"+x.slug, title:x.title, co:x.company_name, loc:x.location||"",
+      ts:(x.created_at||0)*1000, url:x.url, src:"Arbeitnow",
+      types:typeOf(x.title,(x.job_types||[]).join(" ")+(x.remote?" remote":""))});});
+    if(a.id==="jobicy") (j.jobs||[]).forEach(function(x){ out.push({
+      id:"jy"+x.id, title:x.jobTitle, co:x.companyName, loc:x.jobGeo||"Remote",
+      ts:Date.parse(x.pubDate||0)||0, url:x.url, src:"Jobicy",
+      types:typeOf(x.jobTitle,(x.jobType||[]).join(" ")+" remote")});});
+  }catch(e){}
+  return out;
+}
+/* Score a listing against the user's own graded evidence. Same scoring shape as
+   the JD matcher so the numbers mean the same thing everywhere. */
+/* Scoring a LISTING is not the same problem as scoring a full job description.
+   A board's list endpoint gives a title and a location, nothing else, so this is
+   a pre-screen and the UI says so. Two signals only, both absolute rather than
+   relative to the best row in the batch: an early version normalised against the
+   top scorer and happily showed 100% for a German Werkstudent role that shared
+   exactly one word with the profile. */
+function profileTerms(extra){
+  var tags={}, titles={};
+  S.units.forEach(function(u){
+    (u.tags||[]).forEach(function(x){ x=String(x).toLowerCase().trim(); if(x.length>2) tags[x]=1; });
+    if(u.role) titles[String(u.role).toLowerCase()]=1;
+  });
+  (extra||"").split(",").forEach(function(s){ s=s.trim().toLowerCase(); if(s.length>2) tags[s]=1; });
+  return {tags:Object.keys(tags), titles:Object.keys(titles)};
+}
+function scoreListing(job, prof){
+  var hay=(job.title+" "+job.loc).toLowerCase();
+  var hits=prof.tags.filter(function(t){
+    return new RegExp("\\b"+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i").test(hay);
+  });
+  /* Title affinity: how much of one of the user's own role titles appears in the
+     listing title. This is what stops a single shared generic word scoring high. */
+  var tw=job.title.toLowerCase().split(/[^a-z0-9+#]+/).filter(function(w){
+    return w.length>3 && STOP.indexOf(w)<0; });
+  var best=0;
+  prof.titles.forEach(function(rt){
+    var rw=rt.split(/[^a-z0-9+#]+/).filter(function(w){ return w.length>3 && STOP.indexOf(w)<0; });
+    if(!rw.length) return;
+    var o=rw.filter(function(w){ return tw.indexOf(w)>-1; }).length/rw.length;
+    if(rw.length===1) o=o*0.5;  // a one-word title match is weak evidence
+    best=Math.max(best,o);
+  });
+  /* How much of the LISTING title the profile explains, as well as how much of
+     the profile the listing reflects. One-directional matching made a two-word
+     title score the same as a six-word one. */
+  var vocab={}; prof.tags.forEach(function(t){ t.split(/\s+/).forEach(function(w){ if(w.length>3) vocab[w]=1; }); });
+  prof.titles.forEach(function(rt){ rt.split(/[^a-z0-9+#]+/).forEach(function(w){
+    if(w.length>3 && STOP.indexOf(w)<0) vocab[w]=1; }); });
+  var inter=tw.filter(function(w){ return vocab[w]; });
+  var cover=tw.length ? inter.length/tw.length : 0;
+  var denom=Math.max(3, Math.min(prof.tags.length, 8));
+  var tagPart=prof.tags.length ? Math.min(1, hits.length/denom) : 0;
+  var pct=Math.round(Math.min(1, tagPart*0.45 + best*0.3 + cover*0.25)*100);
+  return {pct:pct, hits:hits};
+}
+/* The list endpoints give a title and a location, nothing more, so a numeric
+   percentage here would be false precision. Bands say what the number can
+   honestly support, and the real figure arrives once Tailor fetches the body. */
+function band(p){
+  if(p>=55) return ["Strong","hi"];
+  if(p>=30) return ["Possible",""];
+  if(p>=15) return ["Weak",""];
+  return ["Long shot",""];
+}
+async function runSearch(){
+  if(SEARCH.running) return;
+  SEARCH.running=true;
+  var win=parseInt($("sWindow").value,10);
+  var loc=$("sLoc").value.trim().toLowerCase();
+  var extra=$("sKeywords").value.trim();
+  var wantTypes=[].filter.call(document.querySelectorAll("#sTypes .chip"),function(c){
+    return c.getAttribute("aria-pressed")==="true"; }).map(function(c){ return c.dataset.type; });
+  var msg=$("searchMsg"), stat=$("searchStat");
+  msg.className="msg on"; msg.innerHTML='<span class="spin"></span>Calling boards...';
+  stat.textContent="";
+
+  var boards=boardList();
+  var tasks=boards.map(pullBoard).concat(AGGREGATORS.map(pullAggregator));
+  var chunks=await Promise.all(tasks);
+  var all=[].concat.apply([],chunks);
+
+  var now=Date.now(), cutoff = win? now - win*3600*1000 : 0;
+  var seen={}, rows=[];
+  all.forEach(function(j){
+    if(!j.title || !j.url) return;
+    var key=(j.co+"|"+j.title).toLowerCase().replace(/\s+/g," ");
+    if(seen[key]) return; seen[key]=1;
+    if(win && (!j.ts || j.ts<cutoff)) return;
+    if(loc && (j.loc||"").toLowerCase().indexOf(loc)<0) return;
+    if(wantTypes.length && !wantTypes.every(function(t){ return j.types.indexOf(t)>=0; })) return;
+    rows.push(j);
+  });
+  var prof=profileTerms(extra);
+  rows.forEach(function(j){ var r=scoreListing(j,prof); j.pct=r.pct; j.hits=r.hits; });
+  rows.sort(function(a,b){ return b.pct-a.pct || b.ts-a.ts; });
+  var scored=rows.filter(function(j){ return j.pct>0; });
+
+  SEARCH.results=(scored.length?scored:rows).slice(0,60);
+  SEARCH.lastRun=now; SEARCH.running=false;
+  msg.classList.remove("on");
+  stat.innerHTML = all.length.toLocaleString()+" listings pulled, "+rows.length+" passed your filters, "+
+    scored.length+" overlap your evidence. Updated "+new Date(now).toLocaleTimeString()+
+    (prof.tags.length?"":' <b style="color:var(--none)">Add evidence first, nothing to score against.</b>');
+  renderResults();
+}
+function renderResults(){
+  var box=$("results"), rows=SEARCH.results;
+  if(!rows.length){
+    box.innerHTML='<div class="empty"><h3>'+(SEARCH.lastRun?"Nothing matched those filters":"No search run yet")+'</h3>'+
+      '<p>'+(SEARCH.lastRun?"Widen the time window, clear the location, or switch off a type filter.":
+      "Pick a time window and press Search. Add evidence first so roles can be scored against it.")+'</p></div>';
+    return;
+  }
+  box.innerHTML=rows.map(function(j,i){
+    var age=j.ts?Math.round((Date.now()-j.ts)/3600000):null;
+    var ageTxt=age===null?"date unknown":(age<1?"under an hour ago":(age<24?age+"h ago":Math.round(age/24)+"d ago"));
+    var bd=band(j.pct);
+    return '<div class="job" data-res="'+i+'" style="cursor:default">'+
+      '<span class="job-cov'+(bd[1]?" "+bd[1]:"")+'" title="Title-level pre-screen. The precise '+
+        'score is calculated once Tailor fetches the full posting.">'+bd[0]+'</span>'+
+      '<div class="job-main"><b>'+esc(j.title)+'</b>'+
+      '<span>'+esc(j.co)+(j.loc?" · "+esc(j.loc):"")+' · '+ageTxt+' · '+esc(j.src)+'</span>'+
+      (j.hits.length?'<div class="tags" style="margin-top:5px">'+j.hits.slice(0,7).map(function(h){
+        return '<span class="tag hit">'+esc(h)+'</span>'; }).join("")+'</div>'
+        :'<div class="tags" style="margin-top:5px"><span class="tag">no overlap with your evidence</span></div>')+
+      '</div>'+
+      '<div style="display:flex; gap:6px; flex:none">'+
+        '<a class="btn quiet sm" href="'+esc(j.url)+'" target="_blank" rel="noopener">Open</a>'+
+        '<button class="btn sm" data-tailor="'+i+'">Tailor</button>'+
+      '</div></div>';
+  }).join("");
+  [].forEach.call(box.querySelectorAll("[data-tailor]"),function(b){
+    b.addEventListener("click",function(){ tailorFor(SEARCH.results[+b.dataset.tailor]); });
+  });
+}
+/* Pull the full posting text, then save it as a job and jump to matching. */
+async function tailorFor(j){
+  var msg=$("searchMsg"); msg.className="msg on";
+  msg.innerHTML='<span class="spin"></span>Fetching the full posting for '+esc(j.title)+'...';
+  var text="";
+  try{ var d=await fetchJob(j.url); text=d.text||""; }catch(e){}
+  if(!text){
+    /* Aggregator rows and unsupported boards still work: score on what we have
+       and tell the user to paste the body for a sharper match. */
+    text=j.title+"\n"+j.co+"\n"+j.loc+"\n"+j.hits.join(", ");
+    msg.className="msg bad on";
+    msg.textContent="Saved, but the full text could not be read from "+j.src+
+      ". Open the posting, copy the description, and paste it into Add one myself for a sharper match.";
+  } else { msg.classList.remove("on"); }
+  $("jTitle").value=j.title; $("jCo").value=j.co; $("jUrl").value=j.url; $("jText").value=text;
+  showTab("add");
+  parseJD();
+}
+$("searchBtn").addEventListener("click",runSearch);
+[].forEach.call(document.querySelectorAll("#sTypes .chip"),function(c){
+  c.addEventListener("click",function(){
+    c.setAttribute("aria-pressed", c.getAttribute("aria-pressed")==="true"?"false":"true");
+  });
+});
+$("srcBtn").addEventListener("click",function(){
+  var cur=boardList().map(function(b){ return b.ats+":"+b.t; }).join("\n");
+  var v=prompt("Company boards to search, one per line as ats:token.\n\n"+
+    "Supported: greenhouse, lever, ashby. The token is the company name in the board URL, "+
+    "for example job-boards.greenhouse.io/WEBFLOW/jobs/123.\n\n"+
+    "Remote aggregators (Remotive, Arbeitnow, Jobicy) are always included.", cur);
+  if(v===null) return;
+  var list=v.split(/\n+/).map(function(l){ var p=l.split(":");
+    return p.length===2?{ats:p[0].trim().toLowerCase(), t:p[1].trim()}:null; }).filter(Boolean);
+  try{ localStorage.setItem("ee.boards", JSON.stringify(list)); }catch(e){}
+  toast(list.length+" boards saved");
+});
+function showTab(which){
+  var f=which==="find";
+  $("tabFind").setAttribute("aria-pressed",String(f));
+  $("tabAdd").setAttribute("aria-pressed",String(!f));
+  $("findPane").hidden=!f; $("addPane").hidden=f;
+}
+$("tabFind").addEventListener("click",function(){ showTab("find"); });
+$("tabAdd").addEventListener("click",function(){ showTab("add"); });
 
 /* ---------- saved jobs ---------- */
 function renderJobs(){
@@ -1473,13 +1877,75 @@ function renderMatch(){
   chosen.forEach(function(r){ r.hits.forEach(function(h){ covered[h]=1; }); });
   var pct=kw.length?Math.round(Object.keys(covered).length/kw.length*100):0;
   $("covN").textContent=pct+"%";
-  var gaps=kw.filter(function(o){ return !covered[o.k]; }).slice(0,10);
+  /* A gap is only worth asking about if it names something. Generic verbs and
+     filler survive the keyword pass often enough that the wizard was opening
+     with "Do you have experience with requires?" */
+  var NOTASKILL=/^(also|able|across|team|teams|role|roles|year|years|plus|strong|good|great|help|helps|drive|drives|own|owns|join|joins|work|works|working|include|includes|including|etc|new|well|more|most|best|like|likes|make|makes|take|takes|give|gives|come|comes|know|knows|look|looks|find|finds|show|shows|keep|keeps|move|moves|turn|turns|part|full|time|day|days|week|weeks|month|months)$/i;
+  var gaps=kw.filter(function(o){
+    return !covered[o.k] && o.k.length>2 && !NOTASKILL.test(o.k);
+  }).slice(0,10);
   $("gapList").innerHTML = gaps.length
     ? '<div style="display:block; margin-bottom:7px; color:var(--muted); font-size:12.5px">Named in the posting, absent from your evidence:</div>'
-      +'<div class="tags">'+gaps.map(function(o){ return '<span class="tag">'+esc(o.k)+'</span>'; }).join("")+'</div>'
-      +'<div style="display:block; margin-top:10px; color:var(--muted); font-size:12.5px">If one of these is a hard requirement you genuinely lack, say so in the interview rather than writing around it.</div>'
+      +'<div class="tags">'+gaps.map(function(o){ return '<span class="tag" style="border-color:var(--none); color:var(--none)">'+esc(o.k)+'</span>'; }).join("")+'</div>'
+      +'<div class="btnrow" style="margin-top:12px"><button class="btn sm" id="closeGapBtn">Close these gaps</button></div>'
+      +'<div style="display:block; margin-top:9px; color:var(--muted); font-size:12.2px">Some of these you may genuinely have and simply never wrote down. The rest are real, and knowing which is which before an interview is the point.</div>'
     : '<div style="color:var(--audited)">Everything named in the posting is covered.</div>';
+  var cg=$("closeGapBtn");
+  if(cg) cg.addEventListener("click",function(){ openGapWizard(gaps.map(function(o){ return o.k; })); });
 }
+
+/* =========================================================================
+   GAP CLOSING
+   The honest way to raise a match score. Every unmatched requirement is put to
+   the user as a question. If they have it, it becomes a real graded entry and
+   the score rises because the evidence rose. If they do not, it stays a gap and
+   is reported as one. The model is never asked to supply the answer, which is
+   the whole reason a score from this tool means anything.
+   ========================================================================= */
+var GAPQ={list:[], i:0};
+function openGapWizard(gaps){
+  if(!gaps.length) return;
+  GAPQ={list:gaps.slice(0,12), i:0, answers:{}};
+  renderGapStep();
+  $("gapVeil").classList.add("on");
+}
+function renderGapStep(){
+  var g=GAPQ.list[GAPQ.i];
+  if(!g){ finishGaps(); return; }
+  $("gapProg").textContent="Requirement "+(GAPQ.i+1)+" of "+GAPQ.list.length;
+  $("gapTerm").textContent=g;
+  $("gapWhere").value=""; $("gapMetric").value="";
+  $("gapAnswer").hidden=true;
+  $("gapAsk").hidden=false;
+}
+$("gapYes").addEventListener("click",function(){ $("gapAsk").hidden=true; $("gapAnswer").hidden=false; $("gapWhere").focus(); });
+$("gapNo").addEventListener("click",function(){ GAPQ.answers[GAPQ.list[GAPQ.i]]=false; GAPQ.i++; renderGapStep(); });
+$("gapSkip").addEventListener("click",function(){ GAPQ.i++; renderGapStep(); });
+$("gapSave").addEventListener("click",function(){
+  var g=GAPQ.list[GAPQ.i], where=$("gapWhere").value.trim(), metric=$("gapMetric").value.trim();
+  if(!where){ toast("Say where you did it, or choose Not really."); return; }
+  var org=(S.units[0]&&S.units[0].org)||"Previous role";
+  S.units.push({id:Date.now()+GAPQ.i, org:org, role:"", dates:"",
+    action:where, metricType: metric?"estimated":"none", metric:metric,
+    constraint:"", evidence: metric?"Added while closing a gap, confirm the source before sending":"",
+    benchmark:"", tags:[g]});
+  GAPQ.answers[g]=true; GAPQ.i++; save(); renderGapStep();
+});
+function finishGaps(){
+  $("gapVeil").classList.remove("on");
+  var added=Object.keys(GAPQ.answers).filter(function(k){ return GAPQ.answers[k]; }).length;
+  var real=Object.keys(GAPQ.answers).filter(function(k){ return !GAPQ.answers[k]; });
+  renderUnits(); renderMatch(); renderJobs();
+  if(added) toast(added+" new entries added. Grade them properly on the Evidence step.");
+  if(real.length) setTimeout(function(){
+    toast("Still genuinely missing: "+real.slice(0,4).join(", ")+". Worth preparing an answer.");
+  }, added?2600:200);
+}
+/* Both exits, because the wizard has two sub-panels and an early build left the
+   question view with no way out except the keyboard. */
+$("gapClose").addEventListener("click",function(){ finishGaps(); });
+$("gapExit").addEventListener("click",function(){ finishGaps(); });
+$("gapVeil").addEventListener("click",function(e){ if(e.target===$("gapVeil")) finishGaps(); });
 
 /* ---------- resume ---------- */
 function renderPaper(){
@@ -1610,27 +2076,58 @@ var AI={provider:"openrouter", key:"", model:"", baseUrl:""};
    and Google, which are handled separately in aiCall.
    `keys` is the direct link to that provider's key page, so "get a key" is one
    click rather than a hunt through a console. */
+/* `models` is a picker list, because nobody remembers that Anthropic's id is
+   "claude-sonnet-5" and not "Claude Sonnet". The first entry is the default.
+   Model names move fast, so every provider also has a Custom option that
+   reveals a free-text field rather than trapping the user on this list. */
 var AI_DEFAULTS={
-  openrouter:{label:"OpenRouter", model:"anthropic/claude-sonnet-5", url:"https://openrouter.ai/api/v1/chat/completions",
-    keys:"https://openrouter.ai/keys", colour:"#6467F2", initials:"OR", note:"One key, every major model."},
-  anthropic:{label:"Anthropic", model:"claude-sonnet-5", url:"https://api.anthropic.com/v1/messages",
-    keys:"https://console.anthropic.com/settings/keys", colour:"#C4331A", initials:"A", note:"Claude, direct."},
-  openai:{label:"OpenAI", model:"gpt-4o", url:"https://api.openai.com/v1/chat/completions",
-    keys:"https://platform.openai.com/api-keys", colour:"#10A37F", initials:"AI", note:"GPT, direct."},
-  google:{label:"Google Gemini", model:"gemini-2.0-flash", url:"https://generativelanguage.googleapis.com",
-    keys:"https://aistudio.google.com/apikey", colour:"#3D5A80", initials:"G", note:"Gemini, free tier available."},
-  groq:{label:"Groq", model:"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions",
-    keys:"https://console.groq.com/keys", colour:"#A0670F", initials:"GQ", note:"Very fast, free tier."},
-  deepseek:{label:"DeepSeek", model:"deepseek-chat", url:"https://api.deepseek.com/chat/completions",
-    keys:"https://platform.deepseek.com/api_keys", colour:"#1E6F4E", initials:"DS", note:"Low cost."},
-  mistral:{label:"Mistral", model:"mistral-large-latest", url:"https://api.mistral.ai/v1/chat/completions",
-    keys:"https://console.mistral.ai/api-keys", colour:"#B03A22", initials:"M", note:"European, EU hosted."},
-  xai:{label:"xAI Grok", model:"grok-2-latest", url:"https://api.x.ai/v1/chat/completions",
-    keys:"https://console.x.ai/", colour:"#3A342C", initials:"X", note:"Grok, direct."},
-  together:{label:"Together AI", model:"meta-llama/Llama-3.3-70B-Instruct-Turbo", url:"https://api.together.xyz/v1/chat/completions",
-    keys:"https://api.together.ai/settings/api-keys", colour:"#4A4238", initials:"T", note:"Open models."},
-  custom:{label:"Other", model:"", url:"", keys:"", colour:"#6E6E72", initials:"?", note:"Any OpenAI-compatible endpoint."}
+  openrouter:{label:"OpenRouter", url:"https://openrouter.ai/api/v1/chat/completions",
+    keys:"https://openrouter.ai/keys", colour:"#6467F2", initials:"OR", note:"One key, every major model.",
+    models:[["anthropic/claude-sonnet-5","Claude Sonnet 5, balanced"],
+            ["anthropic/claude-opus-5","Claude Opus 5, strongest"],
+            ["anthropic/claude-haiku-4.5","Claude Haiku 4.5, fast and cheap"],
+            ["openai/gpt-4o","GPT-4o"],["openai/gpt-4o-mini","GPT-4o mini, cheap"],
+            ["google/gemini-2.0-flash-001","Gemini 2.0 Flash"],
+            ["meta-llama/llama-3.3-70b-instruct","Llama 3.3 70B"],
+            ["deepseek/deepseek-chat","DeepSeek Chat, very cheap"],
+            ["mistralai/mistral-large","Mistral Large"],["x-ai/grok-2-1212","Grok 2"]]},
+  anthropic:{label:"Anthropic", url:"https://api.anthropic.com/v1/messages",
+    keys:"https://console.anthropic.com/settings/keys", colour:"#C4331A", initials:"A", note:"Claude, direct.",
+    models:[["claude-sonnet-5","Claude Sonnet 5, balanced"],
+            ["claude-opus-5","Claude Opus 5, strongest"],
+            ["claude-haiku-4-5-20251001","Claude Haiku 4.5, fast and cheap"]]},
+  openai:{label:"OpenAI", url:"https://api.openai.com/v1/chat/completions",
+    keys:"https://platform.openai.com/api-keys", colour:"#10A37F", initials:"AI", note:"GPT, direct.",
+    models:[["gpt-4o","GPT-4o, balanced"],["gpt-4o-mini","GPT-4o mini, cheap"],["gpt-4-turbo","GPT-4 Turbo"]]},
+  google:{label:"Google Gemini", url:"https://generativelanguage.googleapis.com",
+    keys:"https://aistudio.google.com/apikey", colour:"#3D5A80", initials:"G", note:"Gemini, free tier available.",
+    models:[["gemini-2.0-flash","Gemini 2.0 Flash, free tier"],
+            ["gemini-2.0-flash-lite","Gemini 2.0 Flash Lite, cheapest"],
+            ["gemini-1.5-pro","Gemini 1.5 Pro"]]},
+  groq:{label:"Groq", url:"https://api.groq.com/openai/v1/chat/completions",
+    keys:"https://console.groq.com/keys", colour:"#A0670F", initials:"GQ", note:"Very fast, free tier.",
+    models:[["llama-3.3-70b-versatile","Llama 3.3 70B, free tier"],
+            ["llama-3.1-8b-instant","Llama 3.1 8B, fastest"],
+            ["mixtral-8x7b-32768","Mixtral 8x7B"]]},
+  deepseek:{label:"DeepSeek", url:"https://api.deepseek.com/chat/completions",
+    keys:"https://platform.deepseek.com/api_keys", colour:"#1E6F4E", initials:"DS", note:"Low cost.",
+    models:[["deepseek-chat","DeepSeek Chat"],["deepseek-reasoner","DeepSeek Reasoner"]]},
+  mistral:{label:"Mistral", url:"https://api.mistral.ai/v1/chat/completions",
+    keys:"https://console.mistral.ai/api-keys", colour:"#B03A22", initials:"M", note:"European, EU hosted.",
+    models:[["mistral-large-latest","Mistral Large"],["mistral-small-latest","Mistral Small, cheap"]]},
+  xai:{label:"xAI Grok", url:"https://api.x.ai/v1/chat/completions",
+    keys:"https://console.x.ai/", colour:"#3A342C", initials:"X", note:"Grok, direct.",
+    models:[["grok-2-latest","Grok 2"],["grok-beta","Grok Beta"]]},
+  together:{label:"Together AI", url:"https://api.together.xyz/v1/chat/completions",
+    keys:"https://api.together.ai/settings/api-keys", colour:"#4A4238", initials:"T", note:"Open models.",
+    models:[["meta-llama/Llama-3.3-70B-Instruct-Turbo","Llama 3.3 70B Turbo"],
+            ["Qwen/Qwen2.5-72B-Instruct-Turbo","Qwen 2.5 72B"]]},
+  custom:{label:"Other", url:"", keys:"", colour:"#6E6E72", initials:"?", note:"Any OpenAI-compatible endpoint.",
+    models:[]}
 };
+Object.keys(AI_DEFAULTS).forEach(function(k){
+  var d=AI_DEFAULTS[k]; d.model=(d.models[0]&&d.models[0][0])||"";
+});
 var AI_SYSTEM =
 "You are helping somebody prepare their own resume inside a tool whose central promise is that "+
 "nothing on the resume is invented.\n\nAbsolute rules, no exceptions:\n"+
@@ -2036,7 +2533,6 @@ $("aiBtn").addEventListener("click",function(){
   renderProviders();
   selectProvider(AI.provider||"openrouter");
   $("aiKey").value=AI.key;
-  if(AI.model) $("aiModel").value=AI.model;
   $("aiBase").value=AI.baseUrl||"";
   $("aiMsg").classList.remove("on");
   $("aiVeil").classList.add("on");
@@ -2053,9 +2549,32 @@ function renderProviders(){
     b.addEventListener("click",function(){ selectProvider(b.dataset.prov); });
   });
 }
+function fillModels(p, keep){
+  var d=AI_DEFAULTS[p], sel=$("aiModelSel");
+  sel.innerHTML = d.models.map(function(m){
+    return '<option value="'+esc(m[0])+'">'+esc(m[1])+'</option>'; }).join("")
+    + '<option value="__custom">Something else, type it in</option>';
+  var want = keep && d.models.some(function(m){ return m[0]===keep; }) ? keep : d.model;
+  if(keep && !d.models.some(function(m){ return m[0]===keep; }) && keep){
+    sel.value="__custom"; $("aiModel").hidden=false; $("aiModel").value=keep;
+  } else {
+    sel.value=want || "__custom";
+    $("aiModel").hidden = sel.value!=="__custom";
+    $("aiModel").value = sel.value==="__custom" ? (keep||"") : "";
+  }
+}
+$("aiModelSel").addEventListener("change",function(){
+  var custom=$("aiModelSel").value==="__custom";
+  $("aiModel").hidden=!custom;
+  if(custom) $("aiModel").focus();
+});
+function chosenModel(){
+  var v=$("aiModelSel").value;
+  return v==="__custom" ? $("aiModel").value.trim() : v;
+}
 function selectProvider(p){
   $("aiProv").value=p;
-  $("aiModel").value=AI_DEFAULTS[p].model;
+  fillModels(p, AI.provider===p ? AI.model : "");
   $("aiUrlField").hidden=p!=="custom";
   var d=AI_DEFAULTS[p];
   $("keyHelp").innerHTML = d.keys
@@ -2078,7 +2597,7 @@ $("aiForget").addEventListener("click",function(){
 });
 $("aiSave").addEventListener("click",function(){
   AI.provider=$("aiProv").value; AI.key=$("aiKey").value.trim();
-  AI.model=$("aiModel").value.trim(); AI.baseUrl=$("aiBase").value.trim();
+  AI.model=chosenModel(); AI.baseUrl=$("aiBase").value.trim();
   aiSave(); aiSyncUI();
   var m=$("aiMsg");
   if(!aiReady()){ m.textContent="Add a key first."; m.className="msg bad on"; return; }
@@ -2242,7 +2761,84 @@ function runATS(){
   $("atsList").innerHTML=checks.map(function(c){
     return '<li class="'+(c.ok?"ok":"no")+'"><span class="m">'+(c.ok?"✓":"✕")+'</span><span>'+esc(c.label)+'</span></li>';
   }).join("");
+  ATS_FAILED=checks.filter(function(c){ return !c.ok; }).map(function(c){ return c.label; });
+  renderImprove();
 }
+var ATS_FAILED=[];
+
+/* ---------- readability suggestions ----------
+   Deterministic checks first. The model is only offered for the rewrite, and
+   only on lines the user already wrote, and only after they tick a box. */
+function readabilitySuggestions(){
+  var out=[];
+  ATS_FAILED.forEach(function(f){ out.push({kind:"ats", label:f, fix:"Structural. Fix it in the controls rather than by rewriting."}); });
+  var chosen=S.units.filter(function(u){ return S.picked[u.id]!==false; });
+  chosen.forEach(function(u){
+    var b=bullet(u);
+    if(!b) return;
+    if(/^(managed|helped|assisted|worked on|responsible for|supported|participated)/i.test(b))
+      out.push({kind:"verb", id:u.id, label:"Weak opening verb", detail:b.slice(0,90)});
+    if(b.split(/\s+/).length>34)
+      out.push({kind:"long", id:u.id, label:"Bullet runs long, parsers truncate", detail:b.slice(0,90)});
+    if(u.metricType==="none")
+      out.push({kind:"nonum", id:u.id, label:"No number attached", detail:b.slice(0,90)});
+  });
+  if(!S.hdr.summary) out.push({kind:"summary", label:"No summary line", fix:"Two sentences at the top help a human reader and give the parser context."});
+  return out;
+}
+function renderImprove(){
+  var box=$("improveBox"); if(!box) return;
+  var s=readabilitySuggestions();
+  if(!s.length){ box.innerHTML='<div style="font-size:12.8px; color:var(--audited)">Nothing to flag. The document is clean.</div>'; return; }
+  box.innerHTML='<div style="font-size:12.8px; color:var(--ink-2); margin-bottom:9px">'+s.length+
+    ' thing'+(s.length>1?"s":"")+' worth looking at.</div>'+
+    '<button class="btn sm" id="improveBtn">Review improvements</button>';
+  $("improveBtn").addEventListener("click",openImprove);
+}
+function openImprove(){
+  var s=readabilitySuggestions();
+  $("atsSuggestions").innerHTML = s.map(function(x,i){
+    var canAI = x.kind==="verb"||x.kind==="long";
+    return '<label style="display:flex; gap:10px; align-items:flex-start; padding:10px 0; '+
+      'border-bottom:1px solid var(--hairline)">'+
+      (canAI?'<input type="checkbox" data-fix="'+i+'" style="margin-top:3px; width:auto">':'<span style="width:13px"></span>')+
+      '<span style="flex:1"><b style="font-size:13.5px">'+esc(x.label)+'</b>'+
+      (x.detail?'<span style="display:block; font-size:12.5px; color:var(--muted); margin-top:2px">'+esc(x.detail)+'</span>':'')+
+      (x.fix?'<span style="display:block; font-size:12.5px; color:var(--ink-2); margin-top:2px">'+esc(x.fix)+'</span>':'')+
+      (canAI?'<span style="display:block; font-size:12px; color:var(--accent); margin-top:3px">Tick to let your model rewrite this line. Facts and numbers are held fixed.</span>':'')+
+      '</span></label>';
+  }).join("");
+  window.__sugg=s;
+  $("atsMsg").classList.remove("on");
+  $("atsVeil").classList.add("on");
+}
+$("atsCancel").addEventListener("click",function(){ $("atsVeil").classList.remove("on"); });
+$("atsApply").addEventListener("click",async function(){
+  var m=$("atsMsg");
+  var picks=[].filter.call(document.querySelectorAll("#atsSuggestions [data-fix]"),function(c){ return c.checked; })
+    .map(function(c){ return window.__sugg[+c.dataset.fix]; });
+  if(!picks.length){ m.textContent="Tick at least one line to rewrite."; m.className="msg bad on"; return; }
+  if(!aiReady()){ m.textContent="Rewriting needs a connected model. Use Connect AI, or edit the lines yourself on the Evidence step."; m.className="msg bad on"; return; }
+  m.innerHTML='<span class="spin"></span>Rewriting '+picks.length+' line'+(picks.length>1?"s":"")+'...'; m.className="msg on";
+  var payload=picks.map(function(p){
+    var u=S.units.filter(function(x){ return x.id===p.id; })[0]; return u?{id:u.id, line:bullet(u)}:null;
+  }).filter(Boolean);
+  try{
+    var txt=await aiCall("Rewrite each numbered line below so it opens with a strong specific verb "+
+      "and reads tighter. Keep every fact, every number and every claim exactly as written. Add "+
+      "nothing. Remove nothing factual. Return ONLY valid JSON, an array of {id, rewritten}. No "+
+      "commentary, no code fences.\n\n"+payload.map(function(p){ return p.id+": "+p.line; }).join("\n"));
+    var mm=txt.match(/\[[\s\S]*\]/); if(!mm) throw new Error("The model did not return a list.");
+    var arr=JSON.parse(mm[0]), n=0;
+    arr.forEach(function(o){
+      var u=S.units.filter(function(x){ return String(x.id)===String(o.id); })[0];
+      if(u && o.rewritten){ u.action=String(o.rewritten).replace(/\.$/,""); n++; }
+    });
+    save(); renderUnits(); renderPaper();
+    m.className="msg good on"; m.textContent=n+" line"+(n>1?"s":"")+" rewritten. Check them on the Evidence step before you send anything.";
+    setTimeout(function(){ $("atsVeil").classList.remove("on"); },1800);
+  }catch(e){ m.className="msg bad on"; m.textContent="Rewrite failed: "+e.message; }
+});
 
 /* ---------- boot ---------- */
 aiLoad();
@@ -2281,6 +2877,8 @@ document.addEventListener("keydown",function(e){
     $("welcome").classList.contains("on") && closeWelcome();
     $("pasteVeil").classList.remove("on"); $("veil").classList.remove("on");
     $("legalVeil").classList.remove("on"); $("aiVeil").classList.remove("on");
+    $("atsVeil").classList.remove("on");
+    if($("gapVeil").classList.contains("on")) finishGaps();
   }
 });
 </script>

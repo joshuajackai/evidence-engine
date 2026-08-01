@@ -4187,6 +4187,8 @@ function aiExplainError(status, provider, j, rawText){
 /* Set when a retired model was silently swapped for a live sibling, so the UI
    can tell the user their saved choice no longer exists. */
 var AI_SWAPPED=null;
+/* True when the last call came back cut off at the token ceiling. */
+var AI_TRUNCATED=false;
 /* Closest surviving relative of a retired model id.
 
    Token-prefix matching was too crude: it sent grok-2 to grok-build-0.1 and
@@ -4247,6 +4249,13 @@ async function aiCall(userMsg, opts){
     headers={"content-type":"application/json","x-api-key":AI.key,
              "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
     body={model:model, max_tokens:maxTokens, system:sysPrompt, messages:[{role:"user",content:userMsg}]};
+    /* Reasoning models spend max_tokens on thinking before they write a word.
+       Opus 5 burned 40 seconds and most of a 3000 budget thinking, then got cut
+       off 1209 characters into a JSON object, which surfaced to the user as
+       "the writer failed" with no clue why. For a formatting job there is
+       nothing to reason about, so it is switched off. If a model rejects the
+       parameter the call retries without it. */
+    if(opts.noThink) body.thinking={type:"disabled"};
     redactedHeaders={"content-type":"application/json","x-api-key":"redacted","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"};
   } else {
     headers={"content-type":"application/json","authorization":"Bearer "+AI.key};
@@ -4293,6 +4302,12 @@ async function aiCall(userMsg, opts){
         /* Self-healing on the two failures that otherwise look like "the AI is
            broken" and which the user has no way to diagnose. */
         var msg = (rawText||"").toLowerCase();
+        /* Not every model accepts an explicit thinking switch. Drop it and go
+           again rather than failing the whole write. */
+        if(body.thinking && /thinking/.test(msg) && attempt<4){
+          delete body.thinking;
+          maxAttempts=Math.max(maxAttempts,4); lastErr=err; continue;
+        }
         if(/max_tokens|max_completion_tokens/.test(msg) && /unsupported|not supported|unrecognized|invalid/.test(msg) && attempt<3){
           if(body.max_tokens!=null){ body.max_completion_tokens=body.max_tokens; delete body.max_tokens; }
           else { body.max_tokens=body.max_completion_tokens; delete body.max_completion_tokens; }
@@ -4324,6 +4339,39 @@ async function aiCall(userMsg, opts){
 
       var text = aiExtractText(provider, j);
       logEntry.textLen = text.length;
+
+      /* A 200 with a truncated body is the worst failure mode here, because
+         everything looks healthy: right model, right key, right status. The
+         answer is simply cut off, and downstream JSON parsing fails with a
+         message that points nowhere near the cause.
+
+         Anthropic reports this as stop_reason "max_tokens", OpenAI-compatible
+         APIs as finish_reason "length". Grow the budget and go again. */
+      var stopR = "";
+      if(provider==="anthropic" && j) stopR = j.stop_reason||"";
+      else if(provider==="google" && j && j.candidates && j.candidates[0]) stopR = j.candidates[0].finishReason||"";
+      else if(j && j.choices && j.choices[0]) stopR = j.choices[0].finish_reason||j.choices[0].stop_reason||"";
+      logEntry.stopReason = stopR;
+      var truncated = /max_tokens|length|MAX_TOKENS/i.test(String(stopR));
+
+      if(truncated && opts.grow!==false && maxTokens < 32000 && attempt < 4){
+        logEntry.error = "output truncated at "+maxTokens+" tokens, retrying with more";
+        aiLog(logEntry);
+        maxTokens = Math.min(32000, maxTokens*3);
+        if(body.max_tokens!=null) body.max_tokens=maxTokens; else body.max_completion_tokens=maxTokens;
+        /* Thinking is the usual reason the budget vanished before any output. */
+        if(provider==="anthropic" && !body.thinking) body.thinking={type:"disabled"};
+        maxAttempts=Math.max(maxAttempts,4);
+        continue;
+      }
+      if(truncated && text){
+        /* Out of headroom. Hand the partial text back with a flag so the caller
+           can try to salvage it rather than losing the whole run. */
+        text = text;
+        logEntry.truncatedFinal = true;
+        AI_TRUNCATED = true;
+      } else AI_TRUNCATED = false;
+
       aiLog(logEntry);
 
       if(!text){
@@ -5667,14 +5715,91 @@ function docText(doc){
 function parseDocJson(txt){
   var s=String(txt||"").trim();
   s=s.replace(/^```(?:json)?\s*/i,"").replace(/```\s*$/,"");
-  var a=s.indexOf("{"), b=s.lastIndexOf("}");
-  if(a<0||b<0) throw new Error("The model did not return JSON. Try a stronger model.");
-  var o=JSON.parse(s.slice(a,b+1));
-  if(!o.roles || !o.roles.length) throw new Error("The model returned no experience section.");
+  var a=s.indexOf("{");
+  if(a<0) throw new Error("The model replied with prose instead of JSON. Try a different model.");
+  s=s.slice(a);
+
+  var o=null;
+  try{
+    var b=s.lastIndexOf("}");
+    if(b>0) o=JSON.parse(s.slice(0,b+1));
+  }catch(_){}
+  if(!o) o=salvageJson(s);
+  if(!o) throw new Error("The reply was cut off before it could be read"+
+    (AI_TRUNCATED?" (the model hit its output limit even after the budget was raised). Try a model with a larger output limit, or trim your evidence list.":". Try again."));
+
+  if(!o.roles || !o.roles.length) throw new Error("The reply contained no experience section.");
   o.roles.forEach(function(r){
-    r.bullets=(r.bullets||[]).map(function(b){ return typeof b==="string" ? {text:b} : b; });
+    r.bullets=(r.bullets||[]).map(function(b){ return typeof b==="string" ? {text:b} : b; })
+      .filter(function(b){ return b && b.text; });
   });
+  o.roles=o.roles.filter(function(r){ return r.bullets.length || r.org; });
   return o;
+}
+/* Close whatever the model left open. A resume cut off inside its last bullet
+   still contains most of a usable document, and throwing it away costs the user
+   a slow, paid call for nothing. */
+function salvageJson(s){
+  var depth=0, inStr=false, esc=false, lastGood=-1;
+  for(var i=0;i<s.length;i++){
+    var c=s[i];
+    if(esc){ esc=false; continue; }
+    if(c==="\\"){ esc=true; continue; }
+    if(c==='"'){ inStr=!inStr; continue; }
+    if(inStr) continue;
+    if(c==="{"||c==="[") depth++;
+    else if(c==="}"||c==="]"){ depth--; if(depth===0) lastGood=i; }
+    else if(c==="," && depth<=2) lastGood=Math.max(lastGood, i-1);
+  }
+  /* Walk back to the last complete element, then close every open bracket. */
+  for(var cut=s.length; cut>20; cut--){
+    var frag=s.slice(0,cut).replace(/,\s*$/,"");
+    var d=0, st=false, es=false, stack=[];
+    for(var k=0;k<frag.length;k++){
+      var ch=frag[k];
+      if(es){ es=false; continue; }
+      if(ch==="\\"){ es=true; continue; }
+      if(ch==='"'){ st=!st; continue; }
+      if(st) continue;
+      if(ch==="{") stack.push("}");
+      else if(ch==="[") stack.push("]");
+      else if(ch==="}"||ch==="]") stack.pop();
+    }
+    if(st) continue;                     // ended mid-string, back up further
+    var closed=frag+stack.reverse().join("");
+    try{
+      var o=JSON.parse(closed);
+      if(o && o.roles) return o;
+    }catch(_){}
+    cut -= Math.max(1, Math.floor(cut/400));   // coarse then fine, keeps it fast
+  }
+  return null;
+}
+
+/* The failing request carried 40,838 characters, most of it evidence that had
+   nothing to do with the posting. That is slow, expensive, and it dilutes the
+   model's attention across entries it should be ignoring. Send the entries that
+   actually bear on this job, ordered by relevance, and keep the numbering
+   stable so the `from` field still points somewhere real. */
+function writerDigest(j){
+  var kw=(j&&j.kw)||[];
+  var ranked=S.units.map(function(u,i){
+    return {u:u, i:i+1, s: kw.length ? scoreUnit(u,kw).s : 0};
+  });
+  if(kw.length) ranked.sort(function(a,b){ return b.s-a.s; });
+  var keep=ranked.slice(0,45);
+  /* Back to resume order so the model writes a chronology, not a ranking. */
+  keep.sort(function(a,b){ return a.i-b.i; });
+  var txt=keep.map(function(x){
+    var u=x.u;
+    return x.i+". ["+GRADE[u.metricType][2]+"] "+u.org+(u.role?", "+u.role:"")+
+      (u.dates?" ("+u.dates+")":"")+"\n   "+(u.action||"")+
+      (u.metric?"\n   Number: "+u.metric:"")+
+      (u.constraint?"\n   Held flat: "+u.constraint:"");
+  }).join("\n");
+  if(ranked.length>keep.length)
+    txt += "\n\n("+(ranked.length-keep.length)+" further entries were omitted as unrelated to this posting.)";
+  return txt;
 }
 
 var WRITE={running:false, doc:null, ideal:null, history:[]};
@@ -5692,9 +5817,9 @@ async function aiWriteDoc(kind){
   var longform = kind==="cv";
   var base =
     "TARGET ROLE: "+(j.title||"")+(j.co? " at "+j.co : "")+"\n\n"+
-    "THE POSTING:\n"+(j.text||"").slice(0,6000)+"\n\n"+
+    "THE POSTING:\n"+(j.text||"").slice(0,4500)+"\n\n"+
     "TERMS THIS WILL BE SCORED AGAINST: "+req.join(", ")+"\n\n"+
-    "MY VERIFIED ENTRIES (the only facts that exist):\n"+evidenceDigest()+"\n\n"+
+    "MY VERIFIED ENTRIES (the only facts that exist):\n"+writerDigest(j)+"\n\n"+
     (longform
       ? "Write a CV. Longer than a resume: keep every role, allow four to six bullets on recent roles, "+
         "and write a fuller summary of three to four sentences."
@@ -5720,8 +5845,14 @@ async function aiWriteDoc(kind){
           "Do not pad the skills line with terms the entries do not evidence. Return the full JSON again.";
       }
 
-      var txt=await aiCall(prompt, {system:AI_WRITER, maxTokens: longform?4000:3000});
+      /* Budgets are generous on purpose. A resume is a long structured object
+         and the old 3000 was not enough for the JSON alone, never mind a model
+         that thinks first. Truncation now grows the budget automatically, and
+         this starting point means it rarely has to. */
+      var txt=await aiCall(prompt, {system:AI_WRITER, noThink:true,
+                                    maxTokens: longform?12000:8000});
       var doc=parseDocJson(txt);
+      if(AI_TRUNCATED) doc.partial=true;
       doc.kind=kind;
       var s=scoreDoc(doc, j);
       var sig=s.missing.slice().sort().join("|");
@@ -5753,19 +5884,25 @@ async function aiWriteDoc(kind){
   renderPaper(); runATS();
 
   var line=WRITE.history.map(function(h){ return h.pct+"%"; }).join(" then ");
+  var partialWarn = best.partial
+    ? '<br><span style="color:#8A5A00">The model hit its output limit and the last '+
+      'section may be short. What is here is complete and usable; press '+
+      '<b>Write my resume for this job</b> again, or pick a model with a larger '+
+      'output limit, to get the rest.</span>'
+    : "";
   if(fin.pct>=100){
     out.className="msg good on";
     out.innerHTML="<b>100% of the posting's terms are covered</b>, using only facts already in your "+
       "entries. Passes: "+line+". Read every bullet before you send it: you have to be able to walk "+
-      "through each one.";
+      "through each one."+partialWarn;
     $("idealBtn").hidden=true;
   } else {
     out.className="msg warn on";
     out.innerHTML="<b>Reached "+fin.pct+"%</b> ("+line+"). The remaining "+fin.missing.length+
-      " term"+(fin.missing.length===1?"":"s")+" are not in your history: <b>"+
+      (fin.missing.length===1?" term is":" terms are")+" not in your history: <b>"+
       esc(fin.missing.slice(0,10).join(", "))+"</b>. Padding the resume with them would win the filter "+
       "and lose the interview, so they were left out. "+
-      '<button type="button" class="linkbtn" id="showIdeal">Show me what a 100% resume would look like</button>';
+      '<button type="button" class="linkbtn" id="showIdeal">Show me what a 100% resume would look like</button>'+partialWarn;
     var si=$("showIdeal");
     if(si) si.addEventListener("click",buildIdeal);
     $("idealBtn").hidden=false;
@@ -5792,9 +5929,9 @@ async function buildIdeal(){
   var miss=scoreDoc(j.aiDoc||{}, j).missing;
   var prompt=
     "TARGET ROLE: "+(j.title||"")+(j.co? " at "+j.co : "")+"\n\n"+
-    "THE POSTING:\n"+(j.text||"").slice(0,6000)+"\n\n"+
+    "THE POSTING:\n"+(j.text||"").slice(0,4500)+"\n\n"+
     "MUST COVER EVERY ONE OF THESE TERMS: "+jdRequired(j).join(", ")+"\n\n"+
-    "MY REAL ENTRIES, for shape and voice only:\n"+evidenceDigest()+"\n\n"+
+    "MY REAL ENTRIES, for shape and voice only:\n"+writerDigest(j)+"\n\n"+
     "TERMS I CANNOT CURRENTLY EVIDENCE: "+miss.join(", ")+"\n\n"+
     "This is a TEACHING SPECIMEN, not my resume, and it will be labelled as such and cannot be "+
     "exported. Write the resume of the person this posting is actually written for, covering 100% "+
@@ -5808,10 +5945,10 @@ async function buildIdeal(){
     "one task volunteered for at work.\n"+
     "Same JSON shape as before.";
   try{
-    var txt=await aiCall(prompt, {system:AI_WRITER.replace(
+    var txt=await aiCall(prompt, {noThink:true, maxTokens:8000, system:AI_WRITER.replace(
       "WHAT YOU MAY NEVER DO",
       "IN SPECIMEN MODE ONLY you may write bracketed illustrative claims, and only bracketed ones.\n\n"+
-      "WHAT YOU MAY NEVER DO"), maxTokens:3000});
+      "WHAT YOU MAY NEVER DO")});
     var doc=parseDocJson(txt);
     doc.ideal=true;
     WRITE.ideal=doc; j.idealDoc=doc; save();

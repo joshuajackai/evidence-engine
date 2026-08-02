@@ -3376,11 +3376,21 @@ $("parseBtn").addEventListener("click",parseJD);
 
 /* ---------- match ---------- */
 function scoreUnit(u,kw){
-  var hay=((u.action||"")+" "+(u.role||"")+" "+(u.tags||[]).join(" ")+" "+(u.metric||"")).toLowerCase();
-  var s=0, hits=[];
-  kw.forEach(function(o){ if(hay.indexOf(o.k)>-1){ s+=o.n*2; hits.push(o.k); } });
-  s += {audited:14,estimated:9,activity:5,none:0}[u.metricType];
-  return {s:s, hits:hits};
+  var hay=(u.action||"")+" "+(u.role||"")+" "+(u.tags||[]).join(" ")+" "+(u.metric||"");
+  var rel=0, hits=[];
+  /* Whole words, through the same matcher the generator already uses. A plain
+     indexOf found "api" inside "capital" and "app" inside "approach", so a
+     posting about API work scored an entry about raising capital and put it on
+     the board. */
+  kw.forEach(function(o){ if(kwHitInText(hay,o.k)){ rel+=o.n*2; hits.push(o.k); } });
+  /* The grade breaks ties between entries that answer the posting. It does not
+     create relevance. It used to be added unconditionally and it was worth more
+     than seven keyword hits, so a Proven line about painting the office
+     outranked an ungraded line that matched four of the posting's own terms and
+     was auto-selected onto the resume with "no overlap with this posting"
+     printed beside its own switched-on toggle. */
+  var s = rel ? rel + ({audited:6,estimated:4,activity:2,none:0}[u.metricType]||0) : 0;
+  return {s:s, hits:hits, rel:rel};
 }
 function renderMatch(){
   var kw=S.jd.kw||[], box=$("matchList");
@@ -4695,7 +4705,14 @@ function extractContact(text){
        name and exported as "Your Name". */
     var t=stripMd(head[i]).trim();
     if(!t || t.length>44) continue;
+    /* The name sits above the first section heading. Past that point every
+       Title Case line is a company or a job title, and taking one exported a
+       resume headed "Plant Manager" where the person's name belongs. */
+    if(sectionOf(t)) break;
     if(/@|https?:|\d{3}/.test(t)) continue;
+    /* "Plant Manager" and "Ironwood Manufacturing" are two capitalised words
+       each, exactly like a name. What separates them is vocabulary. */
+    if(scoreAsRole(t)>0 || ORG_WORDS.test(t)) continue;
     if(/^(resume|curriculum|cv|profile|summary|objective|experience|contact)\b/i.test(t)) continue;
     var words=t.replace(/[|·,].*$/,"").trim().split(/\s+/);
     if(words.length>=2 && words.length<=4 && words.every(function(w){ return /^[A-Z][a-zA-Z.'-]*$/.test(w)||/^[A-Z.]{1,3}$/.test(w); })){

@@ -4813,7 +4813,7 @@ var SCOPE_VERB=/^(?:managed|owned|oversaw|overseen|supervised|handled|led|ran|ad
 /* An outcome verb tells you the number that follows is a result, not an
    inventory. This is what lets "Wrote 45 blog posts that drove 1.2M sessions"
    report the 1.2M rather than the 45. */
-var OUTCOME_LEAD=/\b(?:grew|grow|growing|scaled|scaling|increased|increases?|raised|lifted|drove|driving|generated|delivered|produced|yielded|added|improved|boosted|reduced|cut|lowered|decreased|dropped|saved|shortened|accelerated|doubled|tripled|achieved|exceeded|surpassed|reached|hit|converted|retained|won|closed|recovered|returned|earned|took)\s+(?:[^.;]{0,72}?)$/i;
+var OUTCOME_LEAD=/\b(?:grew|grow|growing|scaled|scaling|increased|increases?|raised|lifted|drove|driving|generated|delivered|produced|yielded|added|improved|boosted|reduced|cut|lowered|decreased|dropped|saved|shortened|accelerated|doubled|tripled|achieved|exceeded|surpassed|reached|hit|converted|retained|won|closed|recovered|returned|earned|took|secured|awarded|landed|banked|unlocked)\s+(?:[^.;]{0,72}?)$/i;
 
 /* "with no change to ad spend" is the most valuable half of a resume bullet and
    it belongs in the held-flat field, not buried in the sentence. */
@@ -4990,7 +4990,7 @@ var SEC_QUAL=/^(?:\d+\.?\s*)?(?:work|professional|relevant|employment|selected|a
 /* The trailing (?:s|es)? is load-bearing: without it a plain \b after the
    keyword refuses to match "PROJECTS", "AWARDS" or "CERTIFICATIONS", and an
    unmatched heading means the section's contents get parsed as jobs. */
-var SEC_EXP  =/^(experience|history|employment|position|background|role|work|career|freelance|consulting|contract\s+work|client|engagement)(?:s|es)?\b/i;
+var SEC_EXP  =/^(experience|history|employment|position|background|role|work|career|freelance|consulting|contract\s+work|client|engagement|appointment|tenure|practice)(?:s|es)?\b/i;
 var SEC_SKILL=/^(skill|competenc(?:y|ies|es)|capabilit(?:y|ies)|technolog(?:y|ies)|tool|technical|expertise|proficienc|stack|toolkit|software|platform|languages?\s+and\s+tools)(?:s|es)?\b/i;
 var SEC_OTHER=/^(summary|profile|objective|about|overview|highlight|education|academic|certification|certificate|credential|training|award|honou?rs?|publication|volunteer|community|interest|hobb|reference|language|project|portfolio|contact|affiliation|membership|patent|speaking|press|leadership|activit(?:y|ies))(?:s|es)?\b/i;
 function sectionOf(line){
@@ -5052,11 +5052,18 @@ function looksLikeSkillList(s){
 /* A range, wherever it sits on the line. Both orders of month and year, numeric
    months, and every open-ended present tense people write. */
 var MON=/(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?/i;
-var DATE_ONE="(?:(?:"+MON.source+"|\\d{1,2}[/.])\\s*)?(?:19|20)\\d{2}";
-var DATE_NOW="(?:present|current|now|to\\s?date|ongoing|today)";
+/* A year is four digits or an apostrophe and two. "Jan '19 - Mar '22" is how a
+   great many people write a date range and it matched nothing, so those jobs
+   imported with no dates at all. */
+var YEAR="(?:(?:19|20)\\d{2}|'\\d{2})";
+var DATE_ONE="(?:(?:"+MON.source+"|\\d{1,2}[/.])\\s*)?"+YEAR;
+var DATE_NOW="(?:present|current|now|to\\s?date|ongoing|today|date)";
+var DATE_SEP="(?:-|to|until|through|–|—)";
+/* "Since 2022" is an open-ended range written without a separator. */
+var DATE_SINCE="(?:since|from)\\s+"+DATE_ONE;
 var DATE_RANGE_RE=new RegExp(
-  "("+DATE_ONE+"|"+DATE_NOW+")\\s*(?:-|to|until|through|–|—)\\s*("+DATE_ONE+"|"+DATE_NOW+")?","i");
-var DATE_ONLY_RE=new RegExp("^\\s*(?:"+DATE_ONE+"|"+DATE_NOW+")\\s*(?:(?:-|to|until|through|–|—)\\s*(?:"+DATE_ONE+"|"+DATE_NOW+")?)?\\s*$","i");
+  DATE_SINCE+"|("+DATE_ONE+"|"+DATE_NOW+")\\s*"+DATE_SEP+"\\s*("+DATE_ONE+"|"+DATE_NOW+")?","i");
+var DATE_ONLY_RE=new RegExp("^\\s*(?:"+DATE_SINCE+"|(?:"+DATE_ONE+"|"+DATE_NOW+")\\s*(?:"+DATE_SEP+"\\s*(?:"+DATE_ONE+"|"+DATE_NOW+")?)?)\\s*$","i");
 
 /* "New York, NY", "London, UK", "Remote", "Remote - US". A location is neither
    the company nor the title, and letting it become one is how "New York, NY"
@@ -5077,10 +5084,23 @@ function cutDates(t){
   var m=String(t||"").match(DATE_RANGE_RE);
   if(!m && DATE_ONLY_RE.test(t)) m=[String(t).trim(),null,null], m.index=0;
   if(!m) return {dates:"", rest:String(t||"").trim()};
-  var rest=(String(t).slice(0,m.index)+" "+String(t).slice(m.index+m[0].length))
-    .replace(/\s{2,}/g," ").replace(/^[\s|·•,\-–—(]+/,"").replace(/[\s|·•,\-–—(]+$/,"").trim();
-  return {dates:m[0].replace(/\s{2,}/g," ").trim(), rest:rest};
+  var rest=String(t).slice(0,m.index)+" "+String(t).slice(m.index+m[0].length);
+  /* "Beacon Health Partners (2019 - 2023)" leaves an empty pair of brackets
+     behind once the range is lifted out, and "Beacon Health Partners ( )" is
+     what then got printed as the employer. Collapse any bracket left holding
+     nothing, then trim the separators. */
+  rest=rest.replace(/\(\s*\)|\[\s*\]/g," ")
+    .replace(/\s{2,}/g," ")
+    .replace(/^[\s|·•,\-–—([]+/,"").replace(/[\s|·•,\-–—([]+$/,"")
+    .replace(/[\s)\]]+$/,"").trim();
+  return {dates:m[0].replace(/\s{2,}/g," ").replace(/^[\s(\[]+|[\s)\]]+$/g,"").trim(), rest:rest};
 }
+
+/* Labels that sit inside a job, above its bullets, and belong to no employer.
+   "Responsibilities" was becoming a company: everything under it was cut away
+   from the job above and filed under an employer of that name. "Key
+   Achievements" was landing in the list as an ungraded entry of its own. */
+var JOB_SUBHEAD=/^(?:key|core|selected|notable|major|other|additional)?\s*(?:achievements?|accomplishments?|responsibilities|duties|highlights?|results?|impact|contributions?|projects?|clients?|overview|scope|summary|details?|activities)\s*:?\s*$/i;
 
 /* Is this line part of a job header, or is it an achievement? */
 function headerish(t){
@@ -5212,6 +5232,9 @@ function splitResume(raw){
     var secText=isBullet ? stripMd(t0.replace(BULLET_RE,"")).trim() : t;
     var sec=sectionOf(secText);
     if(sec){ pending=[]; section=sec; if(sec==="exp") sawExp=true; cur=null; return; }
+    /* A label inside a job. It names no employer and claims nothing, so it is
+       dropped without disturbing the job the bullets underneath belong to. */
+    if((cur||pending.length) && JOB_SUBHEAD.test(secText)) return;
     if(section==="skill"){
       /* Original case is kept. These are printed back on the finished document
          as the user's skills line, and "sql, hubspot, ga4" reads as a typo
@@ -5493,7 +5516,27 @@ $("pasteGo").addEventListener("click",function(){
     if(!found.length) return;
   }
   if(!found.length){ m.textContent="Nothing could be split out of that. Try adding one by hand instead."; m.className="msg bad on"; return; }
-  S.units=S.units.concat(found);
+  /* Importing the same file twice is the most ordinary thing a user does here:
+     upload, dislike the split, upload again. Concatenating blindly gave them
+     two of every entry and no way out except a confirm dialog per row. Same
+     employer and same sentence means the same claim, so it is skipped and the
+     count is reported rather than the duplicate appearing silently. */
+  var claimKey=function(u){
+    return (u.org||"").toLowerCase().replace(/\s+/g," ").trim()+"##"+
+           (u.action||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  };
+  var known={}; S.units.forEach(function(u){ known[claimKey(u)]=1; });
+  var fresh=found.filter(function(u){
+    var k=claimKey(u); if(known[k]) return false; known[k]=1; return true; });
+  var dupes=found.length-fresh.length;
+  if(!fresh.length){
+    m.className="msg warn on";
+    m.textContent="Every entry in that is already in your list, so nothing was added.";
+    return;
+  }
+  S.units=S.units.concat(fresh);
+  fresh.skillPool=found.skillPool;   // filter() drops the property
+  found=fresh;
   if(found.skillPool && found.skillPool.length){
     var have={}; (S.skills||[]).forEach(function(s){ have[s.toLowerCase()]=1; });
     S.skills=(S.skills||[]).concat(found.skillPool.filter(function(s){
@@ -5519,6 +5562,7 @@ $("pasteGo").addEventListener("click",function(){
   $("pasteVeil").classList.remove("on"); $("pasteBox").value="";
   var q=found.filter(function(u){ return u.metricType!=="none"; }).length;
   toast("Found "+found.length+" entries"+
+    (dupes? ", skipped "+dupes+" you already had" : "")+
     (q? ", pulled a number out of "+q : "")+
     (filled.length? " and filled in your "+filled.join(", ") : "")+
     ". Check each number, then say where it came from.");

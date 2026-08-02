@@ -1666,6 +1666,12 @@ function newJob(o){
 }
 var S = {
   units: [], jobs: [], activeJob: null,
+  /* The skills the user actually listed under their own SKILLS heading. Kept
+     separate from the per-bullet tags, because the tags are single words
+     harvested out of sentences and printing them as a skills line produced
+     "media, paid, meta, google" where the resume had said "Python, HubSpot,
+     Salesforce, Figma, Klaviyo". */
+  skills: [],
   jd: {title:"", co:"", text:"", kw:[]}, picked: {},
   hdr: {name:"", title:"", loc:"", email:"", phone:"", link:"", summary:""},
   type: {font:"sans", size:"11", lead:"1.5", accent:"on"},
@@ -1744,6 +1750,7 @@ function load(){
     var r = localStorage.getItem("ee.v1"); if(!r) return;
     var d = JSON.parse(r);
     ["units","hdr","type"].forEach(function(k){ if(d[k]) S[k]=d[k]; });
+    if(Array.isArray(d.skills)) S.skills=d.skills;
     ["profile","answers","apps","seen","gen"].forEach(function(k){
       if(d[k] && typeof d[k]==="object") S[k]=d[k]; });
     if(d.lastSearch) S.lastSearch=d.lastSearch;
@@ -1882,7 +1889,7 @@ function renderUnits(){
       return '<div class="unit '+g[0]+'">'+
         '<div class="unit-top">'+
           '<div><div class="unit-org">'+esc(u.org)+'</div>'+
-          '<div class="unit-meta">'+esc(u.role||"")+(u.dates?" · "+esc(u.dates):"")+'</div></div>'+
+          '<div class="unit-meta">'+[u.role,u.dates].filter(Boolean).map(esc).join(" · ")+'</div></div>'+
           '<div class="unit-actions">'+
             '<span class="grade '+g[1]+'"><span class="dot"></span>'+g[2]+'</span>'+
             '<button class="iconbtn" data-ed="'+u.id+'" title="Edit" aria-label="Edit entry">✎</button>'+
@@ -3712,9 +3719,12 @@ function renderPaper(){
 
   var contact=[h.loc,h.phone,h.email].filter(Boolean).join(" &nbsp;|&nbsp; ");
   var contact2=h.link?("Portfolio: "+esc(h.link)):"";
+  /* The user's own skills line wins. It is the list they wrote and checked, and
+     it reads as a skills section. The harvested tags are the fallback for a
+     resume that never had one. */
   var skills={};
   chosen.forEach(function(u){ (u.tags||[]).forEach(function(t){ skills[t]=1; }); });
-  var skillList=Object.keys(skills);
+  var skillList=(S.skills&&S.skills.length) ? S.skills.slice(0,24) : Object.keys(skills);
 
   $("paper").innerHTML=
     (h.name?"":'<div class="noprint" style="background:var(--none-bg); border:1px solid var(--none); '+
@@ -4505,7 +4515,12 @@ var BULLET_RE=/^\s*[•·▪◦‣*\-–—]\s+/;
 /* Markdown resumes are common, and the syntax has to come off before anything
    else runs. Underscores are left alone on purpose: snake_case appears in real
    resumes far more often than underscore italics do. */
-function stripMd(s){
+/* keepCols leaves runs of spaces intact. A wide gap is the only surviving trace
+   of a two-column header once a PDF has been flattened to text, and collapsing
+   it here meant the header parser could no longer tell "Helio Systems" and
+   "Austin, TX" apart from one company called "Helio Systems Austin". Bullet
+   text still gets the full collapse, which is what it wants. */
+function stripMd(s, keepCols){
   return String(s||"")
     .replace(/^\s{0,3}#{1,6}\s+/,"")
     .replace(/^\s*>\s?/,"")
@@ -4514,7 +4529,7 @@ function stripMd(s){
     .replace(/\*([^*\n]+)\*/g,"$1")
     .replace(/`([^`\n]+)`/g,"$1")
     .replace(/!?\[([^\]]*)\]\([^)\s]*\)/g,"$1")
-    .replace(/\s+/g," ")
+    .replace(keepCols ? /[^\S ]+/g : /\s+/g," ")
     .trim();
 }
 
@@ -4552,8 +4567,18 @@ function normalizeResume(raw){
   note(s!==before,"invisible and non-breaking characters removed");
 
   before=s;
-  s=s.replace(/^[ \t]*[▪●◦‣⁃∙·•○❖➢➜]\s*/gm,"• ");
+  s=s.replace(/^[ \t]*[▪●◦‣⁃∙·•○❖➢➜▸▹►▻▶◆◇■□☐✦✧✱✳➔→»]\s*/gm,"• ");
   note(s!==before,"bullet glyphs standardised");
+
+  /* Decorative characters around a heading or a name. A resume that writes
+     "★ JORDAN KIM ★" or puts an emoji in front of the phone number is common,
+     and every one of those glyphs defeats the name test and the junk filter.
+     They carry no meaning, so they come off. */
+  before=s;
+  s=s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu,"")
+     .replace(/^[ \t]*[★☆❖§¤]+[ \t]*/gm,"")
+     .replace(/[ \t]*[★☆❖§¤]+[ \t]*$/gm,"");
+  note(s!==before,"decorative symbols removed");
 
   before=s;
   s=s.replace(/^\s*(page\s*\d+\s*(of\s*\d+)?|\d+\s*\/\s*\d+)\s*$/gim,"")
@@ -4600,8 +4625,14 @@ function normalizeResume(raw){
   s=out.join("\n");
   note(joined>0, joined+" wrapped line"+(joined>1?"s":"")+" rejoined");
 
+  /* Collapsed to two spaces, not one. A wide run of spaces is the only trace a
+     plain-text export keeps of a two-column header, and it is the difference
+     between reading "Helio Systems      Austin, TX" as a company and a city or
+     as one company called "Helio Systems Austin". Two spaces never occur inside
+     a sentence once the rest of this pass has run, so the signal survives and
+     nothing else changes. */
   before=s;
-  s=s.replace(/[ ]{3,}/g," ").replace(/\n{3,}/g,"\n\n").trim();
+  s=s.replace(/[ ]{3,}/g,"  ").replace(/\n{3,}/g,"\n\n").trim();
   note(s!==before,"spacing tidied");
 
   /* Two-column PDFs interleave text and there is no reliable repair. Detect it
@@ -4631,14 +4662,19 @@ function extractContact(text){
   /* City, ST or City, Country. Matched per line, because run across the whole
      block the name on line one gets glued to the city on line two. */
   for(var li=0; li<head.length && !out.loc; li++){
-    var seg=head[li].split(/\s*[|·•]\s*/);
+    /* A run of spaces is a column boundary too, so "Seattle, WA    (206) 555-
+       0111" splits the same way a pipe-separated contact line does. */
+    var seg=head[li].split(/\s*[|·•]\s*|\s{2,}/);
     for(var si=0; si<seg.length; si++){
       m=seg[si].match(/^\s*([A-Z][a-zA-Z.'-]+(?:\s[A-Z][a-zA-Z.'-]+){0,2}),\s*([A-Z]{2}|[A-Z][a-z]{2,})\s*$/);
       if(m && !/^(university|college|inc|llc|ltd)/i.test(m[1])){ out.loc=m[0].trim(); break; }
     }
   }
 
-  var links=joined.match(/\b(?:https?:\/\/)?(?:www\.)?[\w-]+\.(?:com|io|co|dev|design|me|net|org|xyz|app)(?:\/[\w\-./?%&=+#]*)?/gi)||[];
+  /* The negative lookahead is the whole trick. Without it the ".me" inside
+     "lukas.meier@web.de" matched, and the tool offered "lukas.me" back as the
+     user's portfolio site: a link that does not exist, printed on a resume. */
+  var links=joined.match(/\b(?:https?:\/\/)?(?:www\.)?[\w-]+\.(?:com|io|co|dev|design|me|net|org|xyz|app)(?![\w@-])(?:\/[\w\-./?%&=+#]*)?/gi)||[];
   /* The domain half of the email address matches this pattern too, so
      josh@example.com was being offered back as a portfolio link. */
   var mailDomain = out.email ? out.email.split("@")[1].toLowerCase() : "";
@@ -4654,7 +4690,10 @@ function extractContact(text){
   /* The name is the first line that is not a heading, not contact data and not
      a sentence. Almost always literally the first line. */
   for(var i=0;i<head.length;i++){
-    var t=head[i].trim();
+    /* A markdown resume opens with "# Aisha Bello", and the hash made the first
+       word fail the capital-letter test, so every .md import arrived with no
+       name and exported as "Your Name". */
+    var t=stripMd(head[i]).trim();
     if(!t || t.length>44) continue;
     if(/@|https?:|\d{3}/.test(t)) continue;
     if(/^(resume|curriculum|cv|profile|summary|objective|experience|contact)\b/i.test(t)) continue;
@@ -4746,10 +4785,35 @@ var METRIC_PATTERNS=[
   {k:"money", re:/[$£€]\s?\d[\d,]*(\.\d+)?\s?(k|m|bn|b|million|billion|mm)?\b/i},
   {k:"money", re:/\b(six|seven|eight|nine)[- ]figures?\b/i},
   {k:"money", re:/\b\d[\d,]*(\.\d+)?\s?(k|m|million|billion)\s+(in|of)\s+\w+/i},
-  {k:"delta", re:/\bfrom\s+[\d.,]+\s?\w{0,4}\s+to\s+[\d.,]+\s?\w{0,4}/i},
-  {k:"rank",  re:/\b(?:top|no\.?|#|position|rank(?:ed)?)\s?\d+\b/i},
+  /* The currency sign has to be inside the class or "from $2M to $9M" — a
+     before-and-after, the strongest shape a resume metric comes in — falls
+     through to the plain money pattern and is graded Volume. */
+  {k:"delta", re:/\bfrom\s+[$£€]?[\d.,]+\s?\w{0,8}\s+to\s+[$£€]?[\d.,]+\s?\w{0,8}/i},
+  /* "#1", "No. 2", "top 5". The old pattern opened with \b immediately before an
+     optional "#", and there is no word boundary between a space and a hash, so
+     the single most common way anybody writes a rank never matched and fell
+     through to the volume pattern instead. */
+  {k:"rank",  re:/(?:\b(?:top|no\.?|position|rank(?:ed)?)\s?|#)\s?\d+\b/i},
+  /* A magnitude with a unit suffix: 1.5M users, 500k downloads, 2.1 billion
+     events, 88,000 followers. None of these carry a currency sign and none of
+     them were matched by anything, so the most common non-percentage result on
+     a resume imported as "No number yet". */
+  {k:"mag",   re:/\b\d[\d,]*(\.\d+)?\s?(?:k|m|bn|b|mm|million|billion|thousand)\b(?!\s?\d)/i},
+  {k:"mag",   re:/\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b/},
   {k:"count", re:/\b\d[\d,]{0,8}\+?[-\s]+(?=[a-z])/}
 ];
+
+/* Numbers that describe the room rather than the result. A budget you were
+   handed and a team you were given are scope: real, worth showing, and ranked
+   Volume by this product's own ladder. Grading them as outcomes was the parser
+   flattering the user, which is the one thing this tool exists not to do. */
+var SCOPE_RE=/\b(?:budget|spend|headcount|team|staff|crew|squad|portfolio|book\s+of\s+business|p\s?&\s?l|quota|territory|accounts?\s+under|reports?\s+to|direct\s+reports?)\b/i;
+var SCOPE_VERB=/^(?:managed|owned|oversaw|overseen|supervised|handled|led|ran|administered|responsible|accountable|maintained|supported)\b/i;
+
+/* An outcome verb tells you the number that follows is a result, not an
+   inventory. This is what lets "Wrote 45 blog posts that drove 1.2M sessions"
+   report the 1.2M rather than the 45. */
+var OUTCOME_LEAD=/\b(?:grew|grow|growing|scaled|scaling|increased|increases?|raised|lifted|drove|driving|generated|delivered|produced|yielded|added|improved|boosted|reduced|cut|lowered|decreased|dropped|saved|shortened|accelerated|doubled|tripled|achieved|exceeded|surpassed|reached|hit|converted|retained|won|closed|recovered|returned|earned|took)\s+(?:[^.;]{0,72}?)$/i;
 
 /* "with no change to ad spend" is the most valuable half of a resume bullet and
    it belongs in the held-flat field, not buried in the sentence. */
@@ -4758,8 +4822,21 @@ var CONSTRAINT_RE=[
   /\bwithout\s+(?:increasing|adding|raising|changing|any)\b[^.;]*/i,
   /\b(?:on\s+)?the\s+same\s+(?:budget|spend|headcount|team|staff|traffic|audience|price|pricing|product|store|licen[cs]e|resources?)\b[^.;]*/i,
   /\b(?:budget|spend|headcount|pricing|traffic|team)\s+(?:(?:stayed|remained|was|kept|held)\s+)?(?:flat|unchanged|the same)\b[^.;]*/i,
-  /\bno\s+(?:extra|additional|new)\s+(?:spend|budget|headcount|hires?|tools?)\b[^.;]*/i
+  /\bno\s+(?:extra|additional|new)\s+(?:spend|budget|headcount|hires?|tools?)\b[^.;]*/i,
+  /* Any "with zero ..." holds the line. "with zero customer-facing downtime" is
+     the constraint that makes a migration bullet worth reading. */
+  /\bwith\s+(?:no|zero)\s+[\w-]+(?:\s+[\w-]+){0,2}\b[^.;]*/i,
+  /* "while doubling send volume", "while traffic grew 3x". The clause-trimmer
+     cuts everything after "while" out of the metric, so unless it is captured
+     here the best half of the bullet is thrown away silently. */
+  /\bwhile\s+(?:still\s+)?[^.;]{4,64}/i
 ];
+
+/* Is this number describing the size of the job rather than the result of it? */
+var SCOPE_VERB_ANY=/\b(?:managed|manage|owned|own|oversaw|oversee|supervised|supervise|handled|handle|led|lead|ran|run|administered|maintained|supported|responsible\s+for|accountable\s+for|reporting\s+to)\b/i;
+function scopeFlavoured(clause){
+  return SCOPE_RE.test(clause) && SCOPE_VERB_ANY.test(clause);
+}
 
 function extractMetric(text){
   var s=String(text||"").trim();
@@ -4772,22 +4849,40 @@ function extractMetric(text){
     return false;
   });
 
-  var hit=null;
-  for(var i=0;i<METRIC_PATTERNS.length && !hit;i++){
-    var p=METRIC_PATTERNS[i], re=new RegExp(p.re.source,"gi"), m;
+  /* Collect every candidate, then choose. The old loop stopped at the first
+     match of the first pattern that fired, so a sentence carrying both a
+     volume and a result reported the volume: "Wrote 45 blog posts that drove
+     1.2M organic sessions" was graded Volume on the 45 and the 1.2M was never
+     seen. Rank the candidates and let the outcome win. */
+  var KIND_WEIGHT={pct:4, delta:4, mult:4, rank:4, money:3, mag:3, count:1};
+  var cands=[];
+  METRIC_PATTERNS.forEach(function(p){
+    var re=new RegExp(p.re.source,"gi"), m;
     while((m=re.exec(s))){
+      if(m[0].length===0){ re.lastIndex++; continue; }
       if(!plausibleNumber(s,m)) continue;
-      hit={kind:p.k, at:m.index, len:m[0].length}; break;
+      var lead=s.slice(0, m.index);
+      var w=KIND_WEIGHT[p.k]||1;
+      if(OUTCOME_LEAD.test(lead)) w+=3;
+      cands.push({kind:p.k, at:m.index, len:m[0].length, w:w});
     }
-  }
-  if(!hit) return out;
+  });
+  if(!cands.length) return out;
+  /* Best score wins; on a tie the one written first wins, because resume
+     bullets lead with the thing the writer thought mattered most. */
+  cands.sort(function(a,b){ return b.w-a.w || a.at-b.at; });
+  var hit=cands[0];
 
-  out.metric = tidyClause(clauseAround(s, hit.at, hit.len));
+  var clause=clauseAround(s, hit.at, hit.len);
+  out.metric = tidyClause(clause);
   if(!out.metric) return out;
 
-  /* A count of things produced is volume, which the ladder ranks below a
-     result. Everything else here is an outcome. */
-  out.type = (hit.kind==="count") ? "activity" : "estimated";
+  /* A count of things done is volume, and so is a budget or a headcount you
+     were handed. A ratio, a delta or a rank is a result. */
+  var scope=scopeFlavoured(clause) || scopeFlavoured(s.slice(0,hit.at+hit.len));
+  var inherentlyResult = (hit.kind==="pct"||hit.kind==="delta"||hit.kind==="mult"||hit.kind==="rank");
+  var earned = OUTCOME_LEAD.test(s.slice(0,hit.at));
+  out.type = (inherentlyResult || (earned && !scope)) ? "estimated" : "activity";
   return out;
 }
 
@@ -4800,8 +4895,11 @@ function plausibleNumber(s, m){
   if(/^\s*\d[\d,]*\+?[-\s]+$/.test(frag)){
     var after=s.slice(m.index+frag.length, m.index+frag.length+22).toLowerCase();
     if(/^(year|month|week|day|hour|minute|quarter|time|person|people|member|other|of\b)/.test(after)) return false;
-    /* "a team of 5 designers" describes the room, not the result. */
-    if(/\b(team|group|staff|crew|squad|department)\s+of\s+$/i.test(s.slice(Math.max(0,m.index-16), m.index))) return false;
+    /* "a team of 5 designers" is not a result, but it is real Volume evidence
+       and throwing it away meant "Built and led a team of 12 account
+       executives" imported with no number at all while the "2 contract
+       designers" further along the same sentence got picked up instead. It is
+       kept, and graded Volume by the scope rule in extractMetric. */
   }
   return true;
 }
@@ -4809,8 +4907,14 @@ function plausibleNumber(s, m){
 /* Widen from the number to the clause that gives it meaning, and no further.
    "41%" on its own is not a metric. */
 function clauseAround(s, at, len){
+  /* Sentence boundaries first. A comma is only a boundary when the sentence is
+     long enough that keeping all of it would bury the number, because cutting
+     at the first comma turned "Owned a $2.4M annual paid budget across Google,
+     LinkedIn and Meta" into "...across Google", which reads as a mistake. */
+  var seps=[". ","; "];
+  if(s.length>110) seps=seps.concat([", ",": "]);
   var lefts=[0], rights=[s.length];
-  [". ","; ",", ",": "].forEach(function(d){
+  seps.forEach(function(d){
     var L=s.lastIndexOf(d,at); if(L>-1) lefts.push(L+d.length);
     var R=s.indexOf(d,at+len); if(R>-1) rights.push(R);
   });
@@ -4845,7 +4949,7 @@ function clauseAround(s, at, len){
    alone cannot tell them apart. Score both sides instead. Seniority words are
    the strongest signal available, because a company is rarely called "Senior
    anything" while a title very often is. */
-var ROLE_WORDS=/\b(designer|engineer|developer|manager|director|analyst|specialist|coordinator|consultant|architect|writer|copywriter|strategist|marketer|scientist|researcher|administrator|producer|editor|recruiter|accountant|nurse|teacher|technician|officer|associate|assistant|intern|lead|head|president|founder|partner|illustrator|animator|photographer|videographer|artist|buyer|planner|supervisor|representative|advisor|controller|auditor|generalist|operator|programmer|tester|trainer|curator|advocate|liaison|steward|clerk|agent)\b/i;
+var ROLE_WORDS=/\b(designer|engineer|developer|manager|director|analyst|specialist|coordinator|consultant|architect|writer|copywriter|strategist|marketer|scientist|researcher|administrator|producer|editor|recruiter|accountant|nurse|teacher|technician|officer|associate|assistant|intern|lead|head|president|founder|partner|illustrator|animator|photographer|videographer|artist|buyer|planner|supervisor|representative|advisor|controller|auditor|generalist|operator|programmer|tester|trainer|curator|advocate|liaison|steward|clerk|agent|executive|owner|principal|chief|apprentice|fellow|volunteer|contractor|freelancer|specialist|therapist|paralegal|attorney|physician|pharmacist|dietitian|electrician|plumber|machinist|welder|driver|dispatcher|cashier|server|barista|bartender|chef|cook|stylist|instructor|professor|lecturer|tutor|counselor|counsellor|caseworker|social\s+worker|scrum\s+master|product\s+owner)\b/i;
 var SENIORITY=/\b(senior|junior|lead|principal|staff|chief|head\s+of|vp|vice\s+president|director\s+of|sr\.?|jr\.?|associate|assistant|entry|mid|executive|global|regional|deputy|interim|freelance|contract)\b/i;
 /* "marketing", "digital" and "creative" are deliberately absent. They appear in
    job titles far more often than they identify a company, and including them
@@ -4862,14 +4966,6 @@ function scoreAsRole(s){
   if(ORG_WORDS.test(s)) n-=3;
   return n;
 }
-/* Returns [company, role]. */
-function orderRoleOrg(a,b){
-  if(!b) return [a||"",""];
-  var ra=scoreAsRole(a), rb=scoreAsRole(b);
-  if(rb>ra) return [a,b];       // second half is the title, so first is the company
-  if(ra>rb) return [b,a];       // first half is the title
-  return [a,b];                 // tie, keep the order as written
-}
 
 function tidyClause(c){
   c=String(c||"").replace(BULLET_RE,"").replace(/\s+/g," ").trim()
@@ -4884,9 +4980,19 @@ function tidyClause(c){
    became an achievement, so an import produced a wall of junk entries before it
    ever reached the real jobs. Only experience sections yield entries now.
    Skills sections feed the tag pool. Everything else is skipped. */
-var SEC_EXP  =/^(work|professional|relevant|employment)?\s*(experience|history|employment|positions?)\b|^career\b/i;
-var SEC_SKILL=/^(technical\s+)?(skills?|competencies|capabilities|technologies|tools|expertise|proficienc)/i;
-var SEC_OTHER=/^(summary|profile|objective|about|education|certification|certificate|award|honou?rs|publication|volunteer|interest|hobb|reference|language|project|portfolio|contact)/i;
+/* Headings are written a hundred ways and an unrecognised one is expensive: an
+   unrecognised SUMMARY heading turned the summary paragraph into an employer
+   with two sentences as its achievements, and an unrecognised COMPETENCIES
+   heading turned a skills list into jobs. The qualifier is allowed to appear on
+   either side of the keyword, because "PROFESSIONAL SUMMARY" and "SUMMARY OF
+   QUALIFICATIONS" are the same heading. */
+var SEC_QUAL=/^(?:\d+\.?\s*)?(?:work|professional|relevant|employment|selected|additional|other|previous|prior|recent|core|key|technical|personal|side|my)\s+/i;
+/* The trailing (?:s|es)? is load-bearing: without it a plain \b after the
+   keyword refuses to match "PROJECTS", "AWARDS" or "CERTIFICATIONS", and an
+   unmatched heading means the section's contents get parsed as jobs. */
+var SEC_EXP  =/^(experience|history|employment|position|background|role|work|career|freelance|consulting|contract\s+work|client|engagement)(?:s|es)?\b/i;
+var SEC_SKILL=/^(skill|competenc(?:y|ies|es)|capabilit(?:y|ies)|technolog(?:y|ies)|tool|technical|expertise|proficienc|stack|toolkit|software|platform|languages?\s+and\s+tools)(?:s|es)?\b/i;
+var SEC_OTHER=/^(summary|profile|objective|about|overview|highlight|education|academic|certification|certificate|credential|training|award|honou?rs?|publication|volunteer|community|interest|hobb|reference|language|project|portfolio|contact|affiliation|membership|patent|speaking|press|leadership|activit(?:y|ies))(?:s|es)?\b/i;
 function sectionOf(line){
   var t=line.replace(/[:\s]+$/,"").trim();
   if(t.length>44) return null;                       // headings are short
@@ -4894,92 +5000,260 @@ function sectionOf(line){
   if(wordy>4) return null;
   var upperish = t===t.toUpperCase() || /^[A-Z]/.test(t);
   if(!upperish) return null;
-  if(SEC_EXP.test(t))   return "exp";
-  if(SEC_SKILL.test(t)) return "skill";
-  if(SEC_OTHER.test(t)) return "other";
+  /* "PROFESSIONAL EXPERIENCE" and "EXPERIENCE" are one heading. Test the line
+     with the qualifier and again without it. */
+  var bare=t.replace(SEC_QUAL,"").trim() || t;
+  /* Bilingual and slash-joined headings: "BERUFSERFAHRUNG / PROFESSIONAL
+     EXPERIENCE" is an experience heading even though the recognised word is on
+     the far side of the slash. */
+  var tail=t.split(/\s*[\/|]\s*/).pop().replace(SEC_QUAL,"").trim();
+  if(SEC_EXP.test(t)   || SEC_EXP.test(bare) || SEC_EXP.test(tail))   return "exp";
+  if(SEC_SKILL.test(t) || SEC_SKILL.test(bare)) return "skill";
+  if(SEC_OTHER.test(t) || SEC_OTHER.test(bare)) return "other";
   return null;
 }
-/* A comma list with no verb is a skills line, not an achievement. */
+/* Resume bullets open with a verb. Company and job title lines never do, which
+   makes this the cheapest reliable way to tell a header from an achievement
+   that happens to be short and happens to have no full stop. */
+var VERB_START=/^(led|ran|built|rebuilt|grew|drove|cut|raised|lifted|reduced|increased|decreased|improved|launched|shipped|delivered|managed|owned|created|designed|developed|wrote|produced|planned|coordinated|supported|maintained|implemented|introduced|established|scaled|streamlined|negotiated|closed|won|secured|saved|generated|achieved|exceeded|surpassed|hit|met|trained|mentored|coached|hired|recruited|onboarded|supervised|directed|oversaw|partnered|collaborated|worked|handled|processed|resolved|fixed|migrated|rewrote|refactored|automated|integrated|deployed|tested|audited|analysed|analyzed|researched|presented|pitched|advised|consulted|facilitated|organised|organized|edited|published|translated|reviewed|approved|forecast|forecasted|budgeted|tracked|monitored|reported|documented|standardised|standardized|consolidated|expanded|opened|founded|co-founded|spearheaded|championed|drafted|prepared|assisted|helped|contributed|responsible|accountable|serve|served|act|acted)\b/i;
+
+/* A comma list with no verb is a skills line, not an achievement.
+   The old version only counted commas and part length, so "Cut CAC 41%, lifted
+   LTV 22%, and held spend flat" — three short clauses — was classified as a
+   skills line and thrown away without a word to the user. That is the strongest
+   bullet on the page and it was the one most likely to be deleted. A real
+   achievement opens with a verb and usually carries a digit; either signal is
+   enough to keep it. */
 function looksLikeSkillList(s){
-  var commas=(s.match(/,/g)||[]).length;
+  /* "Northwind Analytics, New York, NY" is a company line, not a skills line.
+     Take the location off before counting commas or the employer disappears
+     into the tag pool. */
+  var t=cutLocation(String(s||"").trim());
+  var commas=(t.match(/,/g)||[]).length;
   if(commas<2) return false;
-  var parts=s.split(",").map(function(p){ return p.trim(); }).filter(Boolean);
+  if(VERB_START.test(t)) return false;
+  if(/\d/.test(t)) return false;
+  var parts=t.split(",").map(function(p){ return p.trim(); }).filter(Boolean);
   var shortParts=parts.filter(function(p){ return p.split(/\s+/).length<=4; }).length;
   return shortParts/parts.length > 0.75;
+}
+
+/* =========================================================================
+   HEADER BLOCKS
+   A job header is a block, not a line. The three most common resume templates
+   put the company, the title and the dates on three separate lines, in any
+   order, and a parser that decides line by line has to commit before it has
+   seen the other two. Guessing wrong there is not cosmetic: on a stacked
+   layout the old parser put the job title in the company field and dropped the
+   employer name entirely, so an exported resume listed titles and dates with no
+   companies at all. Collect the run and decide once, with everything in hand.
+   ========================================================================= */
+
+/* A range, wherever it sits on the line. Both orders of month and year, numeric
+   months, and every open-ended present tense people write. */
+var MON=/(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?/i;
+var DATE_ONE="(?:(?:"+MON.source+"|\\d{1,2}[/.])\\s*)?(?:19|20)\\d{2}";
+var DATE_NOW="(?:present|current|now|to\\s?date|ongoing|today)";
+var DATE_RANGE_RE=new RegExp(
+  "("+DATE_ONE+"|"+DATE_NOW+")\\s*(?:-|to|until|through|–|—)\\s*("+DATE_ONE+"|"+DATE_NOW+")?","i");
+var DATE_ONLY_RE=new RegExp("^\\s*(?:"+DATE_ONE+"|"+DATE_NOW+")\\s*(?:(?:-|to|until|through|–|—)\\s*(?:"+DATE_ONE+"|"+DATE_NOW+")?)?\\s*$","i");
+
+/* "New York, NY", "London, UK", "Remote", "Remote - US". A location is neither
+   the company nor the title, and letting it become one is how "New York, NY"
+   ended up printed as somebody's job title. */
+/* Deliberately narrow. An earlier version accepted "Word, Word" as a location,
+   which made "Tableau, Looker" at the end of a skills line look like a city and
+   a country, so half the skills line was silently eaten. A place name is
+   followed by a two-letter code or by a country spelled out, and nothing else
+   qualifies. */
+var COUNTRY="(?:UK|USA|US|UAE|United\\s+Kingdom|United\\s+States|England|Scotland|Wales|Ireland|Canada|Australia|New\\s+Zealand|Germany|France|Spain|Italy|Portugal|Netherlands|Belgium|Switzerland|Austria|Poland|Sweden|Norway|Denmark|Finland|Japan|China|India|Singapore|Israel|Brazil|Mexico|Argentina|Chile|Colombia|Nigeria|Kenya|Ghana|South\\s+Africa|Egypt|Philippines|Vietnam|Thailand|Indonesia|Malaysia|Korea)";
+var LOC_TAIL=new RegExp(",\\s*([A-Z][a-zA-Z.'-]+(?:\\s+[A-Z][a-zA-Z.'-]+){0,2},\\s*(?:[A-Z]{2}|"+COUNTRY+")|[A-Z]{2}|"+COUNTRY+"|Remote|Hybrid|On[- ]?site)\\s*$");
+/* No "i" flag on purpose: the [A-Z]{2} branch is a state or country code and
+   case-insensitivity would let it match "of" or "in". Only the work-arrangement
+   words need both cases, so they carry it themselves. */
+var LOC_RE=new RegExp("^(?:[Rr]emote|[Hh]ybrid|[Oo]n[- ]?site|[Vv]irtual)(?:\\s*[-,(]\\s*[\\w\\s.]+\\)?)?$|^[A-Z][a-zA-Z.'-]+(?:\\s+[A-Z][a-zA-Z.'-]+){0,2},\\s*(?:[A-Z]{2}|"+COUNTRY+")$");
+
+function cutDates(t){
+  var m=String(t||"").match(DATE_RANGE_RE);
+  if(!m && DATE_ONLY_RE.test(t)) m=[String(t).trim(),null,null], m.index=0;
+  if(!m) return {dates:"", rest:String(t||"").trim()};
+  var rest=(String(t).slice(0,m.index)+" "+String(t).slice(m.index+m[0].length))
+    .replace(/\s{2,}/g," ").replace(/^[\s|·•,\-–—(]+/,"").replace(/[\s|·•,\-–—(]+$/,"").trim();
+  return {dates:m[0].replace(/\s{2,}/g," ").trim(), rest:rest};
+}
+
+/* Is this line part of a job header, or is it an achievement? */
+function headerish(t){
+  var s=String(t||"").trim();
+  if(!s) return false;
+  if(s.length>92) return false;
+  if(/[.!?]$/.test(s)) return false;              // a sentence is a claim
+  if(VERB_START.test(s)) return false;            // bullets open with a verb
+  if(/^[a-z]/.test(s)) return false;              // continuation of something
+  var hasSep=/[|·•‖]|\s[-–—]\s|\s{2,}/.test(s);
+  var hasDate=DATE_ONLY_RE.test(s)||DATE_RANGE_RE.test(s);
+  /* "Regional Sales Director | Vertex Medical Group | 2020 - Present" is
+     eleven words and still unambiguously a header. The tighter limit only
+     applies to a bare line with nothing structural in it. */
+  if(s.split(/\s+/).length > ((hasSep||hasDate) ? 16 : 9)) return false;
+  if(hasDate || hasSep) return true;
+  /* Title case or all caps with no sentence punctuation reads as a heading. */
+  return /^[A-Z0-9]/.test(s) && !/[,;:]\s*\w+\s+\w+\s+\w+\s+\w+/.test(s);
+}
+
+/* Strip a trailing location so "Northwind Analytics, New York, NY" is scored as
+   a company rather than as a comma list. */
+function cutLocation(s){
+  var t=String(s||"").trim();
+  var m=t.match(LOC_TAIL);
+  if(m && m.index>2) return t.slice(0,m.index).trim();
+  return t;
+}
+
+/* Split one header line into its candidate fields. */
+function headerFields(line){
+  var d=cutDates(line), out={dates:d.dates, fields:[], loc:""};
+  if(!d.rest) return out;
+  /* Columns split first. Testing the whole line for a location before the split
+     made "Helio Systems  Austin, TX" read as one long place name, and the
+     employer vanished into the location field. */
+  var cols=d.rest.split(/\s*[|·•‖]\s*|\s+[-–—]\s+|\s+\/\s+|\s+\bat\b\s+|\s{2,}/i)
+    .map(function(x){ return String(x).trim(); }).filter(Boolean);
+  cols.forEach(function(col){
+    /* A column that is nothing but a place is a place. Keeping the city half of
+       "Manchester, UK" as a candidate is how a contact-block city ended up
+       printed as somebody's employer. */
+    if(LOC_RE.test(col)){ if(!out.loc) out.loc=col; return; }
+    /* Comma is a separator in "Lead Product Designer, Bright Labs" and part of
+       the name in "Acme, Inc". Split on it only when what follows is not a
+       suffix, and take any trailing location off first. */
+    var body=cutLocation(col);
+    if(body!==col && !out.loc) out.loc=col.slice(body.length).replace(/^[\s,]+/,"");
+    if(!body) return;
+    body.replace(/,\s+(?!(inc|llc|ltd|co|corp|gmbh|plc|pty|s\.a|l\.p)\b\.?)/i," | ")
+      .split(/\s*\|\s*/)
+      .forEach(function(f){
+        f=String(f).replace(/[\s,;]+$/,"").replace(/^[\s,;]+/,"").trim();
+        if(f && !LOC_RE.test(f)) out.fields.push(f);
+        else if(f && !out.loc) out.loc=f;
+      });
+  });
+  return out;
+}
+
+/* Given every line of one header block, work out which part is the employer,
+   which is the job title and which is the date range. */
+function readHeaderBlock(blockLines){
+  var dates="", cands=[], loc="";
+  blockLines.forEach(function(line){
+    var h=headerFields(line);
+    if(h.dates && !dates) dates=h.dates;
+    if(h.loc && !loc) loc=h.loc;
+    h.fields.forEach(function(f){ if(f) cands.push(f); });
+  });
+  /* Locations are neither, but they are worth keeping for the header. */
+  cands=cands.filter(function(c){
+    if(LOC_RE.test(c)){ if(!loc) loc=c; return false; }
+    return true;
+  });
+  cands=cands.map(cutLocation).filter(function(c){ return c && c.length<=72; });
+  if(!cands.length) return {org:"", role:"", dates:dates, loc:loc};
+  if(cands.length===1){
+    /* One name and nothing else. Score decides which field it belongs in, so a
+       lone "Senior Growth Marketing Manager" line lands on role and leaves the
+       company free to be inherited from the block above it. */
+    return scoreAsRole(cands[0])>=2
+      ? {org:"", role:cands[0], dates:dates, loc:loc}
+      : {org:cands[0], role:"", dates:dates, loc:loc};
+  }
+  /* Highest role score is the title; best of the rest is the employer. */
+  var scored=cands.map(function(c,i){ return {t:c, s:scoreAsRole(c), i:i}; });
+  var best=scored.slice().sort(function(a,b){ return b.s-a.s || a.i-b.i; })[0];
+  var rest=scored.filter(function(x){ return x!==best; });
+  var org=rest.sort(function(a,b){ return a.s-b.s || a.i-b.i; })[0];
+  /* A genuine tie means neither side is identifiable, so keep written order:
+     company first is the overwhelming convention. */
+  if(best.s===org.s) return {org:cands[0], role:cands[1], dates:dates, loc:loc};
+  return {org:org.t, role:best.t, dates:dates, loc:loc};
 }
 function splitResume(raw){
   var lines=raw.split(/\r?\n/).map(function(l){ return l.replace(/\s+$/,""); });
   var jobs=[], cur=null, section=null, skillPool=[], sawExp=false;
+  var pending=[];   // consecutive header-ish lines waiting to be read as one block
+
+  /* Turn the lines collected so far into one job header. Called the moment
+     something that is not a header arrives, which is when the block is known to
+     be complete. */
+  function flushHeader(){
+    if(!pending.length) return;
+    var h=readHeaderBlock(pending);
+    pending=[];
+    if(!h.org && !h.role && !h.dates) return;
+    /* A block with a title and no employer is a promotion inside the company
+       named above it, which is how every internal-move resume is written. */
+    if(!h.org && h.role && cur && cur.org) h.org=cur.org;
+    /* A block with only a date belongs to the header immediately above. */
+    if(!h.org && !h.role && h.dates && cur){ cur.dates=cur.dates||h.dates; return; }
+    cur={org:h.org, role:h.role, dates:h.dates, loc:h.loc, bullets:[]};
+    jobs.push(cur);
+  }
+
   lines.forEach(function(line){
     var t0=line.trim();
     if(!t0) return;
     var isBullet=BULLET_RE.test(line);
-    var t=stripMd(t0);
+    var t=stripMd(t0, true);
     if(!t) return;
 
-    if(!isBullet){
-      var sec=sectionOf(t);
-      if(sec){ section=sec; if(sec==="exp") sawExp=true; cur=null; return; }
-    }
+    /* Headings are checked even when the line arrived wearing a bullet glyph.
+       "▪ EXPERIENCE ▪" is a heading somebody decorated, and treating it as an
+       achievement meant the section never opened and the contact block was
+       parsed as a job. */
+    var secText=isBullet ? stripMd(t0.replace(BULLET_RE,"")).trim() : t;
+    var sec=sectionOf(secText);
+    if(sec){ pending=[]; section=sec; if(sec==="exp") sawExp=true; cur=null; return; }
     if(section==="skill"){
-      t.split(/[,;|•·]/).forEach(function(s){ s=s.trim().toLowerCase();
+      /* Original case is kept. These are printed back on the finished document
+         as the user's skills line, and "sql, hubspot, ga4" reads as a typo
+         where "SQL, HubSpot, GA4" reads as a resume. Matching is
+         case-insensitive regardless. */
+      t.split(/[,;|•·]/).forEach(function(s){ s=s.trim().replace(/[.]$/,"");
         if(s.length>1 && s.length<34) skillPool.push(s); });
       return;
     }
     /* Once a resume has shown an EXPERIENCE heading, anything under a different
        heading is not a job. Before that, be permissive: plenty of resumes have
        no headings at all. */
-    if(section==="other" && sawExp) return;
-    if(section==="other" && !sawExp) return;
+    if(section==="other"){ pending=[]; return; }
     if(!isBullet && looksLikeSkillList(t)){
-      t.split(",").forEach(function(s){ s=s.trim().toLowerCase();
+      pending=[];
+      t.split(",").forEach(function(s){ s=s.trim().replace(/[.]$/,"");
         if(s.length>1 && s.length<34) skillPool.push(s); });
       return;
     }
 
     var clean=stripMd(t0.replace(BULLET_RE,"")).trim();
-    if(isBullet && cur){ cur.bullets.push(clean); return; }
-    // A header is a short line, not a bullet, usually carrying a date or a separator.
-    var looksHeader = !isBullet && t.length<=90 &&
-      (DATE_RE.test(t) || /[|·•]|\s[-–—]\s/.test(t) || /^[A-Z][^.!?]*$/.test(t));
-    if(looksHeader){
-      var dates="", rest=t;
-      /* Cut at an optional month word plus a four digit year, and take everything
-         after it as the date range. The earlier version anchored on the year only,
-         which left "March" behind and it became the job title. */
-      var dm=t.match(/((jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+)?(19|20)\d{2}\b[\s\S]*$/i);
-      if(dm){ dates=dm[0].trim(); rest=t.slice(0,dm.index).replace(/[|·,\-–—\s]+$/,"").trim(); }
-      /* Separators seen in the wild: pipe, middot, bullet, en/em dash, slash,
-         and the word "at". Missing the bullet left "Marketing Designer • Copy
-         Chief" sitting in the company field as one string. */
-      /* Comma is a separator in "Lead Product Designer, Bright Labs" and part of
-         the name in "Acme, Inc". Split on it only when what follows is not a
-         legal suffix. */
-      var sepd=rest.replace(/,\s+(?!(inc|llc|ltd|co|corp|gmbh|plc|pty|s\.a|l\.p)\b\.?)/i," | ");
-      var parts=sepd.split(/\s*[|·•‖]\s*|\s+[-–—]\s+|\s+\/\s+|\s+\bat\b\s+/i).filter(Boolean);
-      /* Only merge into the previous header when THIS line actually looks like a
-         role-and-date line, meaning it carries a date or a separator. Without
-         that test a bare name at the top of the resume swallows the first real
-         company as its job title, which is exactly what markdown files hit. */
-      var looksRoleLine = !!dates || /[|·•]|\s[-–—]\s/.test(rest);
-      if(cur && cur.bullets.length===0 && !cur.role && !cur.dates && looksRoleLine){
-        var pair=orderRoleOrg(parts[0]||"", parts[1]||"");
-        cur.role = pair[1] || pair[0] || "";
-        if(pair[1]) cur.org = cur.org || pair[0];
-        if(dates) cur.dates=dates;
-        if(cur.role||cur.dates) return;
-      }
-      if(!rest && dates && cur){ cur.dates=cur.dates||dates; return; }
-      var ord=orderRoleOrg(parts[0]||rest, parts[1]||"");
-      cur={org:ord[0]||rest, role:ord[1]||"", dates:dates, bullets:[]};
-      jobs.push(cur);
-      return;
-    }
-    if(cur) cur.bullets.push(clean); else { cur={org:clean,role:"",dates:"",bullets:[]}; jobs.push(cur); }
+    if(isBullet){ flushHeader(); if(cur) cur.bullets.push(clean); return; }
+
+    /* Three lines is the whole vocabulary of a stacked header: company, title,
+       dates. A fourth consecutive short line is a list, not a header, so the
+       block closes and the extra lines are read as content. A date range is the
+       exception: it is unambiguous, it belongs to this job whatever else the
+       block already holds, and refusing it printed the dates as an achievement. */
+    if(headerish(t) && (pending.length<3 || DATE_ONLY_RE.test(t))){ pending.push(t); return; }
+
+    flushHeader();
+    if(cur) cur.bullets.push(clean);
+    else { cur={org:"", role:"", dates:"", loc:"", bullets:[clean]}; jobs.push(cur); }
   });
+  flushHeader();
 
   var units=[], id=Date.now();
-  var pool=[...new Set(skillPool)];
+  /* Case-insensitive dedupe, first spelling wins, so "SQL" and "sql" on two
+     different lines do not both reach the finished skills line. */
+  var poolSeen={}, pool=[];
+  skillPool.forEach(function(s){
+    var k=s.toLowerCase(); if(poolSeen[k]) return; poolSeen[k]=1; pool.push(s); });
   /* Contact lines, addresses and URL soup are not achievements. */
   var JUNK=/^(https?:|www\.|linkedin\.com|github\.com|[\w.+-]+@[\w-]+\.)|^\+?\d[\d\s().-]{7,}$|^[A-Z][a-z]+,\s*[A-Z]{2}$/i;
   jobs.forEach(function(j){
@@ -4998,17 +5272,23 @@ function splitResume(raw){
          the bullet actually mentions them. */
       pool.forEach(function(s){
         if(tags.length>7) return;
-        if(tags.indexOf(s)>-1) return;
+        var lc=s.toLowerCase();
+        if(tags.some(function(t){ return t.toLowerCase()===lc; })) return;
         if(new RegExp("\\b"+s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i").test(b)) tags.push(s);
       });
       tags=tags.slice(0,7);
       var kpi=extractMetric(b);
-      units.push({id:id++, org:j.org||"Untitled", role:j.role||"", dates:j.dates||"",
+      /* When only one of the two names could be read, it goes in the headline
+         slot rather than being repeated in both. */
+      units.push({id:id++, org:j.org||j.role||"Untitled", role:(j.org?j.role:"")||"", dates:j.dates||"",
         action:b, metricType:kpi.type, metric:kpi.metric, constraint:kpi.constraint,
         evidence:kpi.type==="none"?"":"Pulled from your resume on import. Confirm where this number came from, then move it up to Proven.",
         benchmark:"", tags:tags});
     });
   });
+  /* Carried on the array rather than in a second return value, so every
+     existing call site keeps working unchanged. */
+  units.skillPool = pool.filter(function(s){ return s.length>1 && s.length<34; }).slice(0,40);
   return units;
 }
 
@@ -5214,6 +5494,11 @@ $("pasteGo").addEventListener("click",function(){
   }
   if(!found.length){ m.textContent="Nothing could be split out of that. Try adding one by hand instead."; m.className="msg bad on"; return; }
   S.units=S.units.concat(found);
+  if(found.skillPool && found.skillPool.length){
+    var have={}; (S.skills||[]).forEach(function(s){ have[s.toLowerCase()]=1; });
+    S.skills=(S.skills||[]).concat(found.skillPool.filter(function(s){
+      if(have[s.toLowerCase()]) return false; have[s.toLowerCase()]=1; return true; }));
+  }
   /* Keep the raw text so the AI tailor step has the full source. Any
      text that came in through the file drop is already stored, so only
      append when the user typed something new into the box. */

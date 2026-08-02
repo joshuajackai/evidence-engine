@@ -5119,6 +5119,10 @@ function cutDates(t){
    Achievements" was landing in the list as an ungraded entry of its own. */
 var JOB_SUBHEAD=/^(?:key|core|selected|notable|major|other|additional)?\s*(?:achievements?|accomplishments?|responsibilities|duties|highlights?|results?|impact|contributions?|projects?|clients?|overview|scope|summary|details?|activities)\s*:?\s*$/i;
 
+/* Nothing that is a contact detail, a URL or a bare number is a skill. All-caps
+   is deliberately not a signal here: JAVASCRIPT and POWERPOINT are real. */
+var SKILL_JUNK=/@|https?:\/\/|^\+?[\d\s().-]{7,}$|^\d+$/;
+
 /* Is this line part of a job header, or is it an achievement? */
 function headerish(t){
   var s=String(t||"").trim();
@@ -5238,6 +5242,12 @@ function splitResume(raw){
   lines.forEach(function(line){
     var t0=line.trim();
     if(!t0) return;
+    /* A horizontal rule is a hard reset. Two files dropped at once are joined
+       into one body of text for review, and without a boundary the first
+       file's SKILLS heading was still open when the second file's name and
+       contact block arrived, so they were harvested as skills and printed on
+       the finished resume. */
+    if(/^[-=_]{3,}$/.test(t0)){ pending=[]; section=null; cur=null; return; }
     var isBullet=BULLET_RE.test(line);
     var t=stripMd(t0, true);
     if(!t) return;
@@ -5258,7 +5268,7 @@ function splitResume(raw){
          where "SQL, HubSpot, GA4" reads as a resume. Matching is
          case-insensitive regardless. */
       t.split(/[,;|•·]/).forEach(function(s){ s=s.trim().replace(/[.]$/,"");
-        if(s.length>1 && s.length<34) skillPool.push(s); });
+        if(s.length>1 && s.length<34 && !SKILL_JUNK.test(s)) skillPool.push(s); });
       return;
     }
     /* Once a resume has shown an EXPERIENCE heading, anything under a different
@@ -5378,15 +5388,46 @@ async function pdfToText(file){
     var tc = await page.getTextContent();
     /* Rebuild lines from item positions. A naive join loses every line break,
        and line breaks are exactly what the splitter needs to find job blocks. */
-    var lines={}, items=tc.items;
+    var rows=[], items=tc.items;
     for(var i=0;i<items.length;i++){
       var it=items[i]; if(!it.str) continue;
-      var y=Math.round(it.transform[5]);
-      (lines[y]=lines[y]||[]).push({x:it.transform[4], s:it.str});
+      var y=it.transform[5], h=Math.abs(it.transform[3])||10, x=it.transform[4];
+      /* Rounding y to a whole number split one visual line in two whenever a
+         run sat half a unit off its neighbours, which is routine in exported
+         PDFs. Group within a fraction of the line height instead. */
+      var row=null, tol=Math.max(2, h*0.4);
+      for(var r=rows.length-1; r>=0 && rows.length-r<4; r--){
+        if(Math.abs(rows[r].y-y)<=tol){ row=rows[r]; break; }
+      }
+      if(!row){ row={y:y, h:h, items:[]}; rows.push(row); }
+      row.items.push({x:x, w:it.width||0, h:h, s:it.str});
     }
-    Object.keys(lines).map(Number).sort(function(a,b){ return b-a; }).forEach(function(y){
-      var line=lines[y].sort(function(a,b){ return a.x-b.x; }).map(function(o){ return o.s; }).join(" ");
-      out.push(line.replace(/\s+/g," ").trim());
+    rows.sort(function(a,b){ return b.y-a.y; }).forEach(function(row){
+      row.items.sort(function(a,b){ return a.x-b.x; });
+      /* A wide horizontal gap is a column boundary, and it is the only record a
+         flattened PDF keeps of one. Joining every run with a single space threw
+         it away here, before the header parser had any chance to use it, so
+         "Helio Systems        Austin, TX" arrived as one company name. */
+      var line="", prev=null;
+      row.items.forEach(function(o){
+        /* pdf.js does not leave the gap empty. It emits a whitespace-only run
+           carrying the full width of the gap, so the distance between adjacent
+           items is always zero and no position-based test can see the column.
+           The character is one space; the width is the signal. */
+        if(!/\S/.test(o.s)){
+          if(!/\s$/.test(line)) line += (o.w > (o.h||10)*1.2) ? "   " : " ";
+          else if(o.w > (o.h||10)*1.2) line = line.replace(/\s+$/,"   ");
+          prev=o; return;
+        }
+        if(prev && !/\s$/.test(line)){
+          var gap=o.x-(prev.x+prev.w), sp=(prev.h||10)*0.28;
+          if(gap > sp*3) line+="   ";
+          else if(gap > sp*0.4) line+=" ";
+        }
+        line+=o.s; prev=o;
+      });
+      /* Collapse tabs and stray whitespace but leave the column gap standing. */
+      out.push(line.replace(/[^\S ]+/g," ").replace(/ {4,}/g,"   ").replace(/^ +| +$/g,""));
     });
     out.push("");
   }
@@ -5438,8 +5479,12 @@ async function handleFiles(fileList){
   /* Combine every successfully-read file into the paste box, separated by a
      blank line, so the splitter treats the combined body as one inventory to
      split. Every entry pile into S.units on Save just as before. */
+  /* Separated by a rule, not just a blank line. The splitter treats it as the
+     end of one document, so a heading left open at the bottom of the first
+     file cannot swallow the top of the second. It is also legible in the box
+     the user is about to read. */
   var combined=results.filter(function(r){ return r.ok; })
-    .map(function(r){ return r.text; }).join("\n\n");
+    .map(function(r){ return r.text; }).join("\n\n---\n\n");
   if(combined){
     $("pasteBox").value = combined;
     /* Keep the raw text so the AI tailor step has the full source to

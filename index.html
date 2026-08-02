@@ -5074,7 +5074,10 @@ var MON=/(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?/i;
    imported with no dates at all. */
 var YEAR="(?:(?:19|20)\\d{2}|'\\d{2})";
 var DATE_ONE="(?:(?:"+MON.source+"|\\d{1,2}[/.])\\s*)?"+YEAR;
-var DATE_NOW="(?:present|current|now|to\\s?date|ongoing|today|date)";
+/* The non-English forms are here because the rest of this parser already
+   handles a European CV, and "03/2019 - heute" was rendering as "03/2019 -"
+   with a dash hanging off the end of the date on the finished document. */
+var DATE_NOW="(?:present|current|now|to\\s?date|ongoing|today|date|heute|aktuell|jetzt|actuel|aujourd'hui|actualidad|presente|attuale|oggi|heden|nu|n\\u00e5|obecnie|nuvarande)";
 var DATE_SEP="(?:-|to|until|through|–|—)";
 /* "Since 2022" is an open-ended range written without a separator. */
 var DATE_SINCE="(?:since|from)\\s+"+DATE_ONE;
@@ -5110,7 +5113,11 @@ function cutDates(t){
     .replace(/\s{2,}/g," ")
     .replace(/^[\s|·•,\-–—([]+/,"").replace(/[\s|·•,\-–—([]+$/,"")
     .replace(/[\s)\]]+$/,"").trim();
-  return {dates:m[0].replace(/\s{2,}/g," ").replace(/^[\s(\[]+|[\s)\]]+$/g,"").trim(), rest:rest};
+  /* An unrecognised end word still leaves a dangling separator. Trim it rather
+     than print "2019 -", and never substitute a word the file did not say. */
+  var dates=m[0].replace(/\s{2,}/g," ").replace(/^[\s(\[]+|[\s)\]]+$/g,"")
+    .replace(/\s*(?:-|–|—|to|until|through)\s*$/i,"").trim();
+  return {dates:dates, rest:rest};
 }
 
 /* Labels that sit inside a job, above its bullets, and belong to no employer.

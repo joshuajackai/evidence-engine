@@ -2149,15 +2149,26 @@ var BLOCKED_SOURCES = [
 /* Key-based aggregators. These are the legitimate route to the inventory people
    mean when they say LinkedIn or Indeed: they license and aggregate it rather
    than scraping it. Off until the user adds their own free key. */
+/* `test` builds the smallest possible real request for that source, so a key can
+   be checked on its own in one second instead of by running a whole search and
+   reading a status code out of a summary line. */
 var KEYED_SOURCES = {
   adzuna:{label:"Adzuna", note:"Free tier. Aggregates a large share of Indeed-class inventory.",
-    signup:"https://developer.adzuna.com/", fields:["app_id","app_key"]},
+    signup:"https://developer.adzuna.com/", fields:["app_id","app_key"],
+    test:function(c){ return {url:"https://api.adzuna.com/v1/api/jobs/us/search/1?app_id="+
+      encodeURIComponent(c.app_id||"")+"&app_key="+encodeURIComponent(c.app_key||"")+"&results_per_page=1"}; }},
   jsearch:{label:"JSearch", note:"Aggregates Google for Jobs results, which includes LinkedIn and Indeed listings.",
-    signup:"https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch", fields:["rapidapi_key"]},
+    signup:"https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch", fields:["rapidapi_key"],
+    test:function(c){ return {url:"https://jsearch.p.rapidapi.com/search?query=designer&num_pages=1&page=1",
+      headers:{"x-rapidapi-key":c.rapidapi_key||"","x-rapidapi-host":"jsearch.p.rapidapi.com"}}; }},
   jooble:{label:"Jooble", note:"Free API key, broad international coverage.",
-    signup:"https://jooble.org/api/about", fields:["api_key"]},
+    signup:"https://jooble.org/api/about", fields:["api_key"],
+    test:function(c){ return {url:"https://jooble.org/api/"+encodeURIComponent(c.api_key||""),
+      method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({keywords:"designer",page:"1"})}; }},
   jobsapi28:{label:"Jobs API 28", note:"RapidAPI. Pulls active ATS postings across many boards at once.",
-    signup:"https://rapidapi.com/company-club-company-club-default/api/jobs-api28", fields:["rapidapi_key"]}
+    signup:"https://rapidapi.com/company-club-company-club-default/api/jobs-api28", fields:["rapidapi_key"],
+    test:function(c){ return {url:"https://jobs-api28.p.rapidapi.com/active-ats-7d?limit=1&offset=0",
+      headers:{"x-rapidapi-key":c.rapidapi_key||"","x-rapidapi-host":"jobs-api28.p.rapidapi.com"}}; }}
 };
 function keyedCfg(){ try{ return JSON.parse(localStorage.getItem("ee.keysrc")||"{}"); }catch(e){ return {}; } }
 var SEARCH = {results:[], lastRun:null, running:false};
@@ -2252,6 +2263,45 @@ function netCacheGet(k){
 }
 function netCacheSet(k,v){ NET_CACHE[k]={at:Date.now(), v:v}; }
 function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+
+/* Pull the human-readable reason out of a failed response. Keyed APIs put it in
+   the body and nowhere else: RapidAPI answers a 403 with
+   {"message":"You are not subscribed to this API."} whether the subscription is
+   genuinely missing, the key belongs to a different application, or the plan
+   does not include the endpoint being called. Reading it is what turns an
+   unactionable "HTTP 403" into something the user can fix. Never throws. */
+async function readErrBody(r){
+  try{
+    var txt=await r.text();
+    if(!txt) return "";
+    try{
+      var j=JSON.parse(txt);
+      var msg=j.message||j.error||j.detail||j.error_description||
+              (j.errors&&j.errors[0]&&(j.errors[0].message||j.errors[0]))||"";
+      if(msg) return String(msg).slice(0,240);
+    }catch(e){}
+    return txt.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim().slice(0,240);
+  }catch(e){ return ""; }
+}
+
+/* RapidAPI's 403 text is the same sentence for several different causes, and
+   the one it names is usually not the one the user is hitting. */
+function explainKeyedError(src, code, detail){
+  var d=String(detail||"");
+  if(/not subscribed/i.test(d)){
+    return "RapidAPI rejected the key. Its message says \"not subscribed\", but it sends that "+
+      "for three different problems: the key belongs to a different RapidAPI application than "+
+      "the one holding the subscription, the plan you are on does not include the endpoint "+
+      "this calls, or the subscription is on a different RapidAPI account. Open the API's "+
+      "Endpoints tab on RapidAPI, send a test request from that page, and copy the key it "+
+      "shows there.";
+  }
+  if(/exceeded|quota|rate ?limit/i.test(d)) return "The plan's quota for this month is used up. "+d;
+  if(code===401) return "The key was not accepted at all. Check for a stray space or a missing character. "+d;
+  if(code===403) return "Accepted the request but refused it. "+(d||"No reason given.");
+  if(code===404) return "That endpoint no longer exists at this address. "+d;
+  return d;
+}
 async function netFetch(u, opts){
   opts = opts||{};
   var init = Object.assign({headers:{accept:"application/json"}}, opts.init||{});
@@ -2270,13 +2320,19 @@ async function netFetch(u, opts){
       if(r.status===429 || (r.status>=500 && r.status<=599)){
         lastErr = new Error("HTTP "+r.status);
         lastErr.code = r.status;
+        lastErr.detail = await readErrBody(r);
         if(attempt<maxRetries){
           var wait = 400 * Math.pow(2, attempt) + Math.floor(Math.random()*300);
           await sleep(wait); attempt++; continue;
         }
         throw lastErr;
       }
-      if(!r.ok){ var e=new Error("HTTP "+r.status); e.code=r.status; throw e; }
+      /* The body of a failed response is the only place a keyed API says what
+         is actually wrong. Throwing it away left every failure looking like
+         "HTTP 403", so a working RapidAPI key and a key subscribed to the
+         wrong plan produced identical, useless output. */
+      if(!r.ok){ var e=new Error("HTTP "+r.status); e.code=r.status;
+        e.detail = await readErrBody(r); throw e; }
       var body = wantJson ? await r.json() : await r.text();
       if(wantJson) netCacheSet(netCacheKey(u,init), body);
       return body;
@@ -2493,7 +2549,7 @@ async function pullKeyed(loc, extra){
           loc:(x.location&&x.location.display_name)||"", ts:Date.parse(x.created)||0,
           url:x.redirect_url, src:"Adzuna", types:typeOf(x.title,(x.contract_time||"")+" "+(x.contract_type||""))});});
       }catch(e){
-        errors.push({code:e.code||e.name||"err", src:"Adzuna", msg:String(e.message||e)});
+        errors.push({code:e.code||e.name||"err", src:"Adzuna", msg:String(e.message||e), detail:e.detail||""});
         break;
       }
     }
@@ -2512,7 +2568,7 @@ async function pullKeyed(loc, extra){
         ts:(x.job_posted_at_timestamp||0)*1000, url:x.job_apply_link, src:"JSearch",
         types:typeOf(x.job_title,(x.job_employment_type||"")+(x.job_is_remote?" remote":""))});});
     }catch(e){
-      errors.push({code:e.code||e.name||"err", src:"JSearch", msg:String(e.message||e)});
+      errors.push({code:e.code||e.name||"err", src:"JSearch", msg:String(e.message||e), detail:e.detail||""});
     }
   }
   if(cfg.jobsapi28 && cfg.jobsapi28.rapidapi_key){
@@ -2538,7 +2594,7 @@ async function pullKeyed(loc, extra){
             types:typeOf(title,(x.employment_type||x.job_type||"")+" "+(x.remote_derived?"remote":""))});
         });
       }catch(e){
-        errors.push({code:e.code||e.name||"err", src:"Jobs API 28", msg:String(e.message||e)});
+        errors.push({code:e.code||e.name||"err", src:"Jobs API 28", msg:String(e.message||e), detail:e.detail||""});
         break;
       }
     }
@@ -2558,7 +2614,7 @@ async function pullKeyed(loc, extra){
           ts:Date.parse(x.updated)||0, url:x.link, src:"Jooble",
           types:typeOf(x.title,(x.type||"")+" "+(x.location||""))});});
       }catch(e){
-        errors.push({code:e.code||e.name||"err", src:"Jooble", msg:String(e.message||e)});
+        errors.push({code:e.code||e.name||"err", src:"Jooble", msg:String(e.message||e), detail:e.detail||""});
         break;
       }
     }
@@ -2876,6 +2932,21 @@ function renderDiagnostics(){
       d.failed+' failed</span>'+
       ' <span style="color:var(--muted)">Most common: '+summary+
       (extraMoreCount>0?", plus "+extraMoreCount+" more":"")+'.</span>');
+    /* A source the user pays for and configured by hand deserves the actual
+       reason, not a status code. A company board that CORS-blocked does not:
+       there are hundreds of those and nothing to do about any of them. */
+    var keyedNames=Object.keys(KEYED_SOURCES).map(function(k){ return KEYED_SOURCES[k].label; });
+    var told={}, said=[];
+    (d.errors||[]).forEach(function(e){
+      if(keyedNames.indexOf(e.src)<0) return;
+      if(told[e.src]) return; told[e.src]=1;
+      var why=explainKeyedError(e.src, e.code, e.detail);
+      if(!why) return;
+      said.push('<div style="margin-top:7px; padding:9px 11px; border:1px solid var(--none); '+
+        'background:var(--none-bg); border-radius:8px; font-size:12.5px">'+
+        '<b>'+esc(e.src)+' returned '+esc(String(e.code))+'.</b> '+esc(why)+'</div>');
+    });
+    if(said.length) parts.push(said.join(""));
   }
   /* Per-source counts, collapsed. This is what makes a blindspot visible: a
      source that is technically "ok" but has been returning two listings while
@@ -3216,9 +3287,47 @@ function renderSources(){
       d.fields.map(function(f){
         return '<input type="text" data-ks="'+k+'" data-kf="'+f+'" placeholder="'+esc(f)+'" '+
           'value="'+esc((cfg[k]&&cfg[k][f])||"")+'" style="margin-bottom:5px">'; }).join("")+
-      '<div style="font-size:12px"><a href="'+d.signup+'" target="_blank" rel="noopener">Get a free key</a></div>'+
+      '<div style="display:flex; gap:9px; align-items:center; font-size:12px">'+
+        '<a href="'+d.signup+'" target="_blank" rel="noopener">Get a free key</a>'+
+        (d.test?'<button type="button" class="linkbtn" data-kt="'+k+'">Test this key</button>':'')+
+      '</div>'+
+      '<div class="msg" id="kt-'+k+'" style="margin-top:6px"></div>'+
     '</div>';
   }).join("");
+  /* Check one key on its own, against the real endpoint, and print exactly what
+     came back. Before this the only way to find out why a paid source returned
+     nothing was to run a full search and read a status code out of a summary
+     line, which named the symptom and never the cause. */
+  [].forEach.call($("srcKeyed").querySelectorAll("[data-kt]"),function(btn){
+    btn.addEventListener("click",async function(){
+      var k=btn.dataset.kt, d=KEYED_SOURCES[k], out=$("kt-"+k);
+      var vals={};
+      [].forEach.call($("srcKeyed").querySelectorAll('[data-ks="'+k+'"]'),function(i){
+        vals[i.dataset.kf]=i.value.trim(); });
+      if(!d.fields.every(function(f){ return vals[f]; })){
+        out.className="msg bad on"; out.textContent="Fill in every field above first."; return;
+      }
+      out.className="msg on"; out.innerHTML='<span class="spin"></span>Asking '+esc(d.label)+'...';
+      var spec=d.test(vals);
+      try{
+        var r=await fetch(spec.url,{method:spec.method||"GET",
+          headers:Object.assign({accept:"application/json"},spec.headers||{}), body:spec.body});
+        if(r.ok){
+          out.className="msg good on";
+          out.textContent=d.label+" accepted the key. HTTP "+r.status+".";
+          return;
+        }
+        var why=explainKeyedError(d.label, r.status, await readErrBody(r));
+        out.className="msg bad on";
+        out.innerHTML='<b>'+esc(d.label)+' refused it. HTTP '+r.status+'.</b><br>'+esc(why);
+      }catch(err){
+        out.className="msg bad on";
+        out.innerHTML='<b>The request never completed.</b> '+esc(String(err.message||err))+
+          '<br>A browser cannot see the reason for a blocked cross-origin request, so this is '+
+          'either no connection, or this API refusing to answer a browser at all.';
+      }
+    });
+  });
   $("srcOff").innerHTML = BLOCKED_SOURCES.map(function(b){
     return '<li class="no"><span class="m">✕</span><span><b>'+esc(b.name)+'</b>'+
       (b.kind==="cors"?' <span class="tag" style="border-color:var(--estimated); color:var(--estimated)">a proxy would fix this</span>':'')+

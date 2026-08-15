@@ -159,3 +159,59 @@ export function normalizeResume(raw: string): NormalizeResult {
 
   return { text: s, fixes, suspectTwoColumn: suspect };
 }
+
+/* =========================================================================
+   LANGUAGE CHECK
+
+   The importer reads English month names, English section headings such as
+   EXPERIENCE and SKILLS, an English stop-word list and English metric words. A
+   French or German resume will split badly, and the honest thing is to say so
+   before it does rather than hand back three broken entries.
+
+   Deliberately conservative: it looks for positive evidence of another
+   language rather than for the absence of English, because a resume can be in
+   English and still contain almost none of these headings.
+   ========================================================================= */
+
+/** Markers that essentially never appear in an English-language resume. */
+const NON_ENGLISH_MARKERS: [lang: string, re: RegExp][] = [
+  ["es", /\b(experiencia laboral|formación|educación|habilidades|competencias|idiomas|referencias|actualmente|licenciatura)\b/i],
+  ["fr", /\b(expérience professionnelle|formation|compétences|langues|références|actuellement|dipl[oô]me|stage)\b/i],
+  ["de", /\b(berufserfahrung|ausbildung|kenntnisse|fähigkeiten|lebenslauf|sprachen|referenzen|derzeit|abschluss)\b/i],
+  ["pt", /\b(experiência profissional|formação|habilidades|competências|idiomas|referências|atualmente)\b/i],
+  ["it", /\b(esperienza lavorativa|formazione|competenze|lingue|referenze|attualmente|laurea)\b/i],
+  ["nl", /\b(werkervaring|opleiding|vaardigheden|talen|referenties|momenteel)\b/i],
+];
+
+/** English section headings the splitter actually depends on. */
+const ENGLISH_MARKERS =
+  /\b(experience|employment|education|skills|summary|profile|projects|certifications|present|current)\b/i;
+
+export interface LanguageCheck {
+  /** True when the text carries clear markers of a language the parser cannot read. */
+  looksNonEnglish: boolean;
+  /** Best guess at which language, for the message. Empty when unsure. */
+  guess: string;
+}
+
+export function checkLanguage(text: string): LanguageCheck {
+  const s = String(text || "");
+  if (s.trim().length < 120) return { looksNonEnglish: false, guess: "" };
+
+  let bestLang = "";
+  let bestHits = 0;
+  for (const [lang, re] of NON_ENGLISH_MARKERS) {
+    const hits = (s.match(new RegExp(re.source, "gi")) || []).length;
+    if (hits > bestHits) {
+      bestHits = hits;
+      bestLang = lang;
+    }
+  }
+  const englishHits = (s.match(new RegExp(ENGLISH_MARKERS.source, "gi")) || []).length;
+
+  /* Two independent markers of another language, and more of them than English
+     markers. One match is not enough: "formation" and "profile" are English
+     words too, and a bilingual resume should not be refused. */
+  const looksNonEnglish = bestHits >= 2 && bestHits > englishHits;
+  return { looksNonEnglish, guess: looksNonEnglish ? bestLang : "" };
+}

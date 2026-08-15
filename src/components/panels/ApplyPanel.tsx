@@ -59,7 +59,7 @@ export function ApplyPanel({ atsScore }: { atsScore: number }) {
   return (
     <section className="panel">
       <div className="head">
-        <h2>Send it, and keep track of what you sent</h2>
+        <h1>Send it, and keep track of what you sent</h1>
         <p>
           Everything an application form asks for, written once and reused. The tracker is here
           because the follow-up is where most interviews actually come from, and it is the part
@@ -124,23 +124,31 @@ export function ApplyPanel({ atsScore }: { atsScore: number }) {
             </p>
             <ReadyList atsScore={atsScore} />
             <div className="btnrow" style={{ marginTop: 14 }}>
-              <a
-                className={"btn" + (job?.url ? "" : " disabled")}
-                href={job?.url || undefined}
-                target="_blank"
-                rel="noopener"
-                onClick={() => {
-                  if (!job) return;
-                  const a = appFor(job);
-                  if (a.status === "saved") {
-                    a.status = "applied";
-                    a.applied = a.applied || Date.now();
-                  }
-                  save();
-                }}
-              >
-                Open the application
-              </a>
+              {job?.url ? (
+                <a
+                  className="btn"
+                  href={job.url}
+                  target="_blank"
+                  rel="noopener"
+                  onClick={() => {
+                    const a = appFor(job);
+                    if (a.status === "saved") {
+                      a.status = "applied";
+                      a.applied = a.applied || Date.now();
+                    }
+                    save();
+                  }}
+                >
+                  Open the application
+                </a>
+              ) : (
+                /* An anchor with no href is invisible to a keyboard and is not
+                   announced as unavailable, so it becomes a real button that
+                   says why it cannot be pressed. */
+                <button className="btn" disabled title="This job has no link saved. Add one in step 2.">
+                  Open the application
+                </button>
+              )}
               <button
                 className="btn ghost"
                 onClick={() => {
@@ -411,7 +419,6 @@ function AnswerBank() {
               {f.type === "select" ? (
                 <select
                   className="mini"
-                  style={{ width: "100%" }}
                   value={v}
                   onChange={(e) => { S.answers[f.k] = e.target.value; save(); }}
                 >
@@ -430,8 +437,8 @@ function AnswerBank() {
               )}
               <button
                 className="iconbtn"
-                title="Copy"
-                aria-label="Copy answer"
+                title={"Copy: " + f.q}
+                aria-label={"Copy answer: " + f.q}
                 onClick={() => {
                   const val = S.answers[f.k] || "";
                   if (!val) {
@@ -442,7 +449,7 @@ function AnswerBank() {
                   ui.toast("Copied");
                 }}
               >
-                ⧉
+                <span aria-hidden="true">⧉</span>
               </button>
             </div>
           </div>

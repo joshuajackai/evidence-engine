@@ -299,7 +299,7 @@ export function ResumePanel({ onAts }: { onAts(r: AtsResult): void }) {
   return (
     <section className="panel">
       <div className="head noprint">
-        <h2>Your resume</h2>
+        <h1>Your resume</h1>
         <p>
           Every bullet below was assembled from words you typed. No model wrote a claim on your
           behalf, which is why there is nothing here you cannot walk through in an interview.
@@ -469,31 +469,31 @@ export function ResumePanel({ onAts }: { onAts(r: AtsResult): void }) {
           <div className="row">
             <div className="field">
               <label htmlFor="hName">Full name</label>
-              <input id="hName" type="text" value={hdr.name} onChange={(e) => setHdr({ ...hdr, name: e.target.value })} />
+              <input id="hName" type="text" autoComplete="name" value={hdr.name} onChange={(e) => setHdr({ ...hdr, name: e.target.value })} />
             </div>
             <div className="field">
               <label htmlFor="hTitle">Professional title</label>
-              <input id="hTitle" type="text" value={hdr.title} onChange={(e) => setHdr({ ...hdr, title: e.target.value })} />
+              <input id="hTitle" type="text" autoComplete="organization-title" value={hdr.title} onChange={(e) => setHdr({ ...hdr, title: e.target.value })} />
             </div>
           </div>
           <div className="row">
             <div className="field">
               <label htmlFor="hLoc">Location</label>
-              <input id="hLoc" type="text" value={hdr.loc} onChange={(e) => setHdr({ ...hdr, loc: e.target.value })} />
+              <input id="hLoc" type="text" autoComplete="address-level2" value={hdr.loc} onChange={(e) => setHdr({ ...hdr, loc: e.target.value })} />
             </div>
             <div className="field">
               <label htmlFor="hEmail">Email</label>
-              <input id="hEmail" type="text" value={hdr.email} onChange={(e) => setHdr({ ...hdr, email: e.target.value })} />
+              <input id="hEmail" type="email" inputMode="email" autoComplete="email" spellCheck={false} value={hdr.email} onChange={(e) => setHdr({ ...hdr, email: e.target.value })} />
             </div>
           </div>
           <div className="row">
             <div className="field">
               <label htmlFor="hPhone">Phone</label>
-              <input id="hPhone" type="text" value={hdr.phone} onChange={(e) => setHdr({ ...hdr, phone: e.target.value })} />
+              <input id="hPhone" type="tel" inputMode="tel" autoComplete="tel" value={hdr.phone} onChange={(e) => setHdr({ ...hdr, phone: e.target.value })} />
             </div>
             <div className="field">
               <label htmlFor="hLink">Portfolio or LinkedIn</label>
-              <input id="hLink" type="text" value={hdr.link} onChange={(e) => setHdr({ ...hdr, link: e.target.value })} />
+              <input id="hLink" type="url" inputMode="url" autoComplete="url" spellCheck={false} value={hdr.link} onChange={(e) => setHdr({ ...hdr, link: e.target.value })} />
             </div>
           </div>
           <div className="field">

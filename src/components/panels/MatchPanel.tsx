@@ -111,7 +111,10 @@ export function MatchPanel() {
                   <label className="sw">
                     <input
                       type="checkbox"
-                      aria-label="Include this entry"
+                      /* Ten switches all named "Include this entry" are
+                         indistinguishable to a screen reader. Name each after
+                         the entry it controls. */
+                      aria-label={"Include on this resume: " + r.u.org + (r.u.role ? ", " + r.u.role : "")}
                       checked={on}
                       onChange={(e) => {
                         S.picked[r.u.id] = e.target.checked;
@@ -144,7 +147,7 @@ export function MatchPanel() {
 function Head() {
   return (
     <div className="head">
-      <h2>What earns a place on the page</h2>
+      <h1>What earns a place on the page</h1>
       <p>
         Entries are ranked by how much of this posting they answer. Everything below the line stays
         in your inventory and off this resume.

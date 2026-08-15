@@ -72,10 +72,37 @@ export function parsePay(input: string): Pay | null {
   return best;
 }
 
-export function payLabel(p: Pay | null | undefined): string {
+/**
+ * Format pay for display.
+ *
+ * `140k` is what compact notation is trying to be, and `Intl` produces the
+ * right abbreviation per language, so the number goes through the platform
+ * rather than through a hardcoded "k". The currency symbol stays as detected,
+ * because it is read out of the posting rather than chosen by the app.
+ *
+ * `locale` and `periods` are passed in rather than imported, so this stays a
+ * pure function that the search engine can call without pulling in React.
+ */
+export function payLabel(
+  p: Pay | null | undefined,
+  locale = "en",
+  periods: { perHour: string; perDay: string; perMonth: string; perYear: string } = {
+    perHour: "/hr", perDay: "/day", perMonth: "/mo", perYear: "",
+  },
+): string {
   if (!p) return "";
-  const f = (n: number) => (n >= 1000 ? Math.round(n / 1000) + "k" : String(Math.round(n)));
-  const unit = p.per === "hour" ? "/hr" : p.per === "day" ? "/day" : p.per === "month" ? "/mo" : "";
+  let f = (n: number) => (n >= 1000 ? Math.round(n / 1000) + "k" : String(Math.round(n)));
+  try {
+    const nf = new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 0 });
+    f = (n: number) => nf.format(Math.round(n));
+  } catch {
+    /* An environment without compact notation keeps the plain fallback. */
+  }
+  const unit =
+    p.per === "hour" ? periods.perHour
+    : p.per === "day" ? periods.perDay
+    : p.per === "month" ? periods.perMonth
+    : periods.perYear;
   const body = p.lo === p.hi ? f(p.lo) : f(p.lo) + "-" + f(p.hi);
   return p.cur + body + unit;
 }

@@ -86,7 +86,7 @@ export function AtsModal({ atsFailed }: { atsFailed: string[] }) {
   }
 
   return (
-    <Veil on={open} wide>
+    <Veil on={open} wide label="Suggested improvements">
       <h3>Suggested improvements</h3>
       <p>
         Nothing below is applied until you say so. Anything that would change a fact or add a claim is

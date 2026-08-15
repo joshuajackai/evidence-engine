@@ -32,10 +32,15 @@ interface Country {
   cities: string[];
 }
 
+/* Names include each country's own word for itself and the common forms in the
+   other languages this app ships in, because a user typing "España" or
+   "Deutschland" previously matched nothing at all. Accented and unaccented
+   spellings are both listed: the matcher is case-insensitive but does not
+   normalise diacritics. */
 export const GEO_COUNTRIES: Record<string, Country> = {
   ca: {
     label: "Canada",
-    names: ["canada", "canadian"],
+    names: ["canada", "canadian", "kanada"],
     iso: ["can"] /* not "ca": CA is California */,
     regions: [
       ["alberta", "AB"], ["british columbia", "BC"], ["manitoba", "MB"], ["new brunswick", "NB"],
@@ -53,7 +58,7 @@ export const GEO_COUNTRIES: Record<string, Country> = {
   },
   us: {
     label: "United States",
-    names: ["united states", "united states of america", "america", "american", "usa", "u.s.a", "u.s."],
+    names: ["united states", "united states of america", "america", "american", "usa", "u.s.a", "u.s.", "estados unidos", "etats-unis", "états-unis", "vereinigte staaten", "stati uniti"],
     iso: ["us", "usa"],
     regions: [
       ["alabama", "AL"], ["alaska", "AK"], ["arizona", "AZ"], ["arkansas", "AR"], ["california", "CA"],
@@ -82,7 +87,7 @@ export const GEO_COUNTRIES: Record<string, Country> = {
     label: "United Kingdom",
     /* "british" is deliberately absent. As a bare token it matches "British
        Columbia" and hands a Vancouver search to the United Kingdom. */
-    names: ["united kingdom", "great britain", "britain", "england", "scotland", "wales", "northern ireland", "u.k."],
+    names: ["united kingdom", "great britain", "britain", "england", "scotland", "wales", "northern ireland", "u.k.", "reino unido", "royaume-uni", "grossbritannien", "großbritannien", "inglaterra", "angleterre"],
     iso: ["uk", "gb", "gbr"],
     regions: [["greater london", null], ["yorkshire", null], ["merseyside", null], ["lancashire", null]],
     cities: [
@@ -93,7 +98,7 @@ export const GEO_COUNTRIES: Record<string, Country> = {
   },
   au: {
     label: "Australia",
-    names: ["australia", "australian"],
+    names: ["australia", "australian", "australie", "australien"],
     iso: ["au", "aus"],
     regions: [
       ["new south wales", "NSW"], ["victoria state", "VIC"], ["queensland", "QLD"],
@@ -104,50 +109,50 @@ export const GEO_COUNTRIES: Record<string, Country> = {
   },
   de: {
     label: "Germany",
-    names: ["germany", "german", "deutschland"],
+    names: ["germany", "german", "deutschland", "alemania", "allemagne", "germania"],
     iso: ["deu", "ger"] /* not "de": DE is Delaware */,
     regions: [["bavaria", null], ["bayern", null], ["hesse", null], ["saxony", null], ["north rhine-westphalia", null]],
     cities: ["berlin", "munich", "muenchen", "hamburg", "frankfurt", "cologne", "koeln", "stuttgart", "dusseldorf", "duesseldorf", "leipzig"],
   },
   fr: {
     label: "France",
-    names: ["france", "french"],
+    names: ["france", "french", "frankreich", "francia", "francés"],
     iso: ["fr", "fra"],
     regions: [["ile-de-france", null], ["occitanie", null], ["normandy", null], ["brittany", null]],
     cities: ["paris", "lyon", "marseille", "toulouse", "lille", "bordeaux", "nantes", "nice", "strasbourg"],
   },
   ie: {
     label: "Ireland",
-    names: ["ireland", "irish", "republic of ireland"],
+    names: ["ireland", "irish", "republic of ireland", "irlanda", "irlande", "irland", "éire"],
     iso: ["ie", "irl"],
     regions: [["leinster", null], ["munster", null], ["connacht", null]],
     cities: ["dublin", "cork", "galway", "limerick", "waterford"],
   },
   nl: {
     label: "Netherlands",
-    names: ["netherlands", "dutch", "holland"],
+    names: ["netherlands", "dutch", "holland", "nederland", "paises bajos", "países bajos", "pays-bas", "niederlande"],
     iso: ["nld"] /* not "nl": NL is Newfoundland and Labrador */,
     regions: [["north holland", null], ["south holland", null], ["utrecht province", null]],
     cities: ["amsterdam", "rotterdam", "the hague", "utrecht", "eindhoven"],
   },
   in: {
     label: "India",
-    names: ["india", "indian"],
+    names: ["india", "indian", "inde", "indien", "bharat"],
     iso: ["ind"] /* not "in": IN is Indiana and "in" is a preposition */,
     regions: [["maharashtra", null], ["karnataka", null], ["tamil nadu", null], ["telangana", null], ["haryana", null], ["uttar pradesh", null]],
     cities: ["bangalore", "bengaluru", "mumbai", "delhi", "new delhi", "hyderabad", "chennai", "pune", "gurugram", "gurgaon", "noida", "kolkata", "ahmedabad"],
   },
   nz: {
     label: "New Zealand",
-    names: ["new zealand"],
+    names: ["new zealand", "nueva zelanda", "nouvelle-zelande", "nouvelle-zélande", "neuseeland", "aotearoa"],
     iso: ["nz", "nzl"],
     regions: [["auckland region", null], ["canterbury", null], ["otago", null]],
     cities: ["auckland", "wellington", "christchurch", "dunedin"],
   },
-  sg: { label: "Singapore", names: ["singapore"], iso: ["sg", "sgp"], regions: [], cities: ["singapore"] },
+  sg: { label: "Singapore", names: ["singapore", "singapur", "singapour"], iso: ["sg", "sgp"], regions: [], cities: ["singapore"] },
   es: {
     label: "Spain",
-    names: ["spain", "spanish", "espana"],
+    names: ["spain", "spanish", "espana", "españa", "espagne", "spanien", "spagna"],
     iso: ["esp"] /* not "es": too common in ordinary text */,
     regions: [["catalonia", null], ["andalusia", null], ["basque country", null]],
     cities: ["madrid", "barcelona", "valencia", "seville", "malaga", "bilbao"],

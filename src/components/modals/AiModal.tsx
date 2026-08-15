@@ -250,7 +250,7 @@ export function AiModal({ onChange }: { onChange(): void }) {
   const d = AI_DEFAULTS[prov];
 
   return (
-    <Veil on={open} wide>
+    <Veil on={open} wide label="Connect a model">
       <h3>Connect a model</h3>
       <p>
         Optional. Everything works without it. Requests go straight from this browser to the provider,

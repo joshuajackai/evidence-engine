@@ -5,13 +5,14 @@ import { useUi } from "@/ui/UiContext";
 import { S } from "@/store/state";
 import { save } from "@/store/storage";
 import { unitKey } from "@/lib/resume/text";
-import { normalizeResume } from "@/lib/resume/normalize";
+import { checkLanguage, normalizeResume } from "@/lib/resume/normalize";
 import { splitResume } from "@/lib/resume/split";
 import { extractContact } from "@/lib/resume/contact";
 import { inferProfile } from "@/lib/resume/profile";
 import { fileToText } from "@/lib/resume/files";
 import { PREP_FLAGS } from "@/lib/resume/prepPrompt";
 import { aiCall, aiReady } from "@/lib/ai/client";
+import { useT } from "@/i18n";
 
 interface FileRow {
   name: string;
@@ -22,6 +23,7 @@ interface FileRow {
 
 export function PasteModal() {
   const ui = useUi();
+  const t = useT();
   const [box, setBox] = useState("");
   const [msg, setMsg] = useState<{ kind: "" | "good" | "bad" | "warn"; node: React.ReactNode } | null>(null);
   const [fileMsg, setFileMsg] = useState<{ kind: "" | "good" | "bad" | "warn"; node: React.ReactNode } | null>(null);
@@ -179,6 +181,27 @@ export function PasteModal() {
     /* Idempotent, so running it again after a file read costs nothing and it
        still catches text pasted straight out of a PDF viewer. */
     const norm = normalizeResume(raw);
+
+    /* Say so before splitting badly rather than after. The parser reads English
+       month names and section headings, so a resume in another language will
+       come apart, and the clean-up prompt is the working escape hatch because
+       the user's own AI does that part in any language. */
+    const lang = checkLanguage(norm.text);
+    if (lang.looksNonEnglish) {
+      setMsg({
+        kind: "warn",
+        node: (
+          <>
+            {t.importNonEnglish}{" "}
+            <button type="button" className="linkbtn" onClick={() => { ui.close("paste"); ui.open("prep"); }}>
+              {t.cleanUpFirst}
+            </button>
+          </>
+        ),
+      });
+      return;
+    }
+
     const found = splitResume(norm.text);
     PREP_FLAGS.twoCol = PREP_FLAGS.twoCol || norm.suspectTwoColumn;
 
@@ -262,7 +285,7 @@ export function PasteModal() {
   }
 
   return (
-    <Veil on={ui.isOpen("paste")} wide>
+    <Veil on={ui.isOpen("paste")} wide label="Bring in your current resume">
       <h3>Bring in your current resume</h3>
       <p>
         Upload the file or paste the text. Either way it is split into separate entries for you to

@@ -57,10 +57,10 @@ export function GapModal() {
   }
 
   const g = list[i];
-  if (!open || !g) return <Veil on={false}>{null}</Veil>;
+  if (!open || !g) return <Veil on={false} label="">{null}</Veil>;
 
   return (
-    <Veil on={open} wide>
+    <Veil on={open} wide label="Close a gap in your evidence">
       <div
         style={{
           fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em",

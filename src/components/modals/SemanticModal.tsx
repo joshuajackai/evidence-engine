@@ -81,7 +81,7 @@ export function SemanticModal() {
   });
 
   return (
-    <Veil on={open} wide>
+    <Veil on={open} wide label="What you already said, in other words">
       <h3>What you already said, in other words</h3>
       <p>
         Keyword matching is literal, so it reports a gap whenever you described something using

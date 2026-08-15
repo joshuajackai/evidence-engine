@@ -3,7 +3,7 @@
   --accent:#C4331A; --rule:#E03A1C; --band:#DDDDDE;
   --page:#F6F6F4; --surface:#FCFCFB; --hairline:#E4E1DB;
   --audited:#1E6F4E; --audited-bg:#E8F2ED;
-  --estimated:#A0670F; --estimated-bg:#FBF1DF;
+  --estimated:#8A5900; --estimated-bg:#FBF1DF;
   --activity:#3D5A80; --activity-bg:#E9EEF5;
   --none:#B03A22; --none-bg:#FBEAE5;
   --r:10px; --shadow:0 1px 2px rgba(31,28,23,.06), 0 4px 16px rgba(31,28,23,.05);
@@ -62,7 +62,7 @@ main{max-width:1180px; margin:0 auto; padding:26px 20px 90px}
 .panel{display:none}
 .panel.on{display:block}
 .head{margin-bottom:20px; max-width:660px}
-.head h2{font-size:23px; margin-bottom:7px}
+.head h1,.head h2{font-size:23px; margin-bottom:7px; font-weight:700}
 .head p{color:var(--ink-2); margin:0}
 
 .card{
@@ -465,7 +465,7 @@ select.mini{font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid va
   .topbar-in{padding:11px 15px}
   .steps{padding:0 15px}
   .step{padding:11px 10px; font-size:13px}
-  .head h2{font-size:20px}
+  .head h1,.head h2{font-size:20px}
   .row{grid-template-columns:1fr}
   .card{padding:15px}
   .paper{padding:22px 18px}
@@ -555,3 +555,104 @@ button[data-gen]{white-space:nowrap}
 .stack-8{display:flex; flex-direction:column; gap:8px}
 .mt-10{margin-top:10px}
 .msg.on{display:block}
+
+/* =========================================================================
+   ACCESSIBILITY AND LOCALIZATION, added after the 2026-08-14 audit.
+   Every rule below closes a finding that was measured in a browser rather
+   than inferred. See docs/AUDIT-2026-08-14.md.
+   ========================================================================= */
+
+/* A10. Touch targets. Measured: the answer-bank copy button rendered 12x28 and
+   the footer link 107x15, both under the 24x24 minimum. The copy button is an
+   icon button and should simply match the others; the footer link keeps its
+   type size and gains the height through padding. */
+.ansin .iconbtn{width:28px; height:28px; flex:none}
+.foot .linkbtn{padding:5px 2px; min-height:24px}
+
+/* Focus. The browser default ring was present but thin and blue against a red
+   accent, which reads as a rendering artefact rather than a focus state. This
+   is the same ring the text inputs already use, applied to everything that
+   takes focus, and only for keyboard users. */
+:where(button, a, select, summary, [tabindex]):focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+  border-radius:4px;
+}
+.step:focus-visible{outline-offset:-2px}
+/* Do not draw two rings on the switch, which already styles its own. */
+.sw input:focus-visible{outline:none}
+
+/* Visually hidden, still read aloud. For names a sighted user gets from an
+   icon or from position on the page. */
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+/* A skip link has to be reachable, so it appears on focus. */
+.skip-link{
+  position:absolute; left:-9999px; top:0; z-index:100;
+  background:var(--surface); color:var(--accent); padding:10px 14px;
+  border:1px solid var(--accent); border-radius:0 0 8px 0; font-weight:600;
+}
+.skip-link:focus{left:0}
+
+/* A11. Reduced motion. There is a spinning loader and a sliding toast, and
+   nothing honoured the preference. Anything added later is covered too. */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+  /* The spinner still has to read as "working", so keep it visible as a ring
+     rather than leaving a motionless partial circle on screen. */
+  .spin{border-top-color:var(--accent); opacity:.85}
+}
+
+/* A12. A field that failed validation, marked so it is visible as well as
+   announced. */
+input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"]{
+  border-color:var(--none);
+  box-shadow:0 0 0 3px rgba(176,58,34,.12);
+}
+
+/* ---------- localization ---------- */
+
+/* L2. Right-to-left. The layout is flex and grid throughout, which mirrors on
+   its own, so only the handful of physically-positioned pieces need help. */
+[dir="rtl"] .brand{margin-right:0; margin-left:auto}
+[dir="rtl"] .unit{border-left:1px solid var(--hairline); border-right:3px solid var(--band)}
+[dir="rtl"] .unit.a{border-right-color:var(--audited)}
+[dir="rtl"] .unit.e{border-right-color:var(--estimated)}
+[dir="rtl"] .unit.c{border-right-color:var(--activity)}
+[dir="rtl"] .unit.n{border-right-color:var(--none)}
+[dir="rtl"] .unit-actions{margin-left:0; margin-right:auto}
+[dir="rtl"] .job{border-left:1px solid var(--hairline); border-right:3px solid var(--band)}
+[dir="rtl"] .job.active{border-right-color:var(--accent)}
+[dir="rtl"] .callout{border-left:0; border-right:3px solid var(--rule); border-radius:8px 0 0 8px}
+[dir="rtl"] .quarantine{text-align:right}
+[dir="rtl"] .sw i::after{left:auto; right:3px}
+[dir="rtl"] .sw input:checked + i::after{transform:translateX(-22px)}
+[dir="rtl"] .paper ul{margin:0 16px 0 0}
+[dir="rtl"] .checks li{padding:4px 22px 4px 0}
+[dir="rtl"] .checks li::before{left:auto; right:0}
+[dir="rtl"] .skip-link{border-radius:0 0 0 8px}
+[dir="rtl"] .toast{left:50%}
+
+/* Long words in other languages break narrow columns, most visibly German
+   compounds in the step tabs and the grade badges. */
+.step, .grade, .tag, .job-cov{overflow-wrap:anywhere}
+.head h1, .head p{overflow-wrap:break-word}
+
+/* The language picker in the top bar. */
+.langpick{
+  font:inherit; font-size:12.5px; padding:6px 8px;
+  border:1px solid var(--hairline); border-radius:7px;
+  background:var(--page); color:var(--ink-2); max-width:9.5rem;
+}
+
+/* The answer-bank select carried flex:none from select.mini plus an inline
+   width, so it refused to shrink for the copy button and pushed the page 3px
+   wide at 320px. Measured, not guessed. */
+.ansin select.mini{flex:1 1 0%; min-width:0; width:auto}

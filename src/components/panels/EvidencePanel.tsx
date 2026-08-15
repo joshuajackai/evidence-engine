@@ -5,6 +5,8 @@ import { save } from "@/store/storage";
 import { GRADE, GRADE_COLOUR, GRADE_ORDER, bullet, downloadBlob } from "@/lib/util";
 import { useUi } from "@/ui/UiContext";
 import { AiPanel } from "@/components/AiPanel";
+import { useT } from "@/i18n";
+import type { Strings } from "@/i18n/strings";
 
 const BLANK = {
   org: "", role: "", dates: "", action: "", metricType: "none" as MetricType,
@@ -14,10 +16,13 @@ const BLANK = {
 export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
   const state = useAppState();
   const ui = useUi();
+  const t = useT();
   const [editing, setEditing] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ ...BLANK });
   const [err, setErr] = useState("");
+  /* Which field the error belongs to, so it can be described and focused. */
+  const [errField, setErrField] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   function openEditor(id: number | null) {
@@ -37,32 +42,40 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
         : { ...BLANK },
     );
     setErr("");
+    setErrField("");
     setOpen(true);
   }
 
   function saveEntry() {
-    const t = form.metricType;
+    const mt = form.metricType;
     const u: Unit = {
       id: editing != null ? editing : Date.now(),
       org: form.org.trim(),
       role: form.role.trim(),
       dates: form.dates.trim(),
       action: form.action.trim(),
-      metricType: t,
-      metric: t === "none" ? "" : form.metric.trim(),
-      constraint: t === "none" ? "" : form.constraint.trim(),
-      evidence: t === "none" ? "" : form.evidence.trim(),
+      metricType: mt,
+      metric: mt === "none" ? "" : form.metric.trim(),
+      constraint: mt === "none" ? "" : form.constraint.trim(),
+      evidence: mt === "none" ? "" : form.evidence.trim(),
       benchmark: form.benchmark.trim(),
       tags: form.tags.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
     };
-    if (!u.org) return setErr("Add the company or client.");
-    if (!u.action) return setErr("Describe what you did.");
-    if (t !== "none" && !u.metric)
-      return setErr("You chose a graded type, so the number is required. Switch to No number if none exists.");
-    if (t === "audited" && !u.evidence)
-      return setErr("Audited means you can name the source. Add it, or downgrade to Estimated.");
-    if (t === "estimated" && !u.evidence)
-      return setErr("Estimated needs your reasoning, so you can defend it out loud.");
+    /* Report the failure, mark the field, and put the cursor in it. Association
+       makes it correct for a screen reader; moving focus makes it useful for
+       everybody, which is why the audit chose both rather than either. */
+    const fail = (msg: string, field: string) => {
+      setErr(msg);
+      setErrField(field);
+      setTimeout(() => document.getElementById(field)?.focus(), 0);
+      return;
+    };
+    if (!u.org) return fail(t.errOrg, "fOrg");
+    if (!u.action) return fail(t.errAction, "fAction");
+    if (mt !== "none" && !u.metric) return fail(t.errMetric, "fMetric");
+    if (mt === "audited" && !u.evidence) return fail(t.errEvidenceAudited, "fEvidence");
+    if (mt === "estimated" && !u.evidence) return fail(t.errEvidenceEstimated, "fEvidence");
+    setErrField("");
 
     if (editing != null) S.units = S.units.map((x) => (x.id === u.id ? u : x));
     else S.units.push(u);
@@ -141,22 +154,19 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
   return (
     <section className="panel">
       <div className="head">
-        <h2>Everything you have done, one thing at a time</h2>
-        <p>
-          Add each thing separately. Beside every one you will see the grade a hiring manager is
-          already assigning in their head. Seeing it first is the advantage.
-        </p>
+        <h1>{t.evidenceTitle}</h1>
+        <p>{t.evidenceBlurb}</p>
       </div>
 
       <div className="grid2">
         <div>
           <div className="card" style={{ marginBottom: 18 }}>
             <div className="btnrow" style={{ marginBottom: 14 }}>
-              <button className="btn" onClick={() => ui.open("paste")}>Paste my resume</button>
-              <button className="btn ghost" onClick={() => ui.open("prep")}>Clean up my resume first</button>
-              <button className="btn ghost" onClick={() => openEditor(null)}>Add one by hand</button>
-              <button className="btn quiet sm" onClick={loadDemo}>See an example</button>
-              <button className="btn quiet sm" onClick={() => fileRef.current?.click()}>Open saved file</button>
+              <button className="btn" onClick={() => ui.open("paste")}>{t.pasteMyResume}</button>
+              <button className="btn ghost" onClick={() => ui.open("prep")}>{t.cleanUpFirst}</button>
+              <button className="btn ghost" onClick={() => openEditor(null)}>{t.addByHand}</button>
+              <button className="btn quiet sm" onClick={loadDemo}>{t.seeExample}</button>
+              <button className="btn quiet sm" onClick={() => fileRef.current?.click()}>{t.openSavedFile}</button>
               <button
                 className="btn quiet sm"
                 onClick={() => {
@@ -168,7 +178,7 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
                   ui.toast("Inventory exported");
                 }}
               >
-                Save to file
+                {t.saveToFile}
               </button>
               <input
                 ref={fileRef}
@@ -187,14 +197,17 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
               <div>
                 <div className="row">
                   <div className="field">
-                    <label htmlFor="fOrg">Company or client</label>
+                    <label htmlFor="fOrg">{t.fieldOrg}</label>
                     <input
                       id="fOrg" type="text" placeholder="Northwind Logistics" autoFocus
+                      autoComplete="organization"
+                      aria-invalid={errField === "fOrg" || undefined}
+                      aria-describedby={errField === "fOrg" ? "entryErr" : undefined}
                       value={form.org} onChange={(e) => setForm({ ...form, org: e.target.value })}
                     />
                   </div>
                   <div className="field">
-                    <label htmlFor="fRole">Your role</label>
+                    <label htmlFor="fRole">{t.fieldRole}</label>
                     <input
                       id="fRole" type="text" placeholder="Operations Analyst"
                       value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -202,7 +215,7 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
                   </div>
                 </div>
                 <div className="field">
-                  <label htmlFor="fDates">Dates</label>
+                  <label htmlFor="fDates">{t.fieldDates}</label>
                   <input
                     id="fDates" type="text" placeholder="March 2024 to Present"
                     value={form.dates} onChange={(e) => setForm({ ...form, dates: e.target.value })}
@@ -211,14 +224,13 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
 
                 <div className="field">
                   <label htmlFor="fAction">
-                    What you did
-                    <span className="hint">
-                      Start with a verb you can defend. Rebuilt, migrated, coded, diagnosed,
-                      negotiated. Avoid words that hide your hands, such as optimized or leveraged.
-                    </span>
+                    {t.fieldAction}
+                    <span className="hint">{t.fieldActionHint}</span>
                   </label>
                   <textarea
                     id="fAction"
+                    aria-invalid={errField === "fAction" || undefined}
+                    aria-describedby={errField === "fAction" ? "entryErr" : undefined}
                     placeholder="Rebuilt the returns workflow after tracing 60% of support tickets to one unlabelled form field"
                     value={form.action}
                     onChange={(e) => setForm({ ...form, action: e.target.value })}
@@ -227,21 +239,18 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
 
                 <div className="field">
                   <label htmlFor="fType">
-                    Is there a number attached to this
-                    <span className="hint">
-                      Be honest. This grade is the whole point, and it is the question an interviewer
-                      will ask.
-                    </span>
+                    {t.fieldType}
+                    <span className="hint">{t.fieldTypeHint}</span>
                   </label>
                   <select
                     id="fType"
                     value={form.metricType}
                     onChange={(e) => setForm({ ...form, metricType: e.target.value as MetricType })}
                   >
-                    <option value="none">Not yet, or there is no number</option>
-                    <option value="audited">Yes, and I can show where it came from</option>
-                    <option value="estimated">Yes, but it is my own estimate</option>
-                    <option value="activity">Only a volume count, such as how many I did</option>
+                    <option value="none">{t.typeNone}</option>
+                    <option value="audited">{t.typeAudited}</option>
+                    <option value="estimated">{t.typeEstimated}</option>
+                    <option value="activity">{t.typeActivity}</option>
                   </select>
                 </div>
 
@@ -249,16 +258,18 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
                   <div>
                     <div className="row">
                       <div className="field">
-                        <label htmlFor="fMetric">The number</label>
+                        <label htmlFor="fMetric">{t.fieldMetric}</label>
                         <input
                           id="fMetric" type="text" placeholder="Support tickets down 41%"
+                          aria-invalid={errField === "fMetric" || undefined}
+                          aria-describedby={errField === "fMetric" ? "entryErr" : undefined}
                           value={form.metric} onChange={(e) => setForm({ ...form, metric: e.target.value })}
                         />
                       </div>
                       <div className="field">
                         <label htmlFor="fConstraint">
-                          What stayed the same
-                          <span className="hint">This turns a claim into evidence.</span>
+                          {t.fieldConstraint}
+                          <span className="hint">{t.fieldConstraintHint}</span>
                         </label>
                         <input
                           id="fConstraint" type="text" placeholder="Same headcount, same season"
@@ -267,9 +278,11 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
                       </div>
                     </div>
                     <div className="field">
-                      <label htmlFor="fEvidence">Where the number came from</label>
+                      <label htmlFor="fEvidence">{t.fieldEvidence}</label>
                       <input
                         id="fEvidence" type="text" placeholder="Zendesk monthly export, Q2 against Q1"
+                        aria-invalid={errField === "fEvidence" || undefined}
+                        aria-describedby={errField === "fEvidence" ? "entryErr" : undefined}
                         value={form.evidence} onChange={(e) => setForm({ ...form, evidence: e.target.value })}
                       />
                     </div>
@@ -278,10 +291,8 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
 
                 <div className="field">
                   <label htmlFor="fTags">
-                    Skills and tools
-                    <span className="hint">
-                      Comma separated. These are what get matched against a job description.
-                    </span>
+                    {t.fieldTags}
+                    <span className="hint">{t.fieldTagsHint}</span>
                   </label>
                   <input
                     id="fTags" type="text" placeholder="process design, zendesk, sql, workflow automation"
@@ -292,7 +303,7 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
                 <div className="quarantine">
                   <div className="qh">
                     <span className="dot" />
-                    Quarantine: industry statistics
+                    {t.quarantineTitle}
                   </div>
                   <input
                     type="text"
@@ -300,19 +311,19 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
                     value={form.benchmark}
                     onChange={(e) => setForm({ ...form, benchmark: e.target.value })}
                   />
-                  <p>
-                    Anything typed here is stored for interview preparation and is{" "}
-                    <b>locked out of your resume permanently</b>. A statistic sitting next to your
-                    name gets read as your result. That is the mistake this tool exists to prevent.
-                  </p>
+                  <p>{t.quarantineBody}</p>
                 </div>
 
                 <div className="btnrow" style={{ marginTop: 14 }}>
-                  <button className="btn" onClick={saveEntry}>Save entry</button>
+                  <button className="btn" onClick={saveEntry}>{t.saveEntry}</button>
                   <button className="btn quiet" onClick={() => { setOpen(false); setEditing(null); }}>
-                    Cancel
+                    {t.cancel}
                   </button>
-                  {err && <span className="msg bad on">{err}</span>}
+                  {err && (
+                    <span className="msg bad on" id="entryErr" role="alert">
+                      {err}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -323,8 +334,8 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
           <div>
             {!state.units.length ? (
               <div className="empty">
-                <h3>No entries yet</h3>
-                <p>Add your first, or load the example to see how grading works.</p>
+                <h3>{t.noEntriesYet}</h3>
+                <p>{t.noEntriesBlurb}</p>
               </div>
             ) : (
               state.units.map((u) => {
@@ -342,21 +353,31 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
                       <div className="unit-actions">
                         <span className={"grade " + g[1]}>
                           <span className="dot" />
-                          {g[2]}
+                          {gradeLabel(u.metricType, t)}
                         </span>
-                        <button className="iconbtn" title="Edit" aria-label="Edit entry" onClick={() => openEditor(u.id)}>
-                          ✎
+                        <button
+                          className="iconbtn"
+                          title={t.editEntry + ": " + u.org}
+                          aria-label={t.editEntry + ": " + u.org + ", " + (u.action || "").split(/\s+/).slice(0, 5).join(" ")}
+                          onClick={() => openEditor(u.id)}
+                        >
+                          <span aria-hidden="true">✎</span>
                         </button>
-                        <button className="iconbtn" title="Delete" aria-label="Delete entry" onClick={() => removeEntry(u.id)}>
-                          ✕
+                        <button
+                          className="iconbtn"
+                          title={t.deleteEntry + ": " + u.org}
+                          aria-label={t.deleteEntry + ": " + u.org + ", " + (u.action || "").split(/\s+/).slice(0, 5).join(" ")}
+                          onClick={() => removeEntry(u.id)}
+                        >
+                          <span aria-hidden="true">✕</span>
                         </button>
                       </div>
                     </div>
                     <div className="unit-body">{bullet(u)}</div>
-                    {u.evidence && <div className="unit-meta" style={{ marginBottom: 7 }}>Source: {u.evidence}</div>}
+                    {u.evidence && <div className="unit-meta" style={{ marginBottom: 7 }}>{t.entrySource}: {u.evidence}</div>}
                     {u.benchmark && (
                       <div className="unit-meta" style={{ marginBottom: 7, color: "var(--estimated)" }}>
-                        Quarantined statistic, interview use only
+                        {t.quarantinedNote}
                       </div>
                     )}
                     <div className="tags">
@@ -374,7 +395,7 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
         <aside>
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="score-n">{score}</div>
-            <div className="score-l">Resume strength</div>
+            <div className="score-l">{t.resumeStrength}</div>
             <div className="bar">
               {n ? (
                 GRADE_ORDER.map((k) => (
@@ -389,7 +410,7 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
                 <div key={k}>
                   <span className={"grade g-" + k}>
                     <span className="dot" />
-                    {GRADE[k][2]}
+                    {gradeLabel(k, t)}
                   </span>
                   <b>{counts[k]}</b>
                 </div>
@@ -398,24 +419,24 @@ export function EvidencePanel({ aiOn }: { aiOn: boolean }) {
             <div className="nextstep">{nextStep}</div>
           </div>
           <div className="card">
-            <h3 style={{ fontSize: 14, marginBottom: 9 }}>How the grades work</h3>
-            <p style={{ fontSize: 13, color: "var(--ink-2)" }}>Aim as high as the truth allows, then stop.</p>
+            <h3 style={{ fontSize: 14, marginBottom: 9 }}>{t.gradesTitle}</h3>
+            <p style={{ fontSize: 13, color: "var(--ink-2)" }}>{t.gradesRule}</p>
             <ul className="ladder">
               <li>
-                <span className="k"><span className="grade g-audited"><span className="dot" />Proven</span></span>
-                <span>Your number, and you can say where it came from.</span>
+                <span className="k"><span className="grade g-audited"><span className="dot" />{t.gradeProven}</span></span>
+                <span>{t.gradeProvenHelp}</span>
               </li>
               <li>
-                <span className="k"><span className="grade g-estimated"><span className="dot" />Estimate</span></span>
-                <span>Your number, worked out by you. Say so out loud in the interview.</span>
+                <span className="k"><span className="grade g-estimated"><span className="dot" />{t.gradeEstimate}</span></span>
+                <span>{t.gradeEstimateHelp}</span>
               </li>
               <li>
-                <span className="k"><span className="grade g-activity"><span className="dot" />Volume</span></span>
-                <span>How much you did. Weaker than a result, better than nothing.</span>
+                <span className="k"><span className="grade g-activity"><span className="dot" />{t.gradeVolume}</span></span>
+                <span>{t.gradeVolumeHelp}</span>
               </li>
               <li>
-                <span className="k"><span className="grade g-none"><span className="dot" />No number</span></span>
-                <span>Perfectly fine. Leave it unquantified rather than inventing something.</span>
+                <span className="k"><span className="grade g-none"><span className="dot" />{t.gradeNoNumber}</span></span>
+                <span>{t.gradeNoNumberHelp}</span>
               </li>
             </ul>
           </div>
@@ -459,4 +480,13 @@ function DEMO_UNITS(): Unit[] {
       tags: ["training", "documentation", "onboarding"],
     },
   ];
+}
+
+
+/** The four grade labels, through the catalogue rather than the constant. */
+function gradeLabel(k: MetricType, t: Strings): string {
+  return k === "audited" ? t.gradeProven
+    : k === "estimated" ? t.gradeEstimate
+    : k === "activity" ? t.gradeVolume
+    : t.gradeNoNumber;
 }

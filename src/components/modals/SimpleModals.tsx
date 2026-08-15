@@ -6,10 +6,12 @@ import { save } from "@/store/storage";
 import { useUi } from "@/ui/UiContext";
 import { copyText } from "@/lib/util";
 import { PREP_FLAGS, prepPrompt } from "@/lib/resume/prepPrompt";
+import { useT } from "@/i18n";
 
 /* ---------- welcome, first run only ---------- */
 export function WelcomeModal({ onDemo }: { onDemo(): void }) {
   const ui = useUi();
+  const t = useT();
   const close = () => {
     ui.close("welcome");
     try {
@@ -19,36 +21,25 @@ export function WelcomeModal({ onDemo }: { onDemo(): void }) {
     }
   };
   return (
-    <Veil on={ui.isOpen("welcome")} wide>
-      <div className="wtag">Free. No account. Nothing leaves your browser.</div>
-      <h3 style={{ fontSize: 24 }}>
-        Every other AI resume tool writes your bullets for you.
-        <br />
-        This one cannot.
-      </h3>
-      <p style={{ marginTop: 10 }}>
-        There is no model in here. You write the words, and the tool grades how well each claim would
-        hold up if somebody asked you about it in an interview. That is the whole idea, and it is why
-        nothing on your resume can be made up.
-      </p>
+    <Veil on={ui.isOpen("welcome")} wide label={t.welcomeHeadline}>
+      <div className="wtag">{t.welcomeTag}</div>
+      <h3 style={{ fontSize: 24 }}>{t.welcomeHeadline}</h3>
+      <p style={{ marginTop: 10 }}>{t.welcomeBody}</p>
       <div className="wsteps">
-        <div><b>1</b><span>Add what you have done</span></div>
-        <div><b>2</b><span>Paste the job you want</span></div>
-        <div><b>3</b><span>Get a resume aimed at it</span></div>
+        <div><b aria-hidden="true">1</b><span>{t.welcomeStep1}</span></div>
+        <div><b aria-hidden="true">2</b><span>{t.welcomeStep2}</span></div>
+        <div><b aria-hidden="true">3</b><span>{t.welcomeStep3}</span></div>
       </div>
-      <p style={{ fontSize: 13, color: "var(--muted)" }}>
-        Takes about ten minutes if you have your old resume handy. You can stop and come back, your
-        work is saved on this device.
-      </p>
+      <p style={{ fontSize: 13, color: "var(--muted)" }}>{t.welcomeTime}</p>
       <div className="btnrow" style={{ marginTop: 16 }}>
         <button className="btn" onClick={() => { close(); ui.open("paste"); }}>
-          Paste my resume to start
+          {t.welcomePaste}
         </button>
         <button className="btn ghost" onClick={() => { close(); ui.open("prep"); }}>
-          My resume needs cleaning up first
+          {t.welcomePrep}
         </button>
-        <button className="btn quiet" onClick={close}>Start from scratch</button>
-        <button className="btn quiet" onClick={() => { close(); onDemo(); }}>Show me an example</button>
+        <button className="btn quiet" onClick={close}>{t.welcomeBlank}</button>
+        <button className="btn quiet" onClick={() => { close(); onDemo(); }}>{t.welcomeDemo}</button>
       </div>
     </Veil>
   );
@@ -60,7 +51,7 @@ export function PrepModal() {
   const [msg, setMsg] = useState("");
   const text = prepPrompt();
   return (
-    <Veil on={ui.isOpen("prep")} wide>
+    <Veil on={ui.isOpen("prep")} wide label="Get your resume machine readable first">
       <h3>Get your resume machine readable first</h3>
       <p>
         Most resumes are built to look good on a page, not to be read by software. Two columns, text
@@ -131,7 +122,7 @@ export function PrepModal() {
 export function LegalModal() {
   const ui = useUi();
   return (
-    <Veil on={ui.isOpen("legal")} wide>
+    <Veil on={ui.isOpen("legal")} wide label="Privacy and terms">
       <h3>Privacy and terms</h3>
       <p style={{ color: "var(--muted)", fontSize: 12.5, marginBottom: 16 }}>Last updated 30 July 2026</p>
 
@@ -203,7 +194,7 @@ export function PaywallModal() {
   const [key, setKey] = useState("");
   const [msg, setMsg] = useState<{ kind: "good" | "bad"; text: string } | null>(null);
   return (
-    <Veil on={ui.isOpen("paywall")}>
+    <Veil on={ui.isOpen("paywall")} label="Unlock the full version">
       <h3>Unlock the full version</h3>
       <p>
         The free version holds five entries and stamps the export. One payment removes both, forever.

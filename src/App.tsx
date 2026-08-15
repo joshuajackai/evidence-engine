@@ -6,6 +6,7 @@ import { aiLoad, aiReady } from "@/lib/ai/client";
 import { finishOpenRouterSSO } from "@/lib/ai/sso";
 import { inferProfile } from "@/lib/resume/profile";
 import { UiContext, type ModalName, type UiApi } from "@/ui/UiContext";
+import { useStepRoute } from "@/ui/useStepRoute";
 import { TopBar } from "@/components/TopBar";
 import { Toast } from "@/components/Toast";
 import { EvidencePanel } from "@/components/panels/EvidencePanel";
@@ -22,6 +23,7 @@ import { SemanticModal } from "@/components/modals/SemanticModal";
 import { AtsModal } from "@/components/modals/AtsModal";
 import { GenModal } from "@/components/modals/GenModal";
 import type { AtsResult } from "@/lib/doc/ats";
+import { useT } from "@/i18n";
 
 /* Load persisted state once, before the first render, so nothing flashes empty. */
 let booted = false;
@@ -39,7 +41,9 @@ boot();
 
 export default function App() {
   const state = useAppState();
-  const [step, setStep] = useState(0);
+  const t = useT();
+  /* The URL carries the step, so Back, Forward, refresh and sharing all work. */
+  const [step, goStep] = useStepRoute();
   const [modals, setModals] = useState<Record<string, boolean>>({});
   const [toastText, setToastText] = useState("");
   const [toastOn, setToastOn] = useState(false);
@@ -89,8 +93,10 @@ export default function App() {
     () => ({
       step,
       go(i) {
-        setStep(i);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        goStep(i);
+        /* Respect a reduced-motion preference for the scroll as well as the CSS. */
+        const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+        window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
       },
       toast,
       open: (n: ModalName) => setModals((m) => ({ ...m, [n]: true })),
@@ -118,12 +124,12 @@ export default function App() {
       setJobDraft,
       writerJump,
       jumpToWriter() {
-        setStep(4);
+        goStep(4);
         setWriterJump((n) => n + 1);
         setTimeout(() => document.getElementById("writeBox")?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
       },
     }),
-    [step, modals, toast, gapTerms, semGaps, genJob, pendingListing, jobDraft, writerJump],
+    [step, goStep, modals, toast, gapTerms, semGaps, genJob, pendingListing, jobDraft, writerJump],
   );
 
   /* The gap wizard adds entries; make sure they persist even if the modal is
@@ -138,7 +144,7 @@ export default function App() {
     <UiContext.Provider value={ui}>
       <TopBar aiOn={aiOn} followUps={followUps} />
 
-      <main>
+      <main id="main" tabIndex={-1}>
         {step === 0 && <EvidencePanel aiOn={aiOn} />}
         {step === 1 && <TargetPanel />}
         {step === 2 && <MatchPanel />}
@@ -146,12 +152,12 @@ export default function App() {
         {step === 4 && <ApplyPanel atsScore={ats.score} />}
 
         <footer className="foot noprint">
-          <span>Evidence Engine</span>
+          <span>{t.appName}</span>
           <span className="sep">·</span>
-          <span>Your data never leaves this browser</span>
+          <span>{t.dataNeverLeaves}</span>
           <span className="sep">·</span>
           <button className="linkbtn" onClick={() => ui.open("legal")}>
-            Privacy and terms
+            {t.privacyTerms}
           </button>
         </footer>
       </main>
@@ -160,7 +166,7 @@ export default function App() {
         onDemo={() => {
           /* The example lives in the Evidence panel, so step there and let its
              own button do the work on the next tick. */
-          setStep(0);
+          goStep(0);
           setTimeout(() => {
             const btn = [...document.querySelectorAll("button")].find(
               (b) => b.textContent === "See an example",

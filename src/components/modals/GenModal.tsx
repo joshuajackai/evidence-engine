@@ -81,7 +81,7 @@ export function GenModal() {
     return c;
   }, [job, state]);
 
-  if (!open || !job) return <Veil on={false}>{null}</Veil>;
+  if (!open || !job) return <Veil on={false} label="">{null}</Veil>;
 
   const beforePct = coverageFor(job);
   const sourceBits: string[] = [];
@@ -171,7 +171,7 @@ export function GenModal() {
   }
 
   return (
-    <Veil on={open} wide className="gen-modal">
+    <Veil on={open} wide className="gen-modal" label="Tailored resume and CV">
       <div className="gen-header">
         <div>
           <h3>Tailored resume and CV</h3>

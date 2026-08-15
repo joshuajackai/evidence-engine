@@ -324,7 +324,7 @@ export function TargetPanel() {
   return (
     <section className="panel">
       <div className="head">
-        <h2>The jobs you are going for</h2>
+        <h1>The jobs you are going for</h1>
         <p>
           Search live boards for roles that match your evidence, or add a posting yourself. Each job
           keeps its own tailored resume.

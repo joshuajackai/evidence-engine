@@ -356,6 +356,12 @@ export function SourcesModal() {
               )}
             </div>
             <div style={{ fontSize: 12.5, color: "var(--ink-2)", margin: "3px 0 6px" }}>{x.note}</div>
+            {x.signup && (
+              <div style={{ fontSize: 12.5, margin: "0 0 6px" }}>
+                <a href={x.signup} target="_blank" rel="noopener">Get a free key</a>
+                <span style={{ color: "var(--muted)" }}> — then paste it into this source&apos;s key field below.</span>
+              </div>
+            )}
             {x.custom && (
               <input
                 type="text" placeholder="a name for this source" style={{ marginBottom: 5 }}

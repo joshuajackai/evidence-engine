@@ -269,6 +269,9 @@ export interface RapidSource {
   id: string;
   label: string;
   note: string;
+  /** Where a visitor gets their own free key. Rendered as a "Get a free key"
+      link, because the public tool never ships anyone's key. */
+  signup?: string;
   host: string;
   path: string;
   key: string;

@@ -206,8 +206,10 @@ export const RAPID_DEFAULTS: Omit<RapidSource, "key" | "headers" | "method" | "b
     path: "/job-postings/v1/jobs/search?q={q}&country=United%20States&status=active&limit=100",
     note:
       "Monitors company ATS providers directly (Greenhouse, Lever, Workday, ADP and more) and " +
-      "carries source_posted_at, the company's own post date. Free tier, own key via email OTP at " +
-      "bluedoor.sh. Send the key as Authorization: Bearer in this row's key field.",
+      "carries source_posted_at, the company's own post date. Free key by email code: click " +
+      "Get a free key, request a code, and paste the key this source hands back into the key " +
+      "field on this row. Your key stays in your browser.",
+    signup: "https://bluedoor.sh/apis/job-postings/docs/",
     unofficial: false,
   },
 ];
@@ -272,6 +274,7 @@ export function rapidSources(): RapidSource[] {
       id: d.id,
       label: d.label,
       note: d.note,
+      signup: (d as { signup?: string }).signup,
       unofficial: !!d.unofficial,
       custom: false,
       host: o.host != null && o.host !== "" ? o.host : d.host,

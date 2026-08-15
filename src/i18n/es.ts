@@ -70,7 +70,7 @@ export const es: Strings = {
   fieldDates: "Fechas",
   fieldAction: "Qué hiciste",
   fieldActionHint:
-    "Empieza con un verbo que puedas defender. Reconstruí, migré, programé, diagnostiqué, negocié. Evita palabras que esconden tus manos, como optimicé o aproveché.",
+    "Empieza con el verbo que nombra la habilidad que aplicaste, de modo que un reclutador pueda adivinar tu puesto solo con el verbo. Investigué usuarios, diseñé los wireframes, desarrollé el front-end de las páginas, redacté los textos, configuré. Evita verbos que solo dicen que algo llegó a existir: hice, creé, construí, entregué.",
   fieldType: "¿Hay alguna cifra asociada a esto?",
   fieldTypeHint:
     "Sé honesto. Esta nota es lo importante, y es la pregunta que hará quien te entreviste.",

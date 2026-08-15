@@ -7,6 +7,7 @@ import { save } from "@/store/storage";
 import { bullet } from "@/lib/util";
 import { readabilitySuggestions } from "@/lib/doc/ats";
 import { aiCall, aiReady } from "@/lib/ai/client";
+import { DISCIPLINE_VERB_RULE, BANNED_LEAD_VERBS } from "@/lib/doc/style";
 
 /**
  * Nothing here is applied until the user says so. Anything that would change a
@@ -57,10 +58,11 @@ export function AtsModal({ atsFailed }: { atsFailed: string[] }) {
       .filter(Boolean) as { id: number; line: string }[];
     try {
       const txt = await aiCall(
-        "Rewrite each numbered line below so it opens with a strong specific verb and reads " +
-          "tighter. Keep every fact, every number and every claim exactly as written. Add nothing. " +
-          "Remove nothing factual. Return ONLY valid JSON, an array of {id, rewritten}. No " +
-          "commentary, no code fences.\n\n" +
+        "Rewrite each numbered line below so it opens with the verb that names the discipline " +
+          "deployed, and reads tighter. " + DISCIPLINE_VERB_RULE + " Never open with: " +
+          BANNED_LEAD_VERBS.join(", ") + ". Keep every fact, every number and every claim exactly " +
+          "as written. Add nothing. Remove nothing factual. Return ONLY valid JSON, an array of " +
+          "{id, rewritten}. No commentary, no code fences.\n\n" +
           payload.map((p) => p.id + ": " + p.line).join("\n"),
       );
       const mm = txt.match(/\[[\s\S]*\]/);

@@ -1,5 +1,13 @@
 /* Every prompt the tool sends. Kept together because the guardrails inside
-   them are the product, not an implementation detail. */
+   them are the product, not an implementation detail.
+
+   The verb and phrase rules are imported from the bullet style contract in
+   lib/doc/style.ts rather than written here, so the prompts, the deterministic
+   lint and the on-page suggestions can never drift apart. */
+import {
+  APPROVED_LEAD_SAMPLE, BANNED_LEAD_VERBS, BULLET_FRAMES_PROMPT,
+  DISCIPLINE_VERB_RULE, HEDGES, MECHANICS_PROMPT, VAGUE_QUANTITY, WARN_LEAD_VERBS,
+} from "@/lib/doc/style";
 
 export const AI_SYSTEM =
   "You are helping somebody prepare their own resume inside a tool whose central promise is that " +
@@ -35,12 +43,22 @@ export const AI_WRITER =
   "- Change a weak verb to a precise one, provided the new verb describes the same action at the same " +
   "level of ownership. Never promote: assisted does not become led, contributed does not become owned.\n" +
   "- Write a summary and a skills line, drawn only from what appears in the entries.\n\n" +
+  "THE LEAD VERB NAMES THE DISCIPLINE\n" +
+  DISCIPLINE_VERB_RULE + "\n" +
+  "Never open a bullet with: " + BANNED_LEAD_VERBS.join(", ") + ".\n" +
+  "Treat as weak and sharpen where the facts allow: " + WARN_LEAD_VERBS.join(", ") + ".\n" +
+  "Good leads include: " + APPROVED_LEAD_SAMPLE.join(", ") + ".\n" +
+  "No lead verb repeats within one role.\n\n" +
+  BULLET_FRAMES_PROMPT + "\n\n" +
+  MECHANICS_PROMPT + "\n\n" +
   "WHAT YOU MAY NEVER DO\n" +
   "- Invent or alter an employer, job title, date, tool, certification or number. Not one digit.\n" +
   "- Add a skill the entries do not evidence, however much the posting wants it.\n" +
   "- Insert an industry statistic as if it were this person's result.\n" +
   "- Use an em dash or an en dash anywhere. Commas, full stops and colons only.\n" +
-  "- Write filler: passionate, results-driven, proven track record, dynamic, synergy, leveraged.\n\n" +
+  "- Write filler. Hedges: " + HEDGES.join(", ") + ". Vague quantities: " +
+  VAGUE_QUANTITY.join(", ") + ". Asserted adjectives such as passionate, results-driven, " +
+  "proven track record, dynamic. Replace the adjective with the number it was pretending to be.\n\n" +
   "HONESTY LEDGER\n" +
   "Anything the posting requires that the entries genuinely do not evidence goes in `missing`, never " +
   "into a bullet. A resume that wins a keyword filter and then collapses in the first interview " +
@@ -64,9 +82,12 @@ export const AI_PRESETS: Record<string, string> = {
     "exactly as I stated it. Start each with a strong specific verb. Do not add any information " +
     "I did not give you. Show the original and your version.",
   verbs:
-    "List the lines below that start with a weak, vague or passive verb, such as managed, " +
-    "helped, responsible for, worked on, assisted. For each, suggest two stronger verbs that would " +
-    "still be truthful given what I described. Change nothing else.",
+    "Judge the opening verb of every line below by one test: with the object removed, could a " +
+    "recruiter name the job title from the verb alone? Verbs that only say a thing came to exist, " +
+    "such as " + BANNED_LEAD_VERBS.slice(0, 12).join(", ") + ", fail it. For each failing line, " +
+    "suggest two replacements that name the discipline actually deployed, in the style of: " +
+    APPROVED_LEAD_SAMPLE.slice(0, 12).join(", ") + ". Both suggestions must stay truthful to what " +
+    "I described, at the same level of ownership. Change nothing else.",
   gaps:
     "Read my entries as a sceptical recruiter. Name the specific claims you would doubt or " +
     "probe in an interview and say exactly what you would ask. Be blunt. Do not rewrite anything.",
@@ -139,13 +160,12 @@ export const GEN_SYSTEM =
   "'strategic mindset', 'results-driven', 'data-driven', 'holistic approach'.\n" +
   "- No 'Not just X, it is Y' formulation.\n" +
   "- No praise adjectives about the candidate's own work.\n" +
-  "- Every bullet leads with a strong hands-on verb: rebuilt, migrated, wired, traced, diagnosed, " +
-  "shipped, launched, integrated, configured, coded, drafted, negotiated, closed, recovered.\n\n" +
-  "BULLET STRUCTURE (STAR+L compressed to one sentence):\n" +
-  "[Verb] [what] [on what stack if named in source] after [specific cause if named], [what was built]. " +
-  "[Result with number if present in source] against [baseline if named], [constraint held flat if named].\n" +
-  "Not every bullet needs every element. Use what the source provides. Never fabricate a cause, " +
-  "a baseline, or a constraint to fill the template.\n\n" +
+  "- " + DISCIPLINE_VERB_RULE + "\n" +
+  "- Never open a bullet with: " + BANNED_LEAD_VERBS.join(", ") + ". " +
+  "Weak but tolerated where nothing sharper is true: " + WARN_LEAD_VERBS.join(", ") + ". " +
+  "Good leads include: " + APPROVED_LEAD_SAMPLE.join(", ") + ". No lead verb repeats within one role.\n\n" +
+  BULLET_FRAMES_PROMPT + "\n\n" +
+  MECHANICS_PROMPT + "\n\n" +
   "KEYWORD OPTIMIZATION, honest kind:\n" +
   "Rewrite existing lines to use the job description's vocabulary where the underlying fact matches. " +
   "Example: source says 'web copy for product pages', JD says 'conversion copy'. Rewrite to 'conversion " +

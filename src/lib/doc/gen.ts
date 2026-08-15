@@ -9,6 +9,7 @@ import { S } from "@/store/state";
 import { GRADE, downloadBlob, esc } from "@/lib/util";
 import { GEN_SYSTEM } from "@/lib/ai/prompts";
 import { kwHitInText } from "./score";
+import { HEDGES, VAGUE_QUANTITY, ASSERTED_ADJECTIVES, bulletsOf, judgeLeadVerb } from "./style";
 import { mdToHtml } from "./markdown";
 
 export function computeGenMatch(text: string, kwList: Keyword[]): { pct: number; hits: string[]; miss: string[] } {
@@ -53,8 +54,8 @@ const GEN_BANNED = [
   "robust", "dynamic", "holistic", "streamline", "optimize", "empower", "foster", "elevate",
   "revolutionize", "game changer", "cutting-edge", "powerful tool", "valuable insights",
   "journey", "tapestry", "realm", "navigate the landscape", "in an ever-changing",
-  "in today's fast-paced", "meaningful impact", "proven track record", "results-driven",
-  "data-driven", "passionate about", "excited to", "strategic mindset", "great question",
+  "in today's fast-paced", "meaningful impact",
+  "data-driven", "excited to", "strategic mindset", "great question",
 ];
 const GEN_CONTR = [
   "don't", "can't", "won't", "i'm", "you're", "we're", "they're", "it's", "that's", "we'll",
@@ -72,6 +73,42 @@ export function computeGenLint(text: string): { score: number; issues: LintIssue
   const low = t.toLowerCase();
   if (/[—–]/.test(t))
     issues.push({ sev: "high", msg: "Em or en dash present. Voice rule: commas, periods or colons only." });
+
+  /* The bullet style contract: the lead verb names the discipline deployed.
+     Judged per bullet line and anchored at the start, so "Built" failing a
+     bullet does not also flag "built-in" inside prose. */
+  const seenBanned: Record<string, 1> = {};
+  const seenWarn: Record<string, 1> = {};
+  bulletsOf(t).forEach((b) => {
+    const v = judgeLeadVerb(b);
+    if (v.level === "banned" && !seenBanned[v.verb.toLowerCase()]) {
+      seenBanned[v.verb.toLowerCase()] = 1;
+      issues.push({
+        sev: "high",
+        msg:
+          'Bullet opens with "' + v.verb + '", which says a thing came to exist but not which ' +
+          "skill produced it. Lead with the discipline: Front-end developed, Copywrote, " +
+          "Conducted user research, Configured.",
+      });
+    } else if (v.level === "warn" && !seenWarn[v.verb.toLowerCase()]) {
+      seenWarn[v.verb.toLowerCase()] = 1;
+      issues.push({
+        sev: "med",
+        msg: 'Bullet opens with "' + v.verb + '", a weak lead. Name the discipline if a sharper true verb exists.',
+      });
+    }
+  });
+  HEDGES.forEach((h) => {
+    if (low.indexOf(h) > -1) issues.push({ sev: "high", msg: 'Hedge: "' + h + '". State the work or remove the claim.' });
+  });
+  VAGUE_QUANTITY.forEach((q) => {
+    const re = new RegExp("(?:^|[^a-z])" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?:$|[^a-z])", "i");
+    if (re.test(t)) issues.push({ sev: "med", msg: 'Vague quantity: "' + q + '". Use the real number or drop it.' });
+  });
+  ASSERTED_ADJECTIVES.forEach((a) => {
+    if (low.indexOf(a) > -1)
+      issues.push({ sev: "med", msg: 'Asserted adjective: "' + a + '". Replace it with the number it is pretending to be.' });
+  });
   GEN_CONTR.forEach((w) => {
     const re = new RegExp("(?:^|[^a-z])" + w.replace(/'/g, "['’]") + "(?:$|[^a-z])", "i");
     if (re.test(t))

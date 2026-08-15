@@ -7,6 +7,7 @@
 import { S } from "@/store/state";
 import { bullet } from "@/lib/util";
 import type { Suggestion } from "@/types";
+import { judgeLeadVerb } from "./style";
 
 export interface AtsCheck {
   ok: boolean;
@@ -107,8 +108,17 @@ export function readabilitySuggestions(atsFailed: string[]): Suggestion[] {
   chosen.forEach((u) => {
     const b = bullet(u);
     if (!b) return;
-    if (/^(managed|helped|assisted|worked on|responsible for|supported|participated)/i.test(b))
-      out.push({ kind: "verb", id: u.id, label: "Weak opening verb", detail: b.slice(0, 90) });
+    /* The bullet style contract judges the opener: a banned lead says a thing
+       came to exist without naming the skill; a warn lead is soft but legal. */
+    const lead = judgeLeadVerb(b);
+    if (lead.level === "banned")
+      out.push({
+        kind: "verb", id: u.id,
+        label: 'Opens with "' + lead.verb + '", which hides the discipline',
+        detail: b.slice(0, 90),
+      });
+    else if (lead.level === "warn")
+      out.push({ kind: "verb", id: u.id, label: 'Weak opening verb: "' + lead.verb + '"', detail: b.slice(0, 90) });
     if (b.split(/\s+/).length > 34)
       out.push({ kind: "long", id: u.id, label: "Bullet runs long, parsers truncate", detail: b.slice(0, 90) });
     if (u.metricType === "none")

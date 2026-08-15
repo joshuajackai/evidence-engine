@@ -213,7 +213,7 @@ export const en: Strings = {
   fieldDates: "Dates",
   fieldAction: "What you did",
   fieldActionHint:
-    "Start with a verb you can defend. Rebuilt, migrated, coded, diagnosed, negotiated. Avoid words that hide your hands, such as optimized or leveraged.",
+    "Open with the verb that names the skill you deployed, so a recruiter could guess your job title from the verb alone. Conducted user research, designed the wireframes, front-end developed the landing pages, copywrote, configured. Avoid verbs that only say a thing came to exist: built, made, created, delivered.",
   fieldType: "Is there a number attached to this",
   fieldTypeHint:
     "Be honest. This grade is the whole point, and it is the question an interviewer will ask.",

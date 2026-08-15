@@ -119,6 +119,31 @@ stylesheet.
 
 ---
 
+## The bullet style contract
+
+`src/lib/doc/style.ts` is a port of the author's production resume-pipeline
+style contract (`bullet-style.json` v1.1.0), taken 2026-08-14. The core of it:
+
+- **The lead verb names the discipline deployed, never the act of making.**
+  "Built the landing pages" could be a designer, a developer, a PM or a
+  founder. "Front-end developed the WordPress landing pages" can only be one
+  of them. 49 leads are hard-banned, 13 are flagged as weak, and "Produced" is
+  rescued only when production is literally the discipline (a film, an
+  episode, a print run).
+- **Six bullet frames**, intervention-result by default, with the mechanism and
+  every numeral RETRIEVED from the user's entries rather than generated.
+- **Banned phrase groups with reasons**: hedges, vague quantities, asserted
+  adjectives. The lint message says why a phrase failed, not just that it did.
+
+The module is the single source of truth: `AI_WRITER`, `GEN_SYSTEM`, the
+`verbs` preset, the AtsModal rewrite prompt, `computeGenLint` and
+`readabilitySuggestions` all import from it. Re-typing a rule in two places is
+how rules drift, so do not.
+
+The lead-verb judgement is anchored to the start of each bullet line, which is
+what keeps "Built" failing a bullet without also flagging "built-in analytics"
+inside prose.
+
 ## Defects fixed during the port
 
 1. **The ATS score went stale.** Fixed with `useStoreVersion()`, above.

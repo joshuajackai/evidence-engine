@@ -64,14 +64,18 @@ export function firstOf(x: Record<string, unknown>, names: string[]): string {
 const RAPID_FIELDS = {
   title: ["title", "job_title", "jobTitle", "name", "position", "role"],
   co: ["company", "company_name", "companyName", "employer_name", "employerName", "organization", "org",
-       "employer", "hiringOrganization.name", "company.name", "organization_name"],
+       "employer", "hiringOrganization.name", "company.name", "organization_name", "org_name"],
   url: ["url", "job_url", "jobUrl", "apply_link", "job_apply_link", "applyUrl", "apply_url", "link",
         "redirect_url", "detailUrl", "job_link", "jobProviders.0.url", "source_url"],
   loc: ["location", "job_location", "jobLocation", "locations_derived", "job_city", "city", "place", "area",
-        "formattedLocation", "locationName", "job_country", "address"],
-  date: ["date_posted", "datePosted", "posted_at", "postedAt", "publication_date", "published_at", "created",
-         "createdAt", "created_at", "job_posted_at_timestamp", "job_posted_at_datetime_utc", "postedDate",
-         "date", "posted", "listed_at", "postingDate", "publishedDate", "updated"],
+        "formattedLocation", "locationName", "job_country", "address", "location_text"],
+  /* source_posted_at is bluedoor's COMPANY post date, read from the ATS. It goes
+     first so freshness is taken from when the company posted, not when bluedoor
+     or anyone else indexed the row. */
+  date: ["source_posted_at", "date_posted", "datePosted", "posted_at", "postedAt", "publication_date",
+         "published_at", "created", "createdAt", "created_at", "job_posted_at_timestamp",
+         "job_posted_at_datetime_utc", "postedDate", "date", "posted", "listed_at", "postingDate",
+         "publishedDate", "updated"],
 };
 
 export function mapRapidRow(

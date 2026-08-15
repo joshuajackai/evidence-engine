@@ -7,7 +7,7 @@
 import type { Listing, PullResult, SearchForm, SearchState, SourceError } from "@/types";
 import { S } from "@/store/state";
 import { save } from "@/store/storage";
-import { AGGREGATORS, QUICK_BOARD_COUNT, boardList } from "./sources";
+import { AGGREGATORS, QUICK_BOARD_COUNT, boardList, isAggOn } from "./sources";
 import { pullAggregator, pullBoard, pullKeyed } from "./pull";
 import { locMatches } from "./geo";
 import { parsePay } from "./pay";
@@ -56,7 +56,7 @@ export async function runSearch({ form, onProgress }: RunSearchArgs): Promise<Se
 
   const tasks: (() => Promise<PullResult>)[] = boards
     .map((b) => () => pullBoard(b))
-    .concat(AGGREGATORS.map((a) => () => pullAggregator(a)))
+    .concat(AGGREGATORS.filter((a) => isAggOn(a.id)).map((a) => () => pullAggregator(a)))
     .concat([() => pullKeyed(loc, extra)]);
 
   let all: Listing[] = [];

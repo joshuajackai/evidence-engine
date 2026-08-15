@@ -5,7 +5,8 @@ import { Spinner } from "@/components/Toast";
 import { useUi } from "@/ui/UiContext";
 import {
   AGGREGATORS, BLOCKED_SOURCES, KEYED_SOURCES, boardList, keyedCfg, rapidKey, rapidSaved,
-  rapidSources, saveBoardList, saveKeyedCfg, saveRapid, type KeyedCfg, type RapidSaved,
+  rapidSources, saveBoardList, saveKeyedCfg, saveRapid, isAggOn, setAggOn,
+  type KeyedCfg, type RapidSaved,
 } from "@/lib/search/sources";
 import { parseCurl, templatizePath } from "@/lib/search/curl";
 import { mapRapidRow, pickRows } from "@/lib/search/rapid";
@@ -20,6 +21,7 @@ export function SourcesModal() {
   const [curl, setCurl] = useState<Record<string, string>>({});
   const [curlOut, setCurlOut] = useState<Record<string, React.ReactNode>>({});
   const [testOut, setTestOut] = useState<Record<string, React.ReactNode>>({});
+  const [, setTick] = useState(0);   // force a re-render after an aggregator toggle
 
   useEffect(() => {
     if (!open) return;
@@ -257,7 +259,7 @@ export function SourcesModal() {
   }
 
   return (
-    <Veil on={open} wide>
+    <Veil on={open} wide label="Where the roles come from">
       <h3>Where the roles come from</h3>
       <p>
         Your browser calls each of these directly. Nothing about you is sent anywhere, which is also
@@ -265,13 +267,28 @@ export function SourcesModal() {
       </p>
 
       <h4 className="lh">Live now, no setup</h4>
+      <p style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 6 }}>
+        Click a source to switch it on or off. Off sources are skipped on the next search.
+      </p>
       <ul className="atslist">
-        {AGGREGATORS.map((a) => (
-          <li className="ok" key={a.id}>
-            <span className="m">✓</span>
-            <span>{a.label}</span>
-          </li>
-        ))}
+        {AGGREGATORS.map((a) => {
+          const on = isAggOn(a.id);
+          return (
+            <li
+              className={on ? "ok" : ""}
+              key={a.id}
+              onClick={() => { setAggOn(a.id, !on); setTick((t) => t + 1); }}
+              style={{ cursor: "pointer", userSelect: "none", opacity: on ? 1 : 0.5 }}
+              title={on ? "On — click to turn off" : "Off — click to turn on"}
+            >
+              <span className="m">{on ? "✓" : "○"}</span>
+              <span>{a.label}</span>
+              <span className={"grade " + (on ? "g-audited" : "g-none")} style={{ marginLeft: "auto" }}>
+                {on ? "On" : "Off"}
+              </span>
+            </li>
+          );
+        })}
         <li className="ok">
           <span className="m">✓</span>
           <span>{boardList().length} company boards on Greenhouse, Lever and Ashby</span>

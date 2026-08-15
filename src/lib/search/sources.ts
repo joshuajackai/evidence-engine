@@ -12,6 +12,26 @@ import type { Aggregator, BlockedSource, CompanyBoard, RapidSource } from "@/typ
 export const BOARDS_KEY = "ee.boards";
 export const KEYED_KEY = "ee.keysrc";
 export const RAPID_KEY = "ee.rapidsrc";
+export const AGG_OFF_KEY = "ee.aggoff";
+
+/* Which aggregators the user has switched OFF. Stored as a list of ids so the
+   default (nothing stored) means every aggregator is on, which is the behaviour
+   before this toggle existed. */
+export function aggOff(): string[] {
+  const v = readJson<string[]>(AGG_OFF_KEY, []);
+  return Array.isArray(v) ? v : [];
+}
+export function saveAggOff(ids: string[]): void {
+  writeJson(AGG_OFF_KEY, ids);
+}
+export function isAggOn(id: string): boolean {
+  return aggOff().indexOf(id) === -1;
+}
+export function setAggOn(id: string, on: boolean): void {
+  const cur = aggOff().filter((x) => x !== id);
+  if (!on) cur.push(id);
+  saveAggOff(cur);
+}
 
 /* EVERY token below was probed against its ATS and returned jobs. None are
    guesses. The sweep tested 317 companies and 185 had no reachable board at
@@ -172,6 +192,22 @@ export const RAPID_DEFAULTS: Omit<RapidSource, "key" | "headers" | "method" | "b
       "Federal contract opportunities, not job listings. SAM.gov's own API is free but sends no " +
       "CORS header, so a browser cannot call it directly. This RapidAPI wrapper can, which is the " +
       "only reason it works here.",
+    unofficial: false,
+  },
+  /* bluedoor is NOT on RapidAPI. It is its own API with its own key, added here
+     because this list is the tool's keyed-source registry, not a RapidAPI-only
+     one. It sends CORS headers (access-control-allow-origin: *) and takes a
+     Bearer key, so the browser can call it directly. pull.ts sends the key as
+     Authorization: Bearer because the host is not *.rapidapi.com. Paste the
+     bluedoor key in this source's own key field, not the shared RapidAPI one.
+     status=active and the source_posted_at field give live, company-dated rows. */
+  {
+    id: "bluedoor", label: "bluedoor Job Postings", host: "api.bluedoor.sh",
+    path: "/job-postings/v1/jobs/search?q={q}&country=United%20States&status=active&limit=100",
+    note:
+      "Monitors company ATS providers directly (Greenhouse, Lever, Workday, ADP and more) and " +
+      "carries source_posted_at, the company's own post date. Free tier, own key via email OTP at " +
+      "bluedoor.sh. Send the key as Authorization: Bearer in this row's key field.",
     unofficial: false,
   },
 ];
